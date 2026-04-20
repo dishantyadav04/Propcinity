@@ -7,12 +7,14 @@ import PersonalizedWelcome from "@/components/onboarding/PersonalizedWelcome";
 import PageLoader from "@/components/ui/PageLoader";
 import SectionContainer from "@/components/layout/SectionContainer";
 import { getPublishedProjects } from "@/services/projects";
+import { generateFitReasons } from "@/services/fit-analysis";
 import { UserIntent } from "@/types/user";
 
 export default function DashboardPage() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [intent, setIntent] = useState<UserIntent | null>(null);
+  const [fitScores, setFitScores] = useState<Record<string, number>>({});
 
   useEffect(() => {
     const savedIntent = localStorage.getItem('userIntent');
@@ -22,6 +24,15 @@ export default function DashboardPage() {
       try {
         const data = await getPublishedProjects();
         setProjects(data);
+        const savedIntent = localStorage.getItem('userIntent');
+        if (savedIntent) {
+          const intent = JSON.parse(savedIntent);
+          const scores: Record<string, number> = {};
+          data.forEach(p => {
+            scores[p.id] = generateFitReasons(p, p.unitConfigs[0] || null, intent).score;
+          });
+          setFitScores(scores);
+        }
       } catch (err) {
         console.error(err);
       } finally {
@@ -51,7 +62,7 @@ export default function DashboardPage() {
             <ProjectCard 
               key={project.id} 
               project={project} 
-              fitScore={project.trustScore - (Math.random() * 10)} // Placeholder for actual fit logic
+              fitScore={fitScores[project.id] ?? project.trustScore}
             />
           ))}
         </div>

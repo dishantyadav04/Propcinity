@@ -1,6 +1,8 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  serverExternalPackages: ['@anthropic-ai/sdk', 'openai', 'posthog-node'],
+  experimental: {
+    serverComponentsExternalPackages: ['@anthropic-ai/sdk', 'openai', 'posthog-node'],
+  },
 
   images: {
     domains: ['images.propiq.in'],

@@ -41,7 +41,7 @@ export default function MapView({
       try {
         const response = await fetch(`/api/nearby?lat=${lat}&lng=${lng}&radius=3000`);
         const data = await response.json();
-        setNearbyPlaces(data);
+        setNearbyPlaces(data.places || []);
       } catch (e) {
         console.error("Failed to fetch nearby places", e);
       } finally {

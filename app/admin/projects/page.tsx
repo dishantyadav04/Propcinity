@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import { Project } from "@/types/project";
-import { getPublishedProjects } from "@/services/projects";
 import Link from "next/link";
 import { Plus, Edit, Trash2, Eye, ExternalLink } from "lucide-react";
 import { formatINR } from "@/lib/finance-calculations";
@@ -14,9 +13,18 @@ export default function AdminProjectsPage() {
 
   useEffect(() => {
     const loadProjects = async () => {
-      const data = await getPublishedProjects();
-      setProjects(data);
-      setIsLoading(false);
+      try {
+        const res = await fetch('/api/admin/projects', {
+          credentials: 'include',
+        });
+        if (!res.ok) throw new Error('Unauthorized');
+        const json = await res.json();
+        setProjects(json.projects || []);
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setIsLoading(false);
+      }
     };
     loadProjects();
   }, []);
