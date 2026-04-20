@@ -96,6 +96,29 @@ export async function POST(request: NextRequest) {
 
   const bookingRef = lead.booking_ref
 
+  // Fire PostHog server-side conversion event (non-blocking)
+  // intentLabel intentionally NOT included — stays internal
+  try {
+    const { PostHog } = await import('posthog-node')
+    const phClient = new PostHog(process.env.NEXT_PUBLIC_POSTHOG_KEY || '', {
+      host: process.env.NEXT_PUBLIC_POSTHOG_HOST || 'https://app.posthog.com',
+    })
+    phClient.capture({
+      distinctId: leadData.phone, // use phone as anonymous ID server-side
+      event: 'consultation_completed',
+      properties: {
+        projectId: leadData.projectId,
+        projectName,
+        timeline: leadData.timeline,
+        triggerSource: leadData.triggerSource || 'unknown',
+        // intentLabel and intentScore deliberately excluded
+      },
+    })
+    await phClient.shutdown()
+  } catch {
+    // PostHog failure must never break lead saving
+  }
+
   Promise.all([
     sendBuyerConfirmation({
       name: leadData.name,
