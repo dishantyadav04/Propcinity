@@ -25,6 +25,10 @@ export function trackOnboardingCompleted(data: {
   getPostHog()?.capture('onboarding_completed', data)
 }
 
+export function trackOnboardingStep(step: number, stepName: string): void {
+  getPostHog()?.capture('onboarding_step_reached', { step, stepName })
+}
+
 export function trackProjectViewed(data: {
   projectId: string
   projectName: string

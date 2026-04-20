@@ -1,10 +1,7 @@
-import type { NextConfig } from 'next'
-
-const nextConfig: NextConfig = {
-  // Required for heavy server-side packages to work in Next.js edge runtime
+/** @type {import('next').NextConfig} */
+const nextConfig = {
   serverExternalPackages: ['@anthropic-ai/sdk', 'openai', 'posthog-node'],
 
-  // Cloudflare R2 CDN domain — required for next/image to serve project photos
   images: {
     domains: ['images.propiq.in'],
   },
@@ -22,7 +19,6 @@ const nextConfig: NextConfig = {
         ],
       },
       {
-        // Prevent search engines from indexing the admin panel
         source: '/admin/(.*)',
         headers: [{ key: 'X-Robots-Tag', value: 'noindex' }],
       },
