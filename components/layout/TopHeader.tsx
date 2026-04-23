@@ -27,10 +27,11 @@ export default function TopHeader() {
       <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-4">
 
         {/* Logo */}
-        <Link href="/dashboard" className="flex items-center gap-2.5 flex-shrink-0">
-          <div className="w-8 h-8 bg-[var(--primary)] rounded-[var(--radius-xs)] flex items-center justify-center text-white font-black text-sm">P</div>
-          <span className="text-lg font-black text-[var(--text-primary)] tracking-tight hidden sm:block"
-            style={{ fontFamily: 'var(--font-display)' }}>PropIQ</span>
+        <Link href="/dashboard" className="flex items-center flex-shrink-0">
+          <span className="text-xl font-black text-[var(--text-primary)] tracking-tight"
+            style={{ fontFamily: 'var(--font-display)' }}>
+            Prop<span className="text-[var(--primary)]">IQ</span>
+          </span>
         </Link>
 
         {/* Desktop Nav */}

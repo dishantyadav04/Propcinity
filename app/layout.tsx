@@ -34,7 +34,7 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en" className={`${syne.variable} ${jakarta.variable}`}>
+    <html lang="en" className={`${syne.variable} ${jakarta.variable}`} suppressHydrationWarning>
       <body className="font-sans bg-[var(--background)] text-[var(--text-primary)] antialiased">
         <TopHeader />
         <main className="min-h-screen pb-20 md:pb-0 md:pt-0">

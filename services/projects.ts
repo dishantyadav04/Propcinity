@@ -1,5 +1,6 @@
 import { createAdminSupabaseClient, createServerSupabaseClient } from '@/lib/supabase-server'
 import { Project, UnitConfig } from '@/types/project'
+import { MOCK_PROJECTS } from '@/lib/mock-data'
 
 type SupabaseProjectRow = {
   id: string
@@ -101,7 +102,8 @@ async function fetchUnitConfigsByProjectIds(
 ): Promise<Map<string, SupabaseUnitConfigRow[]>> {
   if (!projectIds.length) return new Map()
 
-  const supabase = createServerSupabaseClient()
+  const supabase = await createServerSupabaseClient()
+  if (!supabase) return new Map()
   const { data } = await supabase
     .from('unit_configs')
     .select('*')
@@ -124,7 +126,11 @@ export async function getPublishedProjects(filters?: {
   propertyTypes?: string[]
   excludeIds?: string[]
 }): Promise<Project[]> {
-  const supabase = createServerSupabaseClient()
+  const supabase = await createServerSupabaseClient()
+  if (!supabase) {
+    console.log('Using mock data for getPublishedProjects')
+    return MOCK_PROJECTS
+  }
 
   let query = supabase
     .from('projects_public')
@@ -168,7 +174,10 @@ export async function getPublishedProjects(filters?: {
 }
 
 export async function getProjectBySlug(slug: string): Promise<Project | null> {
-  const supabase = createServerSupabaseClient()
+  const supabase = await createServerSupabaseClient()
+  if (!supabase) {
+    return MOCK_PROJECTS.find(p => p.slug === slug) || null
+  }
   const { data: project, error } = await supabase
     .from('projects_public')
     .select('*')
@@ -184,7 +193,10 @@ export async function getProjectBySlug(slug: string): Promise<Project | null> {
 export async function getProjectsByIds(ids: string[]): Promise<Project[]> {
   if (!ids.length) return []
 
-  const supabase = createServerSupabaseClient()
+  const supabase = await createServerSupabaseClient()
+  if (!supabase) {
+    return MOCK_PROJECTS.filter(p => ids.includes(p.id))
+  }
   const { data: projects } = await supabase
     .from('projects_public')
     .select('*')
@@ -202,14 +214,16 @@ export async function getProjectsByIds(ids: string[]): Promise<Project[]> {
 }
 
 export async function saveProject(userId: string, projectId: string): Promise<void> {
-  const supabase = createServerSupabaseClient()
+  const supabase = await createServerSupabaseClient()
+  if (!supabase) return
   await supabase
     .from('saved_projects')
     .upsert({ user_id: userId, project_id: projectId })
 }
 
 export async function unsaveProject(userId: string, projectId: string): Promise<void> {
-  const supabase = createServerSupabaseClient()
+  const supabase = await createServerSupabaseClient()
+  if (!supabase) return
   await supabase
     .from('saved_projects')
     .delete()
@@ -218,7 +232,8 @@ export async function unsaveProject(userId: string, projectId: string): Promise<
 }
 
 export async function getSavedProjects(userId: string): Promise<Project[]> {
-  const supabase = createServerSupabaseClient()
+  const supabase = await createServerSupabaseClient()
+  if (!supabase) return []
   const { data } = await supabase
     .from('saved_projects')
     .select('project_id')
@@ -233,7 +248,8 @@ export async function rejectProject(
   projectId: string,
   reason: string
 ): Promise<void> {
-  const supabase = createServerSupabaseClient()
+  const supabase = await createServerSupabaseClient()
+  if (!supabase) return
   await supabase
     .from('rejected_projects')
     .upsert({ user_id: userId, project_id: projectId, reason })
@@ -241,6 +257,7 @@ export async function rejectProject(
 
 export async function adminGetAllProjects(): Promise<unknown[]> {
   const supabase = createAdminSupabaseClient()
+  if (!supabase) return MOCK_PROJECTS
   const { data } = await supabase
     .from('projects')
     .select('*, unit_configs(*)')
@@ -251,6 +268,7 @@ export async function adminGetAllProjects(): Promise<unknown[]> {
 
 export async function adminCreateProject(projectData: Record<string, unknown>): Promise<string> {
   const supabase = createAdminSupabaseClient()
+  if (!supabase) throw new Error('Supabase not configured')
   const { unitConfigs, ...project } = projectData as {
     unitConfigs?: Record<string, unknown>[]
   }
@@ -277,6 +295,7 @@ export async function adminUpdateProject(
   projectData: Record<string, unknown>
 ): Promise<void> {
   const supabase = createAdminSupabaseClient()
+  if (!supabase) return
   const { unitConfigs, ...project } = projectData as {
     unitConfigs?: Record<string, unknown>[]
   }
@@ -302,6 +321,7 @@ export async function adminUpdateProject(
 
 export async function adminDeleteProject(id: string): Promise<void> {
   const supabase = createAdminSupabaseClient()
+  if (!supabase) return
   await supabase
     .from('projects')
     .delete()
@@ -310,6 +330,7 @@ export async function adminDeleteProject(id: string): Promise<void> {
 
 export async function adminTogglePublished(id: string, isPublished: boolean): Promise<void> {
   const supabase = createAdminSupabaseClient()
+  if (!supabase) return
   await supabase
     .from('projects')
     .update({ is_published: isPublished })

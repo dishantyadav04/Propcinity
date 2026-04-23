@@ -11,12 +11,12 @@ export interface NearbyPlace {
 const OVERPASS_ENDPOINTS = [
   'https://overpass-api.de/api/interpreter',
   'https://lz4.overpass-api.de/api/interpreter',
-  'https://overpass.kumi.systems/api/interpreter',
+  'https://z.overpass-api.de/api/interpreter',
 ]
 
 function buildOverpassQuery(lat: number, lng: number, radiusMeters: number): string {
   return `
-    [out:json][timeout:10];
+    [out:json][timeout:25];
     (
       node["office"="it_park"](around:${radiusMeters},${lat},${lng});
       way["office"="it_park"](around:${radiusMeters},${lat},${lng});
@@ -93,7 +93,7 @@ export async function fetchNearbyPlaces(
           'User-Agent': 'PropIQ/1.0',
         },
         body: `data=${encodeURIComponent(query)}`,
-        signal: AbortSignal.timeout(10000),
+        signal: AbortSignal.timeout(30000),
       })
 
       if (!response.ok) {

@@ -1,0 +1,113 @@
+'use client';
+
+import { useState } from "react";
+import { ArrowLeft, User, Phone, Mail, Camera, CheckCircle2 } from "lucide-react";
+import { useRouter } from "next/navigation";
+import SectionContainer from "@/components/layout/SectionContainer";
+import { toast } from "sonner";
+
+export default function PersonalInfoPage() {
+  const router = useRouter();
+  const [isEditing, setIsEditing] = useState(false);
+  const [form, setForm] = useState({
+    name: 'John Doe',
+    phone: '+91 98765 43210',
+    email: 'johndoe@email.com',
+    city: 'Pune',
+  });
+
+  const handleSave = () => {
+    setIsEditing(false);
+    toast.success('Profile updated');
+  };
+
+  const fields = [
+    { icon: User, label: 'Full Name', key: 'name', type: 'text', placeholder: 'Your full name' },
+    { icon: Phone, label: 'Phone Number', key: 'phone', type: 'tel', placeholder: '+91 XXXXX XXXXX' },
+    { icon: Mail, label: 'Email Address', key: 'email', type: 'email', placeholder: 'you@email.com' },
+    { icon: CheckCircle2, label: 'City', key: 'city', type: 'text', placeholder: 'Your city' },
+  ] as const;
+
+  return (
+    <div className="min-h-screen bg-[var(--background)] pb-24">
+      {/* Header */}
+      <div className="bg-white border-b border-[var(--border)] sticky top-16 z-30">
+        <div className="max-w-3xl mx-auto px-4 sm:px-6 h-14 flex items-center gap-4">
+          <button onClick={() => router.back()}
+            className="p-2 hover:bg-[var(--surface-raised)] rounded-[var(--radius-xs)] transition-colors">
+            <ArrowLeft className="w-5 h-5 text-[var(--text-secondary)]" />
+          </button>
+          <h1 className="font-black text-[var(--text-primary)] text-lg flex-1"
+            style={{ fontFamily: 'var(--font-display)' }}>Personal Information</h1>
+          <button onClick={isEditing ? handleSave : () => setIsEditing(true)}
+            className={`px-4 py-1.5 rounded-[var(--radius-xs)] text-sm font-bold transition-colors ${
+              isEditing
+                ? 'bg-[var(--primary)] text-white'
+                : 'bg-[var(--primary-light)] text-[var(--primary)]'
+            }`}>
+            {isEditing ? 'Save' : 'Edit'}
+          </button>
+        </div>
+      </div>
+
+      <SectionContainer className="max-w-3xl">
+        {/* Avatar */}
+        <div className="flex flex-col items-center py-8 space-y-4">
+          <div className="relative">
+            <div className="w-24 h-24 bg-gradient-to-br from-[var(--primary)] to-orange-400
+              rounded-full flex items-center justify-center text-white text-3xl font-black">
+              JD
+            </div>
+            {isEditing && (
+              <button className="absolute -bottom-1 -right-1 w-8 h-8 bg-[var(--primary)]
+                text-white rounded-full flex items-center justify-center
+                shadow-[var(--shadow)] hover:opacity-90 transition-opacity">
+                <Camera className="w-4 h-4" />
+              </button>
+            )}
+          </div>
+          <div className="text-center">
+            <p className="font-black text-[var(--text-primary)] text-xl">{form.name}</p>
+            <p className="text-sm text-[var(--text-muted)]">PropIQ Buyer</p>
+          </div>
+        </div>
+
+        {/* Form fields */}
+        <div className="bg-white border border-[var(--border)] rounded-[var(--radius)]
+          shadow-[var(--shadow-sm)] overflow-hidden">
+          {fields.map((field, i) => (
+            <div key={field.key}
+              className="px-4 sm:px-5 py-4 border-b border-[var(--border)] last:border-0 flex items-center gap-4">
+              <div className="w-9 h-9 bg-[var(--surface-raised)] rounded-full
+                flex items-center justify-center flex-shrink-0">
+                <field.icon className="w-4 h-4 text-[var(--text-muted)]" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-[11px] font-bold text-[var(--text-muted)] uppercase tracking-wider mb-1">
+                  {field.label}
+                </p>
+                {isEditing ? (
+                  <input
+                    type={field.type}
+                    value={form[field.key]}
+                    onChange={e => setForm(prev => ({ ...prev, [field.key]: e.target.value }))}
+                    placeholder={field.placeholder}
+                    className="w-full text-sm font-semibold text-[var(--text-primary)] bg-transparent
+                      border-b border-[var(--border-strong)] focus:border-[var(--primary)]
+                      focus:outline-none pb-1 transition-colors"
+                  />
+                ) : (
+                  <p className="text-sm font-semibold text-[var(--text-primary)]">{form[field.key]}</p>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <p className="text-xs text-[var(--text-muted)] text-center mt-4">
+          Your personal information is encrypted and never shared.
+        </p>
+      </SectionContainer>
+    </div>
+  );
+}
