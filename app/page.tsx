@@ -111,18 +111,18 @@ function StatCard({ icon: Icon, value, label, delay }: {
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay, duration: 0.4 }}
-      className="flex items-center gap-4 bg-white/95 backdrop-blur-md
-        border border-[var(--border)] rounded-[var(--radius)] px-5 py-4
-        shadow-[var(--shadow-lg)]"
+      className="flex items-center gap-3 bg-white/90 backdrop-blur-md
+        border border-[var(--border)] rounded-[var(--radius-sm)] px-4 py-3
+        shadow-[var(--shadow-md)]"
     >
-      <div className="w-11 h-11 bg-[var(--primary-light)] rounded-[var(--radius-sm)]
+      <div className="w-10 h-10 bg-[var(--primary-light)] rounded-[var(--radius-xs)]
         flex items-center justify-center flex-shrink-0">
         <Icon className="w-5 h-5 text-[var(--primary)]" />
       </div>
       <div>
-        <p className="text-xl font-black text-[var(--text-primary)] leading-none"
+        <p className="text-lg font-black text-[var(--text-primary)] leading-none"
           style={{ fontFamily: 'var(--font-display)' }}>{value}</p>
-        <p className="text-xs text-[var(--text-muted)] font-bold mt-1 uppercase tracking-tight">{label}</p>
+        <p className="text-[10px] text-[var(--text-muted)] font-bold mt-1 uppercase tracking-tight">{label}</p>
       </div>
     </motion.div>
   );
@@ -221,7 +221,7 @@ export default function LandingPage() {
           </div>
 
           {/* Floating stat cards — desktop only, top-right area */}
-          <div className="hidden lg:flex flex-col gap-4 absolute right-0 top-1/2 -translate-y-1/2">
+          <div className="hidden lg:flex flex-col gap-3 absolute right-0 top-1/2 -translate-y-1/2">
             <StatCard icon={Building2} value="60+" label="Audited projects" delay={0.5} />
             <StatCard icon={ShieldCheck} value="100%" label="RERA verified" delay={0.6} />
             <StatCard icon={MapPin} value="Pune" label="Serving Buyers" delay={0.7} />
@@ -232,21 +232,21 @@ export default function LandingPage() {
 
       {/* ── Mobile stats ────────────────────────────────────── */}
       <section className="lg:hidden border-y border-[var(--border)] bg-white shadow-sm">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-10
-          grid grid-cols-2 gap-y-10 gap-x-6">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8
+          grid grid-cols-2 gap-y-8 gap-x-6">
           {[
-            { icon: Building2, value: '60+', label: 'Verified Projects' },
-            { icon: TrendingUp, value: '₹0', label: 'Buyer Brokerage' },
+            { icon: Building2, value: '60+', label: 'Audited Projects' },
             { icon: ShieldCheck, value: '100%', label: 'RERA Verified' },
-            { icon: Star, value: 'AI', label: 'Decision Support' },
+            { icon: MapPin, value: 'Pune', label: 'Serving Buyers' },
+            { icon: TrendingUp, value: '₹0', label: 'Brokerage Fees' },
           ].map(stat => (
-            <div key={stat.label} className="text-center space-y-2">
-              <div className="mx-auto w-10 h-10 bg-[var(--primary-light)] rounded-full flex items-center justify-center mb-2">
-                <stat.icon className="w-5 h-5 text-[var(--primary)]" />
+            <div key={stat.label} className="text-center space-y-1">
+              <div className="mx-auto w-9 h-9 bg-[var(--primary-light)] rounded-full flex items-center justify-center mb-1">
+                <stat.icon className="w-4 h-4 text-[var(--primary)]" />
               </div>
-              <p className="text-4xl font-black text-[var(--text-primary)]"
+              <p className="text-2xl font-black text-[var(--text-primary)]"
                 style={{ fontFamily: 'var(--font-display)' }}>{stat.value}</p>
-              <p className="text-xs text-[var(--text-muted)] font-bold uppercase tracking-widest">
+              <p className="text-[10px] text-[var(--text-muted)] font-bold uppercase tracking-widest">
                 {stat.label}
               </p>
             </div>
