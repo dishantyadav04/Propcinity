@@ -6,7 +6,6 @@ import ProjectCard from "@/components/property/ProjectCard";
 import PersonalizedWelcome from "@/components/onboarding/PersonalizedWelcome";
 import PageLoader from "@/components/ui/PageLoader";
 import SectionContainer from "@/components/layout/SectionContainer";
-import { getPublishedProjects } from "@/services/projects";
 import { generateFitReasons } from "@/services/fit-analysis";
 import { UserIntent } from "@/types/user";
 
@@ -22,11 +21,19 @@ export default function DashboardPage() {
 
     const loadProjects = async () => {
       try {
-        const data = await getPublishedProjects();
-        setProjects(data);
         const savedIntent = localStorage.getItem('userIntent');
-        if (savedIntent) {
-          const intent = JSON.parse(savedIntent);
+        const intent = savedIntent ? JSON.parse(savedIntent) : null;
+        const params = new URLSearchParams();
+        if (intent?.budget?.min) params.set('budgetMin', intent.budget.min);
+        if (intent?.budget?.max) params.set('budgetMax', intent.budget.max);
+        if (intent?.propertyType?.length) params.set('types', intent.propertyType.join(','));
+
+        const res = await fetch(`/api/projects?${params.toString()}`);
+        if (!res.ok) throw new Error('Failed');
+        const data: Project[] = await res.json();
+        setProjects(data);
+
+        if (intent) {
           const scores: Record<string, number> = {};
           data.forEach(p => {
             scores[p.id] = generateFitReasons(p, p.unitConfigs[0] || null, intent).score;
@@ -49,7 +56,7 @@ export default function DashboardPage() {
     <div className="min-h-screen bg-[var(--background)]">
       <PersonalizedWelcome />
       
-      <SectionContainer className="space-y-8">
+      <SectionContainer wide className="space-y-8">
         <div className="flex items-center justify-between">
           <h2 className="text-xl font-bold text-[var(--text-primary)]" style={{ fontFamily: 'var(--font-display)' }}>
             Curated For You
@@ -57,12 +64,13 @@ export default function DashboardPage() {
           <span className="text-xs text-[var(--primary)] font-bold uppercase tracking-widest">{projects.length} results</span>
         </div>
 
-        <div className="space-y-6">
-          {projects.map((project) => (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          {projects.map((project, index) => (
             <ProjectCard 
               key={project.id} 
               project={project} 
               fitScore={fitScores[project.id] ?? project.trustScore}
+              index={index}
             />
           ))}
         </div>

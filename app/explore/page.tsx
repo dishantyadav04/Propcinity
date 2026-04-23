@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import dynamic from "next/dynamic";
 import { Project } from "@/types/project";
-import { getPublishedProjects } from "@/services/projects";
 import PageLoader from "@/components/ui/PageLoader";
 import Skeleton from "@/components/ui/Skeleton";
 import ProjectCard from "@/components/property/ProjectCard";
@@ -22,7 +21,9 @@ export default function ExplorePage() {
   useEffect(() => {
     const loadProjects = async () => {
       try {
-        const data = await getPublishedProjects();
+        const res = await fetch('/api/projects');
+        if (!res.ok) throw new Error('Failed');
+        const data: Project[] = await res.json();
         setProjects(data);
         if (data.length > 0) setSelectedProject(data[0]);
       } catch (err) {

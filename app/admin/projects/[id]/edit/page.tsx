@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import ProjectForm from "@/components/admin/ProjectForm";
 import { Project } from "@/types/project";
-import { getProjectById } from "@/services/projects";
 import PageLoader from "@/components/ui/PageLoader";
 import { useParams } from "next/navigation";
 
@@ -15,7 +14,12 @@ export default function EditProjectPage() {
   useEffect(() => {
     const loadProject = async () => {
       try {
-        const data = await getProjectById(id as string);
+        const res = await fetch('/api/admin/projects', {
+          credentials: 'include',
+        });
+        if (!res.ok) throw new Error('Unauthorized');
+        const json = await res.json();
+        const data = (json.projects || []).find((project: Project) => project.id === id) || null;
         setProject(data);
       } catch (err) {
         console.error(err);
