@@ -9,6 +9,9 @@ import { MapPin, ChevronRight, ShieldCheck } from "lucide-react";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { UserIntent } from "@/types/user";
+import { useEffect, useState } from "react";
+import { addToCompare } from "@/lib/utils";
+import { toast } from "sonner";
 
 interface ProjectCardProps {
   project: Project;
@@ -29,6 +32,29 @@ export default function ProjectCard({ project, matchedUnit, fitScore, index = 0 
     high: { bg: 'var(--danger-light)', text: 'var(--danger)', label: 'High Risk' },
   };
   const risk = riskColors[project.riskLabel] || riskColors.medium;
+
+  const [isComparing, setIsComparing] = useState(false);
+
+  useEffect(() => {
+    const checkCompare = () => {
+      const current: string[] = JSON.parse(localStorage.getItem('compareIds') || '[]');
+      setIsComparing(current.includes(project.id));
+    };
+    checkCompare();
+    window.addEventListener('compareUpdated', checkCompare);
+    return () => window.removeEventListener('compareUpdated', checkCompare);
+  }, [project.id]);
+
+  const handleCompare = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const current: string[] = JSON.parse(localStorage.getItem('compareIds') || '[]');
+    if (!current.includes(project.id) && current.length >= 3) {
+      toast.error("You can compare maximum 3 projects");
+      return;
+    }
+    addToCompare(project.id);
+  };
 
   return (
     <motion.div
@@ -114,9 +140,19 @@ export default function ProjectCard({ project, matchedUnit, fitScore, index = 0 
                 <ShieldCheck className="w-3 h-3" /> RERA Verified
               </span>
             )}
-            <span className="ml-auto flex items-center gap-1 text-[var(--primary)] text-xs font-bold">
-              View Full Audit <ChevronRight className="w-3.5 h-3.5 transition-transform group-hover:translate-x-1" />
-            </span>
+            <div className="flex items-center gap-3">
+              <button
+                onClick={handleCompare}
+                className={`text-[10px] font-bold px-2 py-1 rounded transition-colors ${
+                  isComparing ? 'bg-[var(--primary)] text-white' : 'text-[var(--text-muted)] hover:text-[var(--primary)]'
+                }`}
+              >
+                {isComparing ? 'Comparing' : '+ Compare'}
+              </button>
+              <span className="ml-auto flex items-center gap-1 text-[var(--primary)] text-xs font-bold">
+                View Full Audit <ChevronRight className="w-3.5 h-3.5 transition-transform group-hover:translate-x-1" />
+              </span>
+            </div>
           </div>
         </div>
       </Link>

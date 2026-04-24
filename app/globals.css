@@ -97,3 +97,17 @@ h1, h2, h3, h4, h5, h6 {
   box-shadow: var(--shadow-lg);
   transform: translateY(-2px);
 }
+
+/* Tighter section spacing — removes excessive whitespace */
+.section-tight { padding-top: 2rem; padding-bottom: 2rem; }
+.section-normal { padding-top: 3rem; padding-bottom: 3rem; }
+.section-wide { padding-top: 4rem; padding-bottom: 4rem; }
+
+/* Card grid — consistent gap */
+.card-grid {
+  display: grid;
+  grid-template-columns: repeat(1, 1fr);
+  gap: 1rem;
+}
+@media (min-width: 640px) { .card-grid { grid-template-columns: repeat(2, 1fr); } }
+@media (min-width: 1024px) { .card-grid { grid-template-columns: repeat(3, 1fr); } }

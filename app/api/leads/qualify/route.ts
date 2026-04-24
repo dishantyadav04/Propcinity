@@ -64,6 +64,9 @@ export async function POST(request: NextRequest) {
   const projectName = projects[0]?.name || 'Selected Project'
 
   const supabase = createAdminSupabaseClient()
+  if (!supabase) {
+    return NextResponse.json({ error: 'Database connection failed' }, { status: 500 })
+  }
   const { data: lead, error } = await supabase
     .from('leads')
     .insert({

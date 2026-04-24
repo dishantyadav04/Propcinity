@@ -95,6 +95,7 @@ export default function MapView({
           scrollWheelZoom={false} 
           attributionControl={false}
           className="h-full w-full"
+          whenReady={() => {}}
         >
           <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
           <ProjectMarker lat={lat} lng={lng} name={projectName} priceLabel={priceLabel} />

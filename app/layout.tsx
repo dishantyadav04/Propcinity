@@ -5,6 +5,7 @@ import './globals.css'
 import TopHeader from '@/components/layout/TopHeader'
 import BottomNav from '@/components/layout/BottomNav'
 import PageTransition from '@/components/ui/PageTransition'
+import ClientLayoutExtras from '@/components/layout/ClientLayoutExtras'
 
 const syne = Syne({ 
   subsets: ['latin'],
@@ -43,6 +44,7 @@ export default function RootLayout({
           </PageTransition>
         </main>
         <BottomNav />
+        <ClientLayoutExtras />
         <Toaster richColors position="top-center" />
       </body>
     </html>

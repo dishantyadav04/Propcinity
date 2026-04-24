@@ -39,7 +39,9 @@ export default function TopHeader() {
           {[
             { label: 'Dashboard', href: '/dashboard' },
             { label: 'Explore', href: '/explore' },
-            { label: 'Saved', href: '/saved' },
+            { label: 'AI Advisor', href: '/ai-chat' },
+            { label: 'Shortlist', href: '/saved' },
+            { label: 'Compare', href: '/compare' },
           ].map(item => (
             <Link key={item.href} href={item.href}
               className={`px-4 py-2 rounded-[var(--radius-xs)] text-sm font-semibold transition-colors ${

@@ -2,13 +2,14 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, Building, Users, Settings, LogOut, ExternalLink } from "lucide-react";
+import { LayoutDashboard, Building, Users, Settings, LogOut, ExternalLink, Shield } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const ADMIN_NAV = [
   { label: 'Overview', href: '/admin', icon: LayoutDashboard },
   { label: 'Projects', href: '/admin/projects', icon: Building },
   { label: 'Leads', href: '/admin/leads', icon: Users },
+  { label: 'Score Calculator', href: '/admin/score-calculator', icon: Shield },
   { label: 'Settings', href: '/admin/settings', icon: Settings },
 ];
 

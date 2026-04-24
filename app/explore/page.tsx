@@ -5,9 +5,10 @@ import dynamic from "next/dynamic";
 import { Project } from "@/types/project";
 import { formatINR } from "@/lib/finance-calculations";
 import Skeleton from "@/components/ui/Skeleton";
-import { Search, SlidersHorizontal, MapPin, X, Building2 } from "lucide-react";
+import { Search, SlidersHorizontal, MapPin, X, Building2, Star, Heart } from "lucide-react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
+import { toast } from "sonner";
 
 const MapView = dynamic(() => import("@/components/map/MapView"), {
   ssr: false,
@@ -27,6 +28,27 @@ export default function ExplorePage() {
   const [sortBy, setSortBy] = useState<SortOption>('trust');
   const [showFilters, setShowFilters] = useState(false);
   const [view, setView] = useState<'split' | 'list' | 'map'>('split');
+  const [curatedIds, setCuratedIds] = useState<string[]>([]);
+  const [savedIds, setSavedIds] = useState<string[]>([]);
+
+  useEffect(() => {
+    setCuratedIds(JSON.parse(localStorage.getItem('curatedIds') || '[]'));
+    setSavedIds(JSON.parse(localStorage.getItem('savedIds') || '[]'));
+  }, []);
+
+  const toggleCurated = (id: string) => {
+    const next = curatedIds.includes(id) ? curatedIds.filter(i => i !== id) : [...curatedIds, id];
+    setCuratedIds(next);
+    localStorage.setItem('curatedIds', JSON.stringify(next));
+    toast.success(curatedIds.includes(id) ? "Removed from Curated" : "Added to Curated");
+  };
+
+  const toggleSave = (id: string) => {
+    const next = savedIds.includes(id) ? savedIds.filter(i => i !== id) : [...savedIds, id];
+    setSavedIds(next);
+    localStorage.setItem('savedIds', JSON.stringify(next));
+    toast.success(savedIds.includes(id) ? "Removed from Shortlist" : "Saved to Shortlist");
+  };
 
   useEffect(() => {
     fetch('/api/projects')
@@ -206,7 +228,7 @@ export default function ExplorePage() {
                             : 'bg-white hover:bg-[var(--surface-raised)]'
                         }`}>
                         <div className="flex gap-3">
-                          <div className="w-16 h-16 flex-shrink-0 rounded-[var(--radius-xs)] overflow-hidden bg-[var(--surface-raised)]">
+                          <div className="w-16 h-16 flex-shrink-0 rounded-[var(--radius-xs)] overflow-hidden bg-[var(--surface-raised)] relative group/img">
                             {project.images?.[0] ? (
                               <img src={project.images[0]} alt={project.name}
                                 className="w-full h-full object-cover" />
@@ -215,6 +237,16 @@ export default function ExplorePage() {
                                 <Building2 className="w-5 h-5" />
                               </div>
                             )}
+                            <div className="absolute inset-0 bg-black/20 opacity-0 group-hover/img:opacity-100 transition-opacity flex items-center justify-center gap-1">
+                              <button onClick={(e) => { e.stopPropagation(); toggleCurated(project.id); }}
+                                className={`p-1.5 rounded-full ${curatedIds.includes(project.id) ? 'bg-yellow-400 text-white' : 'bg-white/80 text-gray-700'}`}>
+                                <Star className="w-3 h-3 fill-current" />
+                              </button>
+                              <button onClick={(e) => { e.stopPropagation(); toggleSave(project.id); }}
+                                className={`p-1.5 rounded-full ${savedIds.includes(project.id) ? 'bg-red-500 text-white' : 'bg-white/80 text-gray-700'}`}>
+                                <Heart className="w-3 h-3 fill-current" />
+                              </button>
+                            </div>
                           </div>
                           <div className="flex-1 min-w-0 space-y-1">
                             <div className="flex items-start justify-between gap-2">
@@ -254,6 +286,7 @@ export default function ExplorePage() {
             <div className="flex-1 relative min-h-[300px]">
               {selectedProject && (
                 <MapView
+                  key={selectedProject.id}
                   lat={selectedProject.lat}
                   lng={selectedProject.lng}
                   projectName={selectedProject.name}
