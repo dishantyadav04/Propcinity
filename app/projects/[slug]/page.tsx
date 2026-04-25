@@ -19,6 +19,7 @@ import SectionContainer from "@/components/layout/SectionContainer";
 import { formatINR } from "@/lib/finance-calculations";
 import { MapPin, Share2, Heart, ShieldCheck, Info } from "lucide-react";
 import { useParams } from "next/navigation";
+import Link from "next/link";
 
 export default function ProjectDetailPage() {
   const params = useParams();
@@ -62,10 +63,14 @@ export default function ProjectDetailPage() {
 
   if (isLoading) return <PageLoader />;
   if (!project) return (
-    <div className="min-h-screen flex flex-col items-center justify-center p-6 text-center space-y-4">
-      <h2 className="text-2xl font-black text-[var(--text-primary)]" style={{ fontFamily: 'var(--font-display)' }}>Project not found</h2>
-      <p className="text-[var(--text-secondary)]">The project you are looking for does not exist or has been removed.</p>
-      <button onClick={() => window.history.back()} className="px-6 py-2 bg-[var(--primary)] text-white font-bold rounded-[var(--radius)]">Go Back</button>
+    <div className="min-h-screen flex flex-col items-center justify-center gap-5 px-6 text-center">
+      <div className="text-6xl">🏗️</div>
+      <h2 className="text-2xl font-black text-[var(--text-primary)]">Project not found</h2>
+      <p className="text-[var(--text-secondary)] text-sm">This project may not be published yet.</p>
+      <Link href="/explore"
+        className="px-6 py-3 bg-[var(--primary)] text-white font-bold rounded-[var(--radius)]">
+        Browse Projects
+      </Link>
     </div>
   );
 
@@ -125,7 +130,7 @@ export default function ProjectDetailPage() {
             <div className="space-y-4">
               <h3 className="text-sm font-bold text-[var(--text-primary)] uppercase tracking-widest">Available Configurations</h3>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {project.unitConfigs.map(unit => (
+                {(project.unitConfigs || []).map(unit => (
                   <UnitConfigCard key={unit.id} unit={unit} project={project} />
                 ))}
               </div>

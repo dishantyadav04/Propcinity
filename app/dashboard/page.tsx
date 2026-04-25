@@ -72,7 +72,7 @@ export default function DashboardPage() {
       <SectionContainer wide className="space-y-8 py-10">
         <Skeleton className="h-10 w-48" />
         <div className="card-grid">
-          {[1,2,3,4,5,6].map(i => <Skeleton key={i} className="h-[380px] rounded-[var(--radius)]" />)}
+          {[1, 2, 3, 4, 5, 6].map(i => <Skeleton key={i} className="h-[380px] rounded-[var(--radius)]" />)}
         </div>
       </SectionContainer>
     );
@@ -94,7 +94,7 @@ export default function DashboardPage() {
               </div>
               <h1 className="text-2xl sm:text-3xl font-black text-[var(--text-primary)]"
                 style={{ fontFamily: 'var(--font-display)' }}>
-                {userName ? `${userName}'s Top Picks` : 'Your Top Picks'}
+                Top Picks For You
               </h1>
               <p className="text-sm text-[var(--text-secondary)]">
                 Your personally curated shortlist · Add more from Explore
@@ -133,7 +133,7 @@ export default function DashboardPage() {
               </Link>
             </motion.div>
           ) : (
-            <>
+            <div className="space-y-6">
               <div className="card-grid">
                 {curatedProjects.map((project, index) => (
                   <motion.div
@@ -168,7 +168,7 @@ export default function DashboardPage() {
                   <ArrowRight className="w-4 h-4" />
                 </Link>
               </div>
-            </>
+            </div>
           )}
         </AnimatePresence>
       </SectionContainer>

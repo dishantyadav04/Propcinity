@@ -1,11 +1,20 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { MapContainer, TileLayer, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import ProjectMarker from '@/components/map/ProjectMarker';
 import NearbyMarker from '@/components/map/NearbyMarker';
 import { NearbyPlace } from '@/lib/overpass';
+
+// Safely updates map center/zoom when props change (avoids remounting the container)
+function MapUpdater({ center, zoom }: { center: [number, number], zoom: number }) {
+  const map = useMap();
+  useEffect(() => {
+    map.setView(center, zoom);
+  }, [center, zoom, map]);
+  return null;
+}
 
 interface MapViewProps {
   lat: number;
@@ -27,9 +36,22 @@ export default function MapView({
   const [nearbyPlaces, setNearbyPlaces] = useState<NearbyPlace[]>([]);
   const [activeFilter, setActiveFilter] = useState<'all' | string>('all');
   const [isLoading, setIsLoading] = useState(true);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  // Guard: react-leaflet creates an inner .leaflet-container div and Leaflet
+  // sets _leaflet_id on THAT element (not the wrapper). Clear it on unmount
+  // so React 18 Strict Mode's double-invoke doesn't crash on re-mount.
+  useEffect(() => {
+    return () => {
+      const leafletEl = containerRef.current?.querySelector('.leaflet-container') as any;
+      if (leafletEl?._leaflet_id) {
+        leafletEl._leaflet_id = null;
+      }
+    };
+  }, []);
 
   useEffect(() => {
-    // Fix Leaflet icon issue
+    // Fix Leaflet default icon paths (broken in webpack builds)
     delete (L.Icon.Default.prototype as any)._getIconUrl;
     L.Icon.Default.mergeOptions({
       iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon-2x.png',
@@ -88,15 +110,19 @@ export default function MapView({
         ))}
       </div>
 
-      <div className="h-[300px] w-full rounded-[var(--radius)] overflow-hidden border border-[var(--border)] relative z-10">
+      {/* ref attached to wrapper so cleanup effect can clear _leaflet_id */}
+      <div
+        ref={containerRef}
+        className="h-[300px] w-full rounded-[var(--radius)] overflow-hidden border border-[var(--border)] relative z-10"
+      >
         <MapContainer 
           center={[lat, lng]} 
           zoom={zoom} 
           scrollWheelZoom={false} 
           attributionControl={false}
           className="h-full w-full"
-          whenReady={() => {}}
         >
+          <MapUpdater center={[lat, lng]} zoom={zoom} />
           <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
           <ProjectMarker lat={lat} lng={lng} name={projectName} priceLabel={priceLabel} />
           {filteredPlaces.map(place => (

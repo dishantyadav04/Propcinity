@@ -9,14 +9,27 @@ import {
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 
-// ── Pune sub-locations ────────────────────────────────
-const PUNE_SUBLOCATIONS = [
-  "Hinjewadi", "Wakad", "Baner", "Balewadi", "Aundh",
-  "Kothrud", "Shivajinagar", "Viman Nagar", "Kalyani Nagar",
-  "Koregaon Park", "Kharadi", "Hadapsar", "Wagholi",
-  "Mahalunge", "Pimple Saudagar", "Bavdhan", "Pashan",
-  "Sus", "Tathawade", "Punawale"
-];
+const CITY_SUBLOCATIONS: Record<string, string[]> = {
+  Pune: [
+    "Hinjewadi", "Wakad", "Baner", "Balewadi", "Aundh",
+    "Kothrud", "Shivajinagar", "Viman Nagar", "Kalyani Nagar",
+    "Koregaon Park", "Kharadi", "Hadapsar", "Wagholi",
+    "Mahalunge", "Pimple Saudagar", "Bavdhan", "Pashan",
+    "Sus", "Tathawade", "Punawale"
+  ],
+  Mumbai: [
+    "Andheri", "Bandra", "South Mumbai", "Powai", "Goregaon",
+    "Malad", "Borivali", "Navi Mumbai", "Thane", "Worli"
+  ],
+  Bangalore: [
+    "Whitefield", "Electronic City", "Koramangala", "Indiranagar", "HSR Layout",
+    "Marathahalli", "Bellandur", "Jayanagar", "JP Nagar", "Hebbal"
+  ],
+  Hyderabad: [
+    "HITEC City", "Gachibowli", "Jubilee Hills", "Banjara Hills", "Madhapur",
+    "Kondapur", "Kukatpally", "Miyapur", "Manikonda", "Tellapur"
+  ]
+};
 
 const OPTIONAL_PREFS = [
   "Gated community", "Near school", "Metro connectivity",
@@ -285,7 +298,12 @@ export default function UserIntentForm() {
                     <div className="flex gap-2">
                       {['Pune', 'Mumbai', 'Bangalore', 'Hyderabad'].map(c => (
                         <button key={c}
-                          onClick={() => set('city', c)}
+                          onClick={() => {
+                            if (form.city !== c) {
+                              set('city', c);
+                              set('subLocations', []);
+                            }
+                          }}
                           className={cn(
                             "px-4 py-2 rounded-full text-xs font-bold border transition-all",
                             form.city === c
@@ -319,7 +337,7 @@ export default function UserIntentForm() {
                     )}
                     {/* Suggestion chips */}
                     <div className="flex flex-wrap gap-1.5 mb-2">
-                      {PUNE_SUBLOCATIONS.filter(l => !form.subLocations.includes(l)).slice(0, 8).map(loc => (
+                      {(CITY_SUBLOCATIONS[form.city] || []).filter(l => !form.subLocations.includes(l)).slice(0, 8).map(loc => (
                         <button key={loc}
                           onClick={() => addSubLocation(loc)}
                           className="px-3 py-1 bg-[var(--surface-raised)] border border-[var(--border)]
@@ -423,30 +441,60 @@ export default function UserIntentForm() {
               </div>
             )}
 
-            {/* ── STEP 4: BHK ──────────────────────────────── */}
+            {/* ── STEP 4: BHK or Plot Size ───────────────────── */}
             {step === 4 && (
               <div className="space-y-6">
-                <div>
-                  <h2 className="text-2xl font-black text-[var(--text-primary)]"
-                    style={{ fontFamily: 'var(--font-display)' }}>
-                    How many bedrooms?
-                  </h2>
-                  <p className="text-sm text-[var(--text-secondary)] mt-1">Select all configurations you'd consider.</p>
-                </div>
-                <div className="grid grid-cols-3 gap-3">
-                  {['1BHK', '2BHK', '3BHK', '4BHK', '4BHK+', 'Studio'].map(bhk => (
-                    <button key={bhk}
-                      onClick={() => toggleArr('bhkType', bhk)}
-                      className={cn(
-                        "py-4 rounded-[var(--radius)] border font-black text-base transition-all",
-                        form.bhkType.includes(bhk)
-                          ? "bg-[var(--primary)] text-white border-[var(--primary)] shadow-[var(--shadow-primary)]"
-                          : "bg-[var(--surface-raised)] border-[var(--border)] text-[var(--text-primary)]"
-                      )}>
-                      {bhk}
-                    </button>
-                  ))}
-                </div>
+                {form.propertyType.some(t => ['apartment', 'villa', 'penthouse'].includes(t)) && (
+                  <div>
+                    <div>
+                      <h2 className="text-2xl font-black text-[var(--text-primary)]"
+                        style={{ fontFamily: 'var(--font-display)' }}>
+                        How many bedrooms?
+                      </h2>
+                      <p className="text-sm text-[var(--text-secondary)] mt-1">Select all configurations you'd consider.</p>
+                    </div>
+                    <div className="grid grid-cols-3 gap-3 mt-4">
+                      {['1BHK', '2BHK', '3BHK', '4BHK', '4BHK+', 'Studio'].map(bhk => (
+                        <button key={bhk}
+                          onClick={() => toggleArr('bhkType', bhk)}
+                          className={cn(
+                            "py-4 rounded-[var(--radius)] border font-black text-base transition-all",
+                            form.bhkType.includes(bhk)
+                              ? "bg-[var(--primary)] text-white border-[var(--primary)] shadow-[var(--shadow-primary)]"
+                              : "bg-[var(--surface-raised)] border-[var(--border)] text-[var(--text-primary)]"
+                          )}>
+                          {bhk}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {form.propertyType.includes('plot') && (
+                  <div>
+                    <div>
+                      <h2 className="text-2xl font-black text-[var(--text-primary)]"
+                        style={{ fontFamily: 'var(--font-display)' }}>
+                        What plot size?
+                      </h2>
+                      <p className="text-sm text-[var(--text-secondary)] mt-1">Select your preferred plot dimensions.</p>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3 mt-4">
+                      {['Under 1000 sqft', '1000 - 2000 sqft', '2000 - 4000 sqft', '4000+ sqft'].map(size => (
+                        <button key={size}
+                          onClick={() => toggleArr('bhkType', size)}
+                          className={cn(
+                            "py-4 px-2 rounded-[var(--radius)] border font-black text-sm text-center transition-all",
+                            form.bhkType.includes(size)
+                              ? "bg-[var(--primary)] text-white border-[var(--primary)] shadow-[var(--shadow-primary)]"
+                              : "bg-[var(--surface-raised)] border-[var(--border)] text-[var(--text-primary)]"
+                          )}>
+                          {size}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             )}
 

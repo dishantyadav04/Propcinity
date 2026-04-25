@@ -16,28 +16,39 @@ function CompareContent() {
   const idsParam = searchParams?.get('ids');
 
   useEffect(() => {
-    // First try to get projects from localStorage compareItems (full objects)
-    const stored: Project[] = JSON.parse(localStorage.getItem('compareItems') || '[]');
+    // First: try to get from localStorage (already full objects)
+    const stored: Project[] = JSON.parse(
+      localStorage.getItem('compareItems') || '[]'
+    );
 
     if (idsParam) {
       const ids = idsParam.split(',').filter(Boolean);
       const fromStore = stored.filter(p => ids.includes(p.id));
-      if (fromStore.length === ids.length) {
-        // All found in localStorage — use directly, no fetch needed
+
+      if (fromStore.length > 0) {
         setProjects(fromStore);
         setIsLoading(false);
         return;
       }
-      // Fallback: fetch all and filter
-      fetch('/api/projects')
-        .then(r => r.json())
-        .then((all: Project[]) => setProjects(all.filter(p => ids.includes(p.id))))
-        .catch(console.error)
-        .finally(() => setIsLoading(false));
-    } else if (stored.length > 0) {
-      // No URL params — show whatever is in compare bar
+    }
+
+    // Fallback: fetch all projects and filter
+    if (stored.length > 0) {
       setProjects(stored);
       setIsLoading(false);
+      return;
+    }
+
+    // Last resort: fetch from API
+    if (idsParam) {
+      const ids = idsParam.split(',').filter(Boolean);
+      fetch('/api/projects')
+        .then(r => r.json())
+        .then((all: Project[]) =>
+          setProjects(all.filter(p => ids.includes(p.id)))
+        )
+        .catch(console.error)
+        .finally(() => setIsLoading(false));
     } else {
       setIsLoading(false);
     }
@@ -79,7 +90,7 @@ function CompareContent() {
     )},
     { label: 'Price From', render: p => (
       <span className="font-black text-[var(--primary)]">
-        {p.unitConfigs?.length ? formatINR(Math.min(...p.unitConfigs.map(u => u.priceMin))) : '—'}
+        {p.unitConfigs?.length ? formatINR(Math.min(...(p.unitConfigs || []).map(u => u.priceMin))) : '—'}
       </span>
     )},
     { label: 'Config', render: p => (
