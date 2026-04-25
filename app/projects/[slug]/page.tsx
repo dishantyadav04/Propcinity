@@ -21,7 +21,8 @@ import { MapPin, Share2, Heart, ShieldCheck, Info } from "lucide-react";
 import { useParams } from "next/navigation";
 
 export default function ProjectDetailPage() {
-  const { slug } = useParams();
+  const params = useParams();
+  const slug = params?.slug as string;
   const [project, setProject] = useState<Project | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isQualificationOpen, setIsQualificationOpen] = useState(false);
@@ -60,9 +61,15 @@ export default function ProjectDetailPage() {
   }, [slug]);
 
   if (isLoading) return <PageLoader />;
-  if (!project) return <div>Project not found</div>;
+  if (!project) return (
+    <div className="min-h-screen flex flex-col items-center justify-center p-6 text-center space-y-4">
+      <h2 className="text-2xl font-black text-[var(--text-primary)]" style={{ fontFamily: 'var(--font-display)' }}>Project not found</h2>
+      <p className="text-[var(--text-secondary)]">The project you are looking for does not exist or has been removed.</p>
+      <button onClick={() => window.history.back()} className="px-6 py-2 bg-[var(--primary)] text-white font-bold rounded-[var(--radius)]">Go Back</button>
+    </div>
+  );
 
-  const minPrice = Math.min(...project.unitConfigs.map(u => u.priceMin));
+  const minPrice = project.unitConfigs?.length ? Math.min(...project.unitConfigs.map(u => u.priceMin)) : 0;
 
   return (
     <div className="min-h-screen bg-[var(--background)] pb-32 lg:pb-12">

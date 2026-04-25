@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { ArrowLeft, User, Phone, Mail, Camera, CheckCircle2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import SectionContainer from "@/components/layout/SectionContainer";
@@ -10,14 +10,35 @@ export default function PersonalInfoPage() {
   const router = useRouter();
   const [isEditing, setIsEditing] = useState(false);
   const [form, setForm] = useState({
-    name: 'John Doe',
-    phone: '+91 98765 43210',
-    email: 'johndoe@email.com',
-    city: 'Pune',
+    name: '',
+    phone: '',
+    email: '',
+    city: '',
   });
+
+  useEffect(() => {
+    const saved = localStorage.getItem('userIntent');
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      setForm({
+        name: parsed.name || '',
+        phone: parsed.phone || '',
+        email: parsed.email || '',
+        city: parsed.city || '',
+      });
+    }
+  }, []);
 
   const handleSave = () => {
     setIsEditing(false);
+    const saved = localStorage.getItem('userIntent');
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      const updated = { ...parsed, ...form };
+      localStorage.setItem('userIntent', JSON.stringify(updated));
+    } else {
+      localStorage.setItem('userIntent', JSON.stringify(form));
+    }
     toast.success('Profile updated');
   };
 
@@ -56,7 +77,7 @@ export default function PersonalInfoPage() {
           <div className="relative">
             <div className="w-24 h-24 bg-gradient-to-br from-[var(--primary)] to-orange-400
               rounded-full flex items-center justify-center text-white text-3xl font-black">
-              JD
+              {form.name ? form.name.split(' ').map((n: string) => n[0]).join('').substring(0, 2).toUpperCase() : 'U'}
             </div>
             {isEditing && (
               <button className="absolute -bottom-1 -right-1 w-8 h-8 bg-[var(--primary)]

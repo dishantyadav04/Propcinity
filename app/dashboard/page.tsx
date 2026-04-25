@@ -5,28 +5,26 @@ import SectionContainer from "@/components/layout/SectionContainer";
 import ProjectCard from "@/components/property/ProjectCard";
 import { Project } from "@/types/project";
 import { UserIntent } from "@/types/user";
-import { Search, Sparkles, Heart, Star, ThumbsUp, ThumbsDown, ArrowRight, LayoutGrid, List } from "lucide-react";
+import { Search, Sparkles, X, ArrowRight, Plus } from "lucide-react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import Skeleton from "@/components/ui/Skeleton";
+import { toast } from "sonner";
 
 export default function DashboardPage() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [userIntent, setUserIntent] = useState<UserIntent | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [dislikedIds, setDislikedIds] = useState<string[]>([]);
-  const [likedIds, setLikedIds] = useState<string[]>([]);
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  // curatedIds = IDs the user has added to their curated list
+  const [curatedIds, setCuratedIds] = useState<string[]>([]);
 
   useEffect(() => {
     const savedIntent = localStorage.getItem('userIntent');
     if (savedIntent) setUserIntent(JSON.parse(savedIntent));
 
-    const dislikes = localStorage.getItem('dislikedIds');
-    if (dislikes) setDislikedIds(JSON.parse(dislikes));
-
-    const likes = localStorage.getItem('likedIds');
-    if (likes) setLikedIds(JSON.parse(likes));
+    // Load curated IDs (can be added from explore page)
+    const saved = JSON.parse(localStorage.getItem('curatedIds') || '[]');
+    setCuratedIds(saved);
 
     fetch('/api/projects')
       .then(r => r.json())
@@ -35,133 +33,142 @@ export default function DashboardPage() {
       .finally(() => setIsLoading(false));
   }, []);
 
-  const curatedMatches = useMemo(() => {
-    // Filter out disliked, sort by trust score + limit to 10 for velocity
-    return projects
-      .filter(p => !dislikedIds.includes(p.id))
-      .sort((a, b) => b.trustScore - a.trustScore)
-      .slice(0, 10);
-  }, [projects, dislikedIds]);
+  // Listen for curated updates from explore page
+  useEffect(() => {
+    const handler = () => {
+      const ids = JSON.parse(localStorage.getItem('curatedIds') || '[]');
+      setCuratedIds(ids);
+    };
+    window.addEventListener('curatedUpdated', handler);
+    return () => window.removeEventListener('curatedUpdated', handler);
+  }, []);
 
-  const handleDislike = (id: string) => {
-    const next = [...dislikedIds, id];
-    setDislikedIds(next);
-    localStorage.setItem('dislikedIds', JSON.stringify(next));
-  };
-
-  const handleLike = (id: string) => {
-    const next = [...likedIds, id];
-    setLikedIds(next);
-    localStorage.setItem('likedIds', JSON.stringify(next));
-    // Actually add to saved for real persistence
-    const saved = JSON.parse(localStorage.getItem('savedIds') || '[]');
-    if (!saved.includes(id)) {
-      localStorage.setItem('savedIds', JSON.stringify([...saved, id]));
+  // Curated list: user-selected IDs + top 10 by trust score as default
+  const curatedProjects = useMemo(() => {
+    if (curatedIds.length > 0) {
+      return projects.filter(p => curatedIds.includes(p.id));
     }
+    // Default: show top 10 by trust score
+    return projects.sort((a, b) => b.trustScore - a.trustScore).slice(0, 10);
+  }, [projects, curatedIds]);
+
+  const removeFromCurated = (id: string) => {
+    const updated = curatedIds.filter(cid => cid !== id);
+    // If was using defaults and user removes one, lock in current list minus removed
+    const effectiveIds = curatedIds.length > 0
+      ? curatedIds
+      : curatedProjects.map(p => p.id);
+    const next = effectiveIds.filter(cid => cid !== id);
+    setCuratedIds(next);
+    localStorage.setItem('curatedIds', JSON.stringify(next));
+    window.dispatchEvent(new Event('curatedUpdated'));
+    toast('Removed from your list');
   };
+
+  const userName = userIntent ? (userIntent as any).name?.split(' ')[0] || null : null;
 
   if (isLoading) {
     return (
       <SectionContainer wide className="space-y-8 py-10">
-        <div className="space-y-2">
-          <Skeleton className="h-10 w-48" />
-          <Skeleton className="h-4 w-64" />
-        </div>
+        <Skeleton className="h-10 w-48" />
         <div className="card-grid">
-          {[1, 2, 3, 4, 5, 6].map(i => <Skeleton key={i} className="h-[400px] w-full rounded-[var(--radius)]" />)}
+          {[1,2,3,4,5,6].map(i => <Skeleton key={i} className="h-[380px] rounded-[var(--radius)]" />)}
         </div>
       </SectionContainer>
     );
   }
 
   return (
-    <div className="min-h-screen pb-20">
-      <div className="bg-white border-b border-[var(--border)] pt-10 pb-6">
+    <div className="min-h-screen pb-28">
+      {/* Header */}
+      <div className="bg-white border-b border-[var(--border)] pt-8 pb-6">
         <SectionContainer wide>
-          <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
+          <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
             <div className="space-y-1">
-              <div className="flex items-center gap-2 text-[var(--primary)] font-bold text-sm uppercase tracking-wider">
-                <Sparkles className="w-4 h-4" />
-                <span>PropIQ Curation</span>
+              <div className="flex items-center gap-2 text-[var(--primary)] font-bold text-xs uppercase tracking-wider">
+                <Sparkles className="w-3.5 h-3.5" />
+                <span>Curated Matches</span>
+                <span className="bg-[var(--primary-light)] text-[var(--primary)] px-2 py-0.5 rounded-full font-black">
+                  {curatedProjects.length}
+                </span>
               </div>
-              <h1 className="text-3xl md:text-4xl font-black text-[var(--text-primary)]" style={{ fontFamily: 'var(--font-display)' }}>
-                Your Top Matches
+              <h1 className="text-2xl sm:text-3xl font-black text-[var(--text-primary)]"
+                style={{ fontFamily: 'var(--font-display)' }}>
+                {userName ? `${userName}'s Top Picks` : 'Your Top Picks'}
               </h1>
-              <p className="text-[var(--text-secondary)]">The most verified, high-trust projects in Pune, curated for you.</p>
+              <p className="text-sm text-[var(--text-secondary)]">
+                Your personally curated shortlist · Add more from Explore
+              </p>
             </div>
-            <div className="flex items-center gap-2 bg-[var(--surface-raised)] p-1 rounded-[var(--radius-sm)]">
-              <button 
-                onClick={() => setViewMode('grid')}
-                className={`p-2 rounded transition-all ${viewMode === 'grid' ? 'bg-white shadow-sm text-[var(--primary)]' : 'text-[var(--text-muted)]'}`}
-              >
-                <LayoutGrid className="w-4 h-4" />
-              </button>
-              <button 
-                onClick={() => setViewMode('list')}
-                className={`p-2 rounded transition-all ${viewMode === 'list' ? 'bg-white shadow-sm text-[var(--primary)]' : 'text-[var(--text-muted)]'}`}
-              >
-                <List className="w-4 h-4" />
-              </button>
-            </div>
+            <Link href="/explore"
+              className="flex-shrink-0 flex items-center gap-2 px-4 py-2.5
+                bg-[var(--primary)] text-white text-sm font-bold rounded-[var(--radius)]
+                shadow-[var(--shadow-primary)] hover:opacity-90 transition-opacity">
+              <Search className="w-4 h-4" /> Explore Projects
+            </Link>
           </div>
         </SectionContainer>
       </div>
 
-      <SectionContainer wide className="py-8">
+      <SectionContainer wide className="py-6">
         <AnimatePresence mode="popLayout">
-          {curatedMatches.length === 0 ? (
-            <motion.div 
+          {curatedProjects.length === 0 ? (
+            <motion.div
               initial={{ opacity: 0 }} animate={{ opacity: 1 }}
-              className="flex flex-col items-center justify-center py-20 text-center space-y-4"
+              className="flex flex-col items-center justify-center py-24 text-center space-y-5"
             >
-              <div className="w-16 h-16 bg-[var(--surface-raised)] rounded-full flex items-center justify-center">
-                <Search className="w-8 h-8 text-[var(--text-muted)]" />
+              <div className="w-20 h-20 bg-[var(--primary-light)] rounded-full flex items-center justify-center">
+                <Sparkles className="w-9 h-9 text-[var(--primary)]" />
               </div>
-              <div className="space-y-1">
-                <h3 className="font-bold text-xl">No more matches!</h3>
-                <p className="text-[var(--text-secondary)] max-w-xs">You've gone through all our curated recommendations. Try expanding your search in the explore page.</p>
+              <div className="space-y-2">
+                <h3 className="text-xl font-black text-[var(--text-primary)]">Your list is empty</h3>
+                <p className="text-sm text-[var(--text-secondary)] max-w-xs">
+                  Browse projects in Explore and add them to your curated list.
+                </p>
               </div>
-              <Link href="/explore" className="px-6 py-3 bg-[var(--primary)] text-white font-bold rounded-full shadow-[var(--shadow-primary)] flex items-center gap-2">
-                Explore More <ArrowRight className="w-4 h-4" />
+              <Link href="/explore"
+                className="flex items-center gap-2 px-6 py-3 bg-[var(--primary)] text-white
+                  font-bold rounded-[var(--radius)] shadow-[var(--shadow-primary)]">
+                <Plus className="w-4 h-4" /> Add Projects
               </Link>
             </motion.div>
           ) : (
-            <div className={viewMode === 'grid' ? 'card-grid' : 'space-y-4'}>
-              {curatedMatches.map((project, index) => (
-                <motion.div
-                  layout
-                  key={project.id}
-                  initial={{ opacity: 0, scale: 0.9 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.9 }}
-                  className="relative"
-                >
-                  <ProjectCard project={project} index={index} />
-                  <div className="absolute top-4 right-4 z-20 flex flex-col gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                    {/* These buttons are overlays for quick action in the dashboard curation view */}
-                  </div>
-                  <div className="mt-3 flex items-center justify-center gap-3">
-                    <button 
-                      onClick={() => handleDislike(project.id)}
-                      className="flex-1 py-3 bg-white border border-[var(--border)] rounded-xl flex items-center justify-center gap-2 text-sm font-bold text-[var(--text-secondary)] hover:bg-gray-50 transition-colors"
-                    >
-                      <ThumbsDown className="w-4 h-4" /> Not Interested
+            <>
+              <div className="card-grid">
+                {curatedProjects.map((project, index) => (
+                  <motion.div
+                    layout
+                    key={project.id}
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.9 }}
+                    className="relative group"
+                  >
+                    <ProjectCard project={project} index={index} />
+                    {/* Remove button */}
+                    <button
+                      onClick={() => removeFromCurated(project.id)}
+                      className="absolute top-3 right-3 z-20 w-7 h-7 bg-black/50 backdrop-blur-sm
+                        text-white rounded-full flex items-center justify-center
+                        opacity-0 group-hover:opacity-100 transition-opacity hover:bg-[var(--danger)]">
+                      <X className="w-3.5 h-3.5" />
                     </button>
-                    <button 
-                      onClick={() => handleLike(project.id)}
-                      className={`flex-1 py-3 rounded-xl flex items-center justify-center gap-2 text-sm font-bold transition-colors ${
-                        likedIds.includes(project.id) 
-                          ? 'bg-[var(--success)] text-white' 
-                          : 'bg-[var(--primary)] text-white hover:opacity-90'
-                      }`}
-                    >
-                      <ThumbsUp className="w-4 h-4" /> 
-                      {likedIds.includes(project.id) ? 'Shortlisted' : 'I Like This'}
-                    </button>
-                  </div>
-                </motion.div>
-              ))}
-            </div>
+                  </motion.div>
+                ))}
+              </div>
+
+              {/* Add more button at bottom */}
+              <div className="mt-8 flex justify-center">
+                <Link href="/explore"
+                  className="flex items-center gap-2 px-6 py-3 bg-[var(--surface)]
+                    border-2 border-[var(--border-strong)] text-[var(--text-primary)]
+                    text-sm font-bold rounded-[var(--radius)] hover:border-[var(--primary)]
+                    transition-colors">
+                  <Plus className="w-4 h-4" /> Add More Projects from Explorer
+                  <ArrowRight className="w-4 h-4" />
+                </Link>
+              </div>
+            </>
           )}
         </AnimatePresence>
       </SectionContainer>

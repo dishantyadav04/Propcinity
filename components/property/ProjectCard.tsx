@@ -37,8 +37,8 @@ export default function ProjectCard({ project, matchedUnit, fitScore, index = 0 
 
   useEffect(() => {
     const checkCompare = () => {
-      const current: string[] = JSON.parse(localStorage.getItem('compareIds') || '[]');
-      setIsComparing(current.includes(project.id));
+      const current: any[] = JSON.parse(localStorage.getItem('compareItems') || '[]');
+      setIsComparing(!!current.find(p => p.id === project.id));
     };
     checkCompare();
     window.addEventListener('compareUpdated', checkCompare);
@@ -48,12 +48,13 @@ export default function ProjectCard({ project, matchedUnit, fitScore, index = 0 
   const handleCompare = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    const current: string[] = JSON.parse(localStorage.getItem('compareIds') || '[]');
-    if (!current.includes(project.id) && current.length >= 3) {
-      toast.error("You can compare maximum 3 projects");
+    const current: any[] = JSON.parse(localStorage.getItem('compareItems') || '[]');
+    const exists = current.find(p => p.id === project.id);
+    if (!exists && current.length >= 5) {
+      toast.error("You can compare maximum 5 projects");
       return;
     }
-    addToCompare(project.id);
+    addToCompare(project);
   };
 
   return (

@@ -12,7 +12,7 @@ import { toast } from "sonner";
 
 const MapView = dynamic(() => import("@/components/map/MapView"), {
   ssr: false,
-  loading: () => <div className="h-full w-full shimmer" />,
+  loading: () => <div className="h-full w-full bg-[var(--surface-raised)] animate-pulse" />,
 });
 
 type RiskFilter = 'all' | 'low' | 'medium' | 'high';
@@ -27,7 +27,6 @@ export default function ExplorePage() {
   const [riskFilter, setRiskFilter] = useState<RiskFilter>('all');
   const [sortBy, setSortBy] = useState<SortOption>('trust');
   const [showFilters, setShowFilters] = useState(false);
-  const [view, setView] = useState<'split' | 'list' | 'map'>('split');
   const [curatedIds, setCuratedIds] = useState<string[]>([]);
   const [savedIds, setSavedIds] = useState<string[]>([]);
 
@@ -36,18 +35,21 @@ export default function ExplorePage() {
     setSavedIds(JSON.parse(localStorage.getItem('savedIds') || '[]'));
   }, []);
 
-  const toggleCurated = (id: string) => {
+  const toggleCurated = (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
     const next = curatedIds.includes(id) ? curatedIds.filter(i => i !== id) : [...curatedIds, id];
     setCuratedIds(next);
     localStorage.setItem('curatedIds', JSON.stringify(next));
-    toast.success(curatedIds.includes(id) ? "Removed from Curated" : "Added to Curated");
+    window.dispatchEvent(new Event('curatedUpdated'));
+    toast(next.includes(id) ? 'Added to Dashboard ⭐' : 'Removed from Dashboard');
   };
 
-  const toggleSave = (id: string) => {
+  const toggleSave = (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
     const next = savedIds.includes(id) ? savedIds.filter(i => i !== id) : [...savedIds, id];
     setSavedIds(next);
     localStorage.setItem('savedIds', JSON.stringify(next));
-    toast.success(savedIds.includes(id) ? "Removed from Shortlist" : "Saved to Shortlist");
+    toast(next.includes(id) ? 'Saved to Shortlist ❤️' : 'Removed from Shortlist');
   };
 
   useEffect(() => {
@@ -68,37 +70,35 @@ export default function ExplorePage() {
       result = result.filter(p =>
         p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
         p.location.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        p.builderName?.toLowerCase().includes(searchQuery.toLowerCase())
+        (p.builderName || '').toLowerCase().includes(searchQuery.toLowerCase())
       );
     }
-    if (riskFilter !== 'all') {
-      result = result.filter(p => p.riskLabel === riskFilter);
-    }
+    if (riskFilter !== 'all') result = result.filter(p => p.riskLabel === riskFilter);
     if (sortBy === 'trust') result.sort((a, b) => b.trustScore - a.trustScore);
     if (sortBy === 'price_asc') result.sort((a, b) =>
-      Math.min(...a.unitConfigs.map(u => u.priceMin)) -
-      Math.min(...b.unitConfigs.map(u => u.priceMin))
+      Math.min(...(a.unitConfigs.length ? a.unitConfigs.map(u => u.priceMin) : [0])) -
+      Math.min(...(b.unitConfigs.length ? b.unitConfigs.map(u => u.priceMin) : [0]))
     );
     if (sortBy === 'price_desc') result.sort((a, b) =>
-      Math.min(...b.unitConfigs.map(u => u.priceMin)) -
-      Math.min(...a.unitConfigs.map(u => u.priceMin))
+      Math.min(...(b.unitConfigs.length ? b.unitConfigs.map(u => u.priceMin) : [0])) -
+      Math.min(...(a.unitConfigs.length ? a.unitConfigs.map(u => u.priceMin) : [0]))
     );
     setFiltered(result);
     if (result.length > 0 && !result.find(p => p.id === selectedProject?.id)) {
       setSelectedProject(result[0]);
     }
-  }, [projects, searchQuery, riskFilter, sortBy, selectedProject]);
+  }, [projects, searchQuery, riskFilter, sortBy]);
 
   useEffect(() => { applyFilters(); }, [applyFilters]);
 
-  const riskBadgeStyle = (risk: string) => ({
+  const riskStyle = (risk: string) => ({
     low: 'bg-[var(--success-light)] text-[var(--success)]',
     medium: 'bg-[var(--warning-light)] text-[var(--warning)]',
     high: 'bg-[var(--danger-light)] text-[var(--danger)]',
   }[risk] || '');
 
   return (
-    <div className="flex flex-col h-[calc(100vh-64px)]">
+    <div className="flex flex-col" style={{ height: 'calc(100vh - 64px)' }}>
 
       {/* Search + filter bar */}
       <div className="bg-white border-b border-[var(--border)] px-4 sm:px-6 py-3 space-y-3 flex-shrink-0">
@@ -108,8 +108,8 @@ export default function ExplorePage() {
             <input
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
-              placeholder="Search by project, location, builder..."
-              className="w-full pl-9 pr-4 py-2.5 bg-[var(--surface-raised)] border border-[var(--border)]
+              placeholder="Search project, location, builder..."
+              className="w-full pl-9 pr-9 py-2.5 bg-[var(--surface-raised)] border border-[var(--border)]
                 rounded-[var(--radius-xs)] text-sm text-[var(--text-primary)]
                 placeholder:text-[var(--text-muted)] focus:outline-none focus:border-[var(--primary)]"
             />
@@ -121,7 +121,8 @@ export default function ExplorePage() {
             )}
           </div>
           <button onClick={() => setShowFilters(!showFilters)}
-            className={`flex items-center gap-1.5 px-3 py-2.5 rounded-[var(--radius-xs)] border text-sm font-semibold transition-colors ${
+            className={`flex items-center gap-1.5 px-3 py-2.5 rounded-[var(--radius-xs)]
+              border text-sm font-semibold transition-colors flex-shrink-0 ${
               showFilters || riskFilter !== 'all'
                 ? 'border-[var(--primary)] bg-[var(--primary-light)] text-[var(--primary)]'
                 : 'border-[var(--border)] text-[var(--text-secondary)]'
@@ -129,40 +130,20 @@ export default function ExplorePage() {
             <SlidersHorizontal className="w-4 h-4" />
             <span className="hidden sm:inline">Filters</span>
           </button>
-          {/* View toggle */}
-          <div className="hidden md:flex items-center bg-[var(--surface-raised)] rounded-[var(--radius-xs)] p-1 gap-1">
-            {(['split', 'list', 'map'] as const).map(v => (
-              <button key={v} onClick={() => setView(v)}
-                className={`px-3 py-1.5 rounded text-xs font-bold capitalize transition-all ${
-                  view === v ? 'bg-white shadow-[var(--shadow-sm)] text-[var(--text-primary)]' : 'text-[var(--text-muted)]'
-                }`}>
-                {v}
-              </button>
-            ))}
-          </div>
         </div>
 
-        {/* Filter row */}
         <AnimatePresence>
           {showFilters && (
-            <motion.div
-              initial={{ height: 0, opacity: 0 }}
-              animate={{ height: 'auto', opacity: 1 }}
-              exit={{ height: 0, opacity: 0 }}
-              className="overflow-hidden"
-            >
-              <div className="flex items-center gap-3 pt-1 flex-wrap">
+            <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }} className="overflow-hidden">
+              <div className="flex flex-wrap gap-3 pt-1">
                 <div className="flex items-center gap-1.5">
                   <span className="text-xs font-semibold text-[var(--text-muted)]">Risk:</span>
                   {(['all', 'low', 'medium', 'high'] as const).map(r => (
                     <button key={r} onClick={() => setRiskFilter(r)}
                       className={`px-3 py-1 rounded-full text-xs font-bold capitalize transition-all ${
-                        riskFilter === r
-                          ? 'bg-[var(--primary)] text-white'
-                          : 'bg-[var(--surface-raised)] text-[var(--text-secondary)]'
-                      }`}>
-                      {r}
-                    </button>
+                        riskFilter === r ? 'bg-[var(--primary)] text-white' : 'bg-[var(--surface-raised)] text-[var(--text-secondary)]'
+                      }`}>{r}</button>
                   ))}
                 </div>
                 <div className="flex items-center gap-1.5 ml-auto">
@@ -182,89 +163,91 @@ export default function ExplorePage() {
         </AnimatePresence>
 
         <p className="text-xs text-[var(--text-muted)] font-medium">
-          {filtered.length} project{filtered.length !== 1 ? 's' : ''} found
+          {filtered.length} project{filtered.length !== 1 ? 's' : ''}
           {riskFilter !== 'all' ? ` · ${riskFilter} risk` : ''}
           {searchQuery ? ` · "${searchQuery}"` : ''}
         </p>
       </div>
 
-      {/* Main content */}
+      {/* Split view — always split, no toggle */}
       {isLoading ? (
         <div className="flex-1 flex items-center justify-center">
           <div className="space-y-3 w-full max-w-sm px-6">
-            {[1, 2, 3].map(i => <Skeleton key={i} className="h-12 w-full rounded-[var(--radius)]" />)}
+            {[1, 2, 3].map(i => <Skeleton key={i} className="h-16 rounded-[var(--radius)]" />)}
           </div>
         </div>
       ) : (
-        <div className={`flex-1 flex overflow-hidden ${
-          view === 'map' ? 'flex-col' : 'flex-col md:flex-row'
-        }`}>
+        <div className="flex-1 flex overflow-hidden">
 
-          {/* Project list — hidden in map-only view */}
-          {view !== 'map' && (
-            <div className="md:w-[420px] lg:w-[480px] flex-shrink-0 overflow-y-auto
-              border-r border-[var(--border)] bg-[var(--surface-raised)]">
-              {filtered.length === 0 ? (
-                <div className="flex flex-col items-center justify-center h-full py-20 px-6 text-center space-y-3">
-                  <Search className="w-10 h-10 text-[var(--text-muted)]" />
-                  <p className="font-bold text-[var(--text-primary)]">No projects match</p>
-                  <p className="text-sm text-[var(--text-muted)]">Try adjusting your filters</p>
-                  <button onClick={() => { setSearchQuery(''); setRiskFilter('all'); }}
-                    className="text-sm text-[var(--primary)] font-bold">Clear filters</button>
-                </div>
-              ) : (
-                <div className="divide-y divide-[var(--border)]">
-                  {filtered.map(project => {
-                    const minPrice = project.unitConfigs.length
-                      ? Math.min(...project.unitConfigs.map(u => u.priceMin))
-                      : 0;
-                    const isSelected = selectedProject?.id === project.id;
-                    return (
-                      <div key={project.id}
-                        onClick={() => setSelectedProject(project)}
-                        className={`p-4 cursor-pointer transition-colors ${
-                          isSelected
-                            ? 'bg-[var(--primary-light)] border-l-2 border-[var(--primary)]'
-                            : 'bg-white hover:bg-[var(--surface-raised)]'
-                        }`}>
-                        <div className="flex gap-3">
-                          <div className="w-16 h-16 flex-shrink-0 rounded-[var(--radius-xs)] overflow-hidden bg-[var(--surface-raised)] relative group/img">
-                            {project.images?.[0] ? (
-                              <img src={project.images[0]} alt={project.name}
-                                className="w-full h-full object-cover" />
-                            ) : (
-                              <div className="w-full h-full flex items-center justify-center text-[var(--text-muted)]">
-                                <Building2 className="w-5 h-5" />
-                              </div>
-                            )}
-                            <div className="absolute inset-0 bg-black/20 opacity-0 group-hover/img:opacity-100 transition-opacity flex items-center justify-center gap-1">
-                              <button onClick={(e) => { e.stopPropagation(); toggleCurated(project.id); }}
-                                className={`p-1.5 rounded-full ${curatedIds.includes(project.id) ? 'bg-yellow-400 text-white' : 'bg-white/80 text-gray-700'}`}>
-                                <Star className="w-3 h-3 fill-current" />
-                              </button>
-                              <button onClick={(e) => { e.stopPropagation(); toggleSave(project.id); }}
-                                className={`p-1.5 rounded-full ${savedIds.includes(project.id) ? 'bg-red-500 text-white' : 'bg-white/80 text-gray-700'}`}>
-                                <Heart className="w-3 h-3 fill-current" />
-                              </button>
-                            </div>
-                          </div>
-                          <div className="flex-1 min-w-0 space-y-1">
-                            <div className="flex items-start justify-between gap-2">
-                              <p className="font-bold text-sm text-[var(--text-primary)] line-clamp-1"
-                                style={{ fontFamily: 'var(--font-display)' }}>
-                                {project.name}
-                              </p>
-                              <span className={`flex-shrink-0 text-[10px] font-bold px-2 py-0.5 rounded-full capitalize ${riskBadgeStyle(project.riskLabel)}`}>
-                                {project.riskLabel}
-                              </span>
-                            </div>
-                            <p className="text-xs text-[var(--text-muted)] flex items-center gap-1">
-                              <MapPin className="w-3 h-3" /> {project.location}
+          {/* Project list — always visible */}
+          <div className="w-full md:w-[400px] lg:w-[460px] flex-shrink-0 overflow-y-auto
+            border-r border-[var(--border)] bg-[var(--surface-raised)]">
+            {filtered.length === 0 ? (
+              <div className="flex flex-col items-center justify-center h-full py-20 px-6 text-center space-y-3">
+                <Search className="w-10 h-10 text-[var(--text-muted)]" />
+                <p className="font-bold text-[var(--text-primary)]">No projects match</p>
+                <button onClick={() => { setSearchQuery(''); setRiskFilter('all'); }}
+                  className="text-sm text-[var(--primary)] font-bold">Clear filters</button>
+              </div>
+            ) : (
+              <div className="divide-y divide-[var(--border)]">
+                {filtered.map(project => {
+                  const minPrice = project.unitConfigs.length
+                    ? Math.min(...project.unitConfigs.map(u => u.priceMin)) : 0;
+                  const isSelected = selectedProject?.id === project.id;
+
+                  return (
+                    <div key={project.id}
+                      onClick={() => setSelectedProject(project)}
+                      className={`p-4 cursor-pointer transition-colors ${
+                        isSelected
+                          ? 'bg-[var(--primary-light)] border-l-2 border-[var(--primary)]'
+                          : 'bg-white hover:bg-[var(--surface-raised)]'
+                      }`}>
+                      <div className="flex gap-3">
+                        <div className="w-16 h-16 flex-shrink-0 rounded-[var(--radius-xs)] overflow-hidden bg-[var(--surface-raised)]">
+                          {project.images?.[0]
+                            ? <img src={project.images[0]} alt={project.name} className="w-full h-full object-cover" />
+                            : <div className="w-full h-full flex items-center justify-center"><Building2 className="w-5 h-5 text-[var(--text-muted)]" /></div>
+                          }
+                        </div>
+                        <div className="flex-1 min-w-0 space-y-1">
+                          <div className="flex items-start justify-between gap-2">
+                            <p className="font-bold text-sm text-[var(--text-primary)] line-clamp-1">
+                              {project.name}
                             </p>
-                            <div className="flex items-center justify-between">
-                              <p className="text-sm font-black text-[var(--primary)]">
-                                {formatINR(minPrice)}
-                              </p>
+                            <span className={`flex-shrink-0 text-[10px] font-bold px-2 py-0.5 rounded-full capitalize ${riskStyle(project.riskLabel)}`}>
+                              {project.riskLabel}
+                            </span>
+                          </div>
+                          <p className="text-xs text-[var(--text-muted)] flex items-center gap-1">
+                            <MapPin className="w-3 h-3" /> {project.location}
+                          </p>
+                          <div className="flex items-center justify-between gap-2">
+                            <p className="text-sm font-black text-[var(--primary)]">{formatINR(minPrice)}</p>
+                            <div className="flex items-center gap-1.5">
+                              {/* Add to curated (dashboard) */}
+                              <button
+                                onClick={(e) => toggleCurated(project.id, e)}
+                                title="Add to Dashboard"
+                                className={`p-1.5 rounded-full transition-all text-sm ${
+                                  curatedIds.includes(project.id)
+                                    ? 'bg-[var(--primary)] text-white'
+                                    : 'bg-[var(--surface-raised)] text-[var(--text-muted)] hover:text-[var(--primary)]'
+                                }`}>
+                                <Star className="w-3.5 h-3.5" />
+                              </button>
+                              {/* Save */}
+                              <button
+                                onClick={(e) => toggleSave(project.id, e)}
+                                title="Save to Shortlist"
+                                className={`p-1.5 rounded-full transition-all ${
+                                  savedIds.includes(project.id)
+                                    ? 'bg-[var(--danger)] text-white'
+                                    : 'bg-[var(--surface-raised)] text-[var(--text-muted)] hover:text-[var(--danger)]'
+                                }`}>
+                                <Heart className="w-3.5 h-3.5" />
+                              </button>
                               <Link href={`/projects/${project.slug}`}
                                 onClick={e => e.stopPropagation()}
                                 className="text-[10px] font-bold text-[var(--text-muted)] hover:text-[var(--primary)] transition-colors">
@@ -274,51 +257,51 @@ export default function ExplorePage() {
                           </div>
                         </div>
                       </div>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-          )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
 
-          {/* Map — hidden in list-only mode */}
-          {view !== 'list' && (
-            <div className="flex-1 relative min-h-[300px]">
-              {selectedProject && (
-                <MapView
-                  key={selectedProject.id}
-                  lat={selectedProject.lat}
-                  lng={selectedProject.lng}
-                  projectName={selectedProject.name}
-                  priceLabel={formatINR(
-                    selectedProject.unitConfigs.length
-                      ? Math.min(...selectedProject.unitConfigs.map(u => u.priceMin))
-                      : 0
-                  )}
-                  zoom={14}
-                  className="h-full w-full"
-                />
-              )}
-              {/* Selected project pill on map */}
-              {selectedProject && (
-                <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-20
-                  bg-white rounded-[var(--radius)] shadow-[var(--shadow-lg)]
-                  px-4 py-2.5 flex items-center gap-3 max-w-sm w-full mx-4">
-                  <div className="flex-1 min-w-0">
-                    <p className="font-bold text-sm text-[var(--text-primary)] truncate">
-                      {selectedProject.name}
-                    </p>
-                    <p className="text-xs text-[var(--text-muted)]">{selectedProject.location}</p>
-                  </div>
-                  <Link href={`/projects/${selectedProject.slug}`}
-                    className="flex-shrink-0 px-3 py-1.5 bg-[var(--primary)] text-white
-                      text-xs font-bold rounded-[var(--radius-xs)]">
-                    View
-                  </Link>
+          {/* Map — hidden on mobile, visible on md+ */}
+          <div className="hidden md:flex flex-1 relative">
+            {selectedProject ? (
+              <MapView
+                key={selectedProject.id}
+                lat={selectedProject.lat}
+                lng={selectedProject.lng}
+                projectName={selectedProject.name}
+                priceLabel={formatINR(
+                  selectedProject.unitConfigs.length
+                    ? Math.min(...selectedProject.unitConfigs.map(u => u.priceMin)) : 0
+                )}
+                zoom={14}
+                className="h-full w-full"
+              />
+            ) : (
+              <div className="flex-1 flex items-center justify-center bg-[var(--surface-raised)]">
+                <p className="text-[var(--text-muted)] text-sm">Select a project to see on map</p>
+              </div>
+            )}
+
+            {/* Selected project floating card */}
+            {selectedProject && (
+              <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-20
+                bg-white rounded-[var(--radius)] shadow-[var(--shadow-lg)]
+                px-4 py-2.5 flex items-center gap-3 max-w-xs w-full">
+                <div className="flex-1 min-w-0">
+                  <p className="font-bold text-sm text-[var(--text-primary)] truncate">{selectedProject.name}</p>
+                  <p className="text-xs text-[var(--text-muted)]">{selectedProject.location}</p>
                 </div>
-              )}
-            </div>
-          )}
+                <Link href={`/projects/${selectedProject.slug}`}
+                  className="flex-shrink-0 px-3 py-1.5 bg-[var(--primary)] text-white
+                    text-xs font-bold rounded-[var(--radius-xs)]">
+                  View
+                </Link>
+              </div>
+            )}
+          </div>
         </div>
       )}
     </div>

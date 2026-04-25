@@ -38,12 +38,12 @@ export default function ProfilePage() {
             className="w-20 h-20 bg-white/20 backdrop-blur rounded-[var(--radius-xl)]
               flex items-center justify-center text-white text-2xl font-black
               border-2 border-white/30 flex-shrink-0">
-            JD
+            {intent?.name ? intent.name.split(' ').map((n: string) => n[0]).join('').substring(0, 2).toUpperCase() : 'U'}
           </motion.div>
           <div className="text-white space-y-1">
             <h1 className="text-2xl font-black tracking-tight"
-              style={{ fontFamily: 'var(--font-display)' }}>John Doe</h1>
-            <p className="text-white/80 text-sm">+91 98765 43210</p>
+              style={{ fontFamily: 'var(--font-display)' }}>{intent?.name || 'User'}</h1>
+            <p className="text-white/80 text-sm">{intent?.phone || 'Add phone number'}</p>
             <div className="inline-flex items-center gap-1.5 px-2.5 py-1
               bg-white/20 text-white text-xs font-bold rounded-full mt-1">
               <ShieldCheck className="w-3 h-3" /> Phone Verified

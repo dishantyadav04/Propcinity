@@ -33,17 +33,18 @@ export function getPriceLabel(project: {
   return `${formatIndianPrice(min)}-${formatIndianPrice(max)}`
 }
 
-export function addToCompare(projectId: string): boolean {
-  const current: string[] = JSON.parse(localStorage.getItem('compareIds') || '[]');
-  if (current.includes(projectId)) {
-    const updated = current.filter(id => id !== projectId);
-    localStorage.setItem('compareIds', JSON.stringify(updated));
+export function addToCompare(project: any): boolean {
+  const current: any[] = JSON.parse(localStorage.getItem('compareItems') || '[]');
+  const exists = current.find((p: any) => p.id === project.id);
+  if (exists) {
+    const updated = current.filter((p: any) => p.id !== project.id);
+    localStorage.setItem('compareItems', JSON.stringify(updated));
     window.dispatchEvent(new Event('compareUpdated'));
     return false; // removed
   }
-  if (current.length >= 3) return false; // max reached
-  const updated = [...current, projectId];
-  localStorage.setItem('compareIds', JSON.stringify(updated));
+  if (current.length >= 5) return false; // max reached
+  const updated = [...current, project];
+  localStorage.setItem('compareItems', JSON.stringify(updated));
   window.dispatchEvent(new Event('compareUpdated'));
   return true; // added
 }

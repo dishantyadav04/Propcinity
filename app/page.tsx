@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { ArrowRight, ShieldCheck, Star, Building2, MapPin, TrendingUp, CheckCircle2 } from "lucide-react";
 import { motion } from "framer-motion";
+import { useEffect, useState } from "react";
 
 // Inline SVG background — architectural city silhouette
 function CitySilhouette() {
@@ -129,6 +130,15 @@ function StatCard({ icon: Icon, value, label, delay }: {
 }
 
 export default function LandingPage() {
+  const [projectCount, setProjectCount] = useState(0);
+
+  useEffect(() => {
+    fetch('/api/projects')
+      .then(res => res.json())
+      .then(data => setProjectCount(data.length))
+      .catch(console.error);
+  }, []);
+
   return (
     <div className="min-h-screen bg-[var(--background)] overflow-x-hidden">
 
@@ -222,7 +232,7 @@ export default function LandingPage() {
 
           {/* Floating stat cards — desktop only, top-right area */}
           <div className="hidden lg:flex flex-col gap-3 absolute right-0 top-1/2 -translate-y-1/2">
-            <StatCard icon={Building2} value="60+" label="Audited projects" delay={0.5} />
+            <StatCard icon={Building2} value={projectCount > 0 ? `${projectCount}+` : '...'} label="Audited projects" delay={0.5} />
             <StatCard icon={ShieldCheck} value="100%" label="RERA verified" delay={0.6} />
             <StatCard icon={MapPin} value="Pune" label="Serving Buyers" delay={0.7} />
             <StatCard icon={TrendingUp} value="₹0" label="Brokerage Fees" delay={0.8} />
@@ -235,7 +245,7 @@ export default function LandingPage() {
         <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8
           grid grid-cols-2 gap-y-8 gap-x-6">
           {[
-            { icon: Building2, value: '60+', label: 'Audited Projects' },
+            { icon: Building2, value: projectCount > 0 ? `${projectCount}+` : '...', label: 'Audited Projects' },
             { icon: ShieldCheck, value: '100%', label: 'RERA Verified' },
             { icon: MapPin, value: 'Pune', label: 'Serving Buyers' },
             { icon: TrendingUp, value: '₹0', label: 'Brokerage Fees' },
