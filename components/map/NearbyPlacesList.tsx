@@ -28,7 +28,9 @@ export default function NearbyPlacesList({ places, isLoading }: NearbyPlacesList
     );
   }
 
-  if (places.length === 0) {
+  const safeList = Array.isArray(places) ? places : [];
+
+  if (safeList.length === 0) {
     return (
       <div className="text-center py-8">
         <p className="text-sm text-[var(--text-muted)]">No nearby places found within 3km</p>
@@ -39,7 +41,7 @@ export default function NearbyPlacesList({ places, isLoading }: NearbyPlacesList
   return (
     <div className="space-y-6">
       {TYPE_ORDER.map(type => {
-        const typePlaces = places.filter(p => p.type === type);
+        const typePlaces = safeList.filter(p => p.type === type);
         if (typePlaces.length === 0) return null;
         const config = TYPE_LABELS[type];
 

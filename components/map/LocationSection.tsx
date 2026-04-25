@@ -36,7 +36,7 @@ export default function LocationSection({
       try {
         const response = await fetch(`/api/nearby?lat=${lat}&lng=${lng}&radius=3000`);
         const data = await response.json();
-        setPlaces(data);
+        setPlaces(data.places || []);
       } catch (e) {
         console.error("Failed to fetch nearby places", e);
       } finally {
