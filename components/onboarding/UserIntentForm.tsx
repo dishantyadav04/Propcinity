@@ -608,11 +608,12 @@ export default function UserIntentForm() {
                     className={`flex items-center gap-2.5 text-sm font-semibold transition-colors ${
                       form.isOpenMax ? 'text-[var(--primary)]' : 'text-[var(--text-secondary)]'
                     }`}>
-                    <div className={`w-10 h-5 rounded-full transition-colors relative flex-shrink-0 ${
+                    <div className={`w-12 h-6 rounded-full transition-colors relative flex-shrink-0 ${
                       form.isOpenMax ? 'bg-[var(--primary)]' : 'bg-[var(--border-strong)]'
                     }`}>
-                      <span className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform ${
-                        form.isOpenMax ? 'translate-x-5' : 'translate-x-0.5'
+                      <span className={`absolute top-[3px] left-[3px] w-[18px] h-[18px] bg-white rounded-full
+                        shadow-sm transition-transform duration-200 ${
+                        form.isOpenMax ? 'translate-x-6' : 'translate-x-0'
                       }`} />
                     </div>
                     ₹10Cr and above (no upper limit)

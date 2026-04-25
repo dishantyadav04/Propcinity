@@ -116,9 +116,9 @@ export default function CompareBar() {
               </div>
 
               {/* Content */}
-              <div className="p-3 flex items-center gap-3">
+              <div className="p-3 flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
                 {/* Project slots */}
-                <div className="flex-1 flex items-center gap-2 overflow-x-auto scrollbar-hide min-w-0">
+                <div className="flex items-center gap-2 overflow-x-auto scrollbar-hide w-full sm:flex-1 min-w-0 pb-1 sm:pb-0">
                   <AnimatePresence mode="popLayout">
                     {compareItems.map(item => {
                       const minPrice = (item.unitConfigs || []).length
@@ -162,8 +162,8 @@ export default function CompareBar() {
                 {/* Compare button — always visible */}
                 <Link
                   href="/compare"
-                  className={`flex-shrink-0 flex items-center gap-1.5 px-4 py-2.5
-                    rounded-[var(--radius)] font-black text-sm transition-all ${
+                  className={`flex-shrink-0 w-full sm:w-auto flex items-center justify-center gap-1.5
+                    px-4 py-3 sm:py-2.5 rounded-[var(--radius)] font-black text-sm transition-all ${
                     compareItems.length >= 2
                       ? 'bg-[var(--primary)] text-white shadow-[var(--shadow-primary)] hover:opacity-90'
                       : 'bg-[var(--surface-raised)] text-[var(--text-muted)] pointer-events-none'
@@ -174,7 +174,7 @@ export default function CompareBar() {
               </div>
 
               {compareItems.length < 2 && (
-                <p className="text-[10px] text-[var(--text-muted)] text-center pb-2 font-medium">
+                <p className="text-[10px] text-[var(--text-muted)] text-center pb-3 px-4 font-medium">
                   Add {2 - compareItems.length} more project{compareItems.length === 1 ? '' : 's'} to compare
                 </p>
               )}

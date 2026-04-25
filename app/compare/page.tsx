@@ -122,9 +122,9 @@ function CompareContent() {
 
   return (
     <div className="min-h-screen bg-[var(--background)] pb-40">
-      {/* Sticky header */}
+      {/* Header */}
       <div className="bg-white border-b border-[var(--border)] sticky top-16 z-30">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 h-14 flex items-center gap-4">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 h-14 flex items-center gap-4">
           <Link href="/explore"
             className="p-2 hover:bg-[var(--surface-raised)] rounded-[var(--radius-xs)] transition-colors">
             <ArrowLeft className="w-5 h-5 text-[var(--text-secondary)]" />
@@ -140,13 +140,60 @@ function CompareContent() {
         </div>
       </div>
 
-      {/* Table */}
-      <div className="max-w-6xl mx-auto px-2 sm:px-6 py-6 overflow-x-auto">
-        <table className="w-full border-collapse" style={{ minWidth: `${projects.length * 200 + 160}px` }}>
+      {/* ── MOBILE: stacked attribute cards ──────────────── */}
+      <div className="sm:hidden px-4 py-6 space-y-4">
+        {/* Project header cards */}
+        <div className="grid gap-3" style={{ gridTemplateColumns: `repeat(${projects.length}, 1fr)` }}>
+          {projects.map(p => (
+            <Link key={p.id} href={`/projects/${p.slug}`}
+              className="bg-white border border-[var(--border)] rounded-[var(--radius)] overflow-hidden shadow-[var(--shadow-sm)] block">
+              {p.images?.[0] && (
+                <img src={p.images[0]} alt={p.name} className="w-full h-20 object-cover" />
+              )}
+              <div className="p-2 text-center">
+                <p className="text-xs font-bold text-[var(--text-primary)] line-clamp-2 leading-tight">{p.name}</p>
+                <p className="text-[9px] text-[var(--primary)] font-black mt-0.5">
+                  {p.unitConfigs?.length ? formatINR(Math.min(...(p.unitConfigs || []).map(u => u.priceMin))) : '—'}
+                </p>
+                <span className="text-[9px] text-[var(--primary)] font-bold">View →</span>
+              </div>
+            </Link>
+          ))}
+        </div>
+
+        {/* Attribute rows as cards */}
+        {rows.map(row => (
+          <div key={row.label}
+            className="bg-white border border-[var(--border)] rounded-[var(--radius)] overflow-hidden shadow-[var(--shadow-sm)]">
+            <div className="px-4 py-2 bg-[var(--surface-raised)] border-b border-[var(--border)]">
+              <p className="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-wider">
+                {row.label}
+              </p>
+            </div>
+            <div className="grid divide-x divide-[var(--border)]"
+              style={{ gridTemplateColumns: `repeat(${projects.length}, 1fr)` }}>
+              {projects.map(p => (
+                <div key={p.id} className="p-3 flex flex-col items-center gap-1 text-center">
+                  <p className="text-[9px] font-bold text-[var(--text-muted)] truncate w-full text-center">
+                    {p.name.split(' ').slice(0, 2).join(' ')}
+                  </p>
+                  <div className="flex justify-center">{row.render(p)}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* ── DESKTOP: standard table ───────────────────────── */}
+      <div className="hidden sm:block max-w-5xl mx-auto px-4 sm:px-6 py-6 overflow-x-auto">
+        <table className="w-full border-collapse"
+          style={{ minWidth: `${projects.length * 200 + 160}px` }}>
           <thead>
             <tr>
               <th className="w-36 p-3 text-left text-[10px] font-black text-[var(--text-muted)]
-                uppercase tracking-wider bg-[var(--surface-raised)] border border-[var(--border)] sticky left-0 z-10">
+                uppercase tracking-wider bg-[var(--surface-raised)] border border-[var(--border)]
+                sticky left-0 z-10">
                 Feature
               </th>
               {projects.map(p => (
@@ -169,7 +216,8 @@ function CompareContent() {
           </thead>
           <tbody>
             {rows.map((row, i) => (
-              <tr key={row.label} className={i % 2 === 0 ? 'bg-white' : 'bg-[var(--surface-raised)]/40'}>
+              <tr key={row.label}
+                className={i % 2 === 0 ? 'bg-white' : 'bg-[var(--surface-raised)]/40'}>
                 <td className="p-3 text-xs font-bold text-[var(--text-muted)] border border-[var(--border)]
                   uppercase tracking-wider sticky left-0 bg-inherit z-10 whitespace-nowrap">
                   {row.label}
