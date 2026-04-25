@@ -2,14 +2,13 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, Compass, Heart, User, MessageSquare } from "lucide-react";
+import { Home, Compass, Sparkles, User } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const NAV_ITEMS = [
   { label: 'Home', href: '/dashboard', icon: Home },
   { label: 'Explore', href: '/explore', icon: Compass },
-  { label: 'AI Chat', href: '/ai-chat', icon: MessageSquare },
-  { label: 'Shortlist', href: '/saved', icon: Heart },
+  { label: 'AI Chat', href: '/ai-chat', icon: Sparkles },
   { label: 'Profile', href: '/profile', icon: User },
 ];
 

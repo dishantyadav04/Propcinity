@@ -1,209 +1,178 @@
 'use client';
 
+import { useEffect, useState, useMemo, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
-import { useEffect, useState, useMemo } from "react";
 import { Project } from "@/types/project";
-import SectionContainer from "@/components/layout/SectionContainer";
 import TrustScoreBadge from "@/components/property/TrustScoreBadge";
 import { formatINR } from "@/lib/finance-calculations";
-import { Check, Minus, MapPin, Building2, Loader2, ArrowLeft } from "lucide-react";
+import { CheckCircle2, XCircle, ArrowLeft, Plus, Loader2, Minus } from "lucide-react";
 import Link from "next/link";
-
-import { Suspense } from "react";
+import Skeleton from "@/components/ui/Skeleton";
 
 function CompareContent() {
-  const searchParams = useSearchParams();
-  const ids = searchParams?.get('ids')?.split(',') || [];
-  
   const [projects, setProjects] = useState<Project[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const searchParams = useSearchParams();
+  const idsParam = searchParams?.get('ids');
 
   useEffect(() => {
-    if (ids.length === 0) {
+    // First try to get projects from localStorage compareItems (full objects)
+    const stored: Project[] = JSON.parse(localStorage.getItem('compareItems') || '[]');
+
+    if (idsParam) {
+      const ids = idsParam.split(',').filter(Boolean);
+      const fromStore = stored.filter(p => ids.includes(p.id));
+      if (fromStore.length === ids.length) {
+        // All found in localStorage — use directly, no fetch needed
+        setProjects(fromStore);
+        setIsLoading(false);
+        return;
+      }
+      // Fallback: fetch all and filter
+      fetch('/api/projects')
+        .then(r => r.json())
+        .then((all: Project[]) => setProjects(all.filter(p => ids.includes(p.id))))
+        .catch(console.error)
+        .finally(() => setIsLoading(false));
+    } else if (stored.length > 0) {
+      // No URL params — show whatever is in compare bar
+      setProjects(stored);
       setIsLoading(false);
-      return;
+    } else {
+      setIsLoading(false);
     }
+  }, [idsParam]);
 
-    Promise.all(ids.map(id => 
-      fetch(`/api/projects/${id}`).then(r => r.ok ? r.json() : null)
-    ))
-    .then(results => {
-      setProjects(results.filter(Boolean));
-    })
-    .catch(console.error)
-    .finally(() => setIsLoading(false));
-  }, [searchParams]);
-
-  // Extract all unique amenities for comparison
   const allAmenities = useMemo(() => {
-    const set = new Set<string>();
-    projects.forEach(p => p.amenities.forEach(a => set.add(a)));
-    return Array.from(set).sort();
+    const s = new Set<string>();
+    projects.forEach(p => (p.amenities || []).forEach(a => s.add(a)));
+    return Array.from(s).sort();
   }, [projects]);
 
-  if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-[var(--background)]">
-        <div className="flex flex-col items-center gap-4">
-          <Loader2 className="w-8 h-8 animate-spin text-[var(--primary)]" />
-          <p className="text-sm font-bold text-[var(--text-muted)] animate-pulse">
-            Loading comparison...
-          </p>
-        </div>
-      </div>
-    );
-  }
+  if (isLoading) return (
+    <div className="min-h-screen flex items-center justify-center">
+      <Loader2 className="w-8 h-8 animate-spin text-[var(--primary)]" />
+    </div>
+  );
 
-  if (projects.length === 0) {
-    return (
-      <div className="min-h-screen flex flex-col items-center justify-center p-6 text-center space-y-4">
-        <h2 className="text-2xl font-black text-[var(--text-primary)]" style={{ fontFamily: 'var(--font-display)' }}>Nothing to compare</h2>
-        <p className="text-[var(--text-secondary)]">Go to Explore to select projects for comparison.</p>
-        <Link href="/explore" className="px-6 py-2 bg-[var(--primary)] text-white font-bold rounded-[var(--radius)]">
-          Explore Projects
-        </Link>
+  if (projects.length === 0) return (
+    <div className="min-h-screen flex flex-col items-center justify-center gap-5 p-6 text-center">
+      <div className="text-5xl">⚖️</div>
+      <h2 className="text-2xl font-black text-[var(--text-primary)]">Nothing to compare</h2>
+      <p className="text-[var(--text-secondary)] max-w-sm">
+        Add projects to compare using the compare bar at the bottom of any page.
+      </p>
+      <Link href="/explore"
+        className="flex items-center gap-2 px-6 py-3 bg-[var(--primary)] text-white font-bold rounded-[var(--radius)]">
+        <Plus className="w-4 h-4" /> Browse Projects
+      </Link>
+    </div>
+  );
+
+  const rows: { label: string; render: (p: Project) => React.ReactNode }[] = [
+    { label: 'Trust Score', render: p => <TrustScoreBadge score={p.trustScore} size="sm" /> },
+    { label: 'Risk', render: p => (
+      <span className={`px-2 py-0.5 text-xs font-bold rounded-full capitalize ${
+        p.riskLabel === 'low' ? 'bg-[var(--success-light)] text-[var(--success)]' :
+        p.riskLabel === 'medium' ? 'bg-[var(--warning-light)] text-[var(--warning)]' :
+        'bg-[var(--danger-light)] text-[var(--danger)]'}`}>{p.riskLabel}</span>
+    )},
+    { label: 'Price From', render: p => (
+      <span className="font-black text-[var(--primary)]">
+        {p.unitConfigs?.length ? formatINR(Math.min(...p.unitConfigs.map(u => u.priceMin))) : '—'}
+      </span>
+    )},
+    { label: 'Config', render: p => (
+      <span className="text-xs text-[var(--text-secondary)]">
+        {Array.from(new Set((p.unitConfigs || []).map(u => u.type))).join(', ') || '—'}
+      </span>
+    )},
+    { label: 'Builder', render: p => <span className="text-sm font-semibold">{p.builderName || '—'}</span> },
+    { label: 'RERA', render: p => p.reraId
+      ? <CheckCircle2 className="w-5 h-5 text-[var(--success)]" />
+      : <XCircle className="w-5 h-5 text-[var(--text-muted)]" /> },
+    { label: 'Possession', render: p => <span className="text-xs">{p.possessionDate || '—'}</span> },
+    { label: 'Construction', render: p => (
+      <div className="space-y-1 w-24">
+        <div className="h-1.5 bg-[var(--surface-raised)] rounded-full overflow-hidden">
+          <div className="h-full bg-[var(--primary)] rounded-full"
+            style={{ width: `${p.constructionPercent || 0}%` }} />
+        </div>
+        <span className="text-[10px] text-[var(--text-muted)]">{p.constructionPercent || 0}%</span>
       </div>
-    );
-  }
+    )},
+    ...allAmenities.map(amenity => ({
+      label: amenity,
+      render: (p: Project) => (p.amenities || []).includes(amenity)
+        ? <CheckCircle2 className="w-4 h-4 text-[var(--success)]" />
+        : <Minus className="w-4 h-4 text-[var(--border-strong)]" />,
+    })),
+  ];
 
   return (
-    <div className="min-h-screen bg-[var(--background)] pb-24">
-      {/* Header */}
-      <div className="bg-white border-b border-[var(--border)] pt-8 pb-6 sticky top-0 z-20">
-        <SectionContainer wide>
-          <div className="flex items-center gap-4 mb-4">
-            <button onClick={() => window.history.back()}
-              className="p-2 hover:bg-[var(--surface-raised)] rounded-full transition-colors text-[var(--text-primary)]">
-              <ArrowLeft className="w-5 h-5" />
-            </button>
-            <h1 className="text-2xl font-black text-[var(--text-primary)]"
-              style={{ fontFamily: 'var(--font-display)' }}>
-              Comparing {projects.length} Projects
-            </h1>
-          </div>
-        </SectionContainer>
+    <div className="min-h-screen bg-[var(--background)] pb-40">
+      {/* Sticky header */}
+      <div className="bg-white border-b border-[var(--border)] sticky top-16 z-30">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 h-14 flex items-center gap-4">
+          <Link href="/explore"
+            className="p-2 hover:bg-[var(--surface-raised)] rounded-[var(--radius-xs)] transition-colors">
+            <ArrowLeft className="w-5 h-5 text-[var(--text-secondary)]" />
+          </Link>
+          <h1 className="font-black text-[var(--text-primary)] text-lg flex-1"
+            style={{ fontFamily: 'var(--font-display)' }}>
+            Comparing {projects.length} Project{projects.length !== 1 ? 's' : ''}
+          </h1>
+          <Link href="/explore"
+            className="text-xs font-bold text-[var(--primary)] flex items-center gap-1">
+            <Plus className="w-3.5 h-3.5" /> Add More
+          </Link>
+        </div>
       </div>
 
-      <SectionContainer wide className="py-8">
-        <div className="overflow-x-auto scrollbar-hide">
-          <div className="min-w-max">
-            {/* Headers Row */}
-            <div className="flex border-b border-[var(--border)] pb-6 mb-6">
-              <div className="w-48 flex-shrink-0" /> {/* Empty corner */}
-              {projects.map(project => (
-                <div key={project.id} className="w-64 flex-shrink-0 px-4 space-y-4 border-l border-[var(--border)]">
-                  <div className="aspect-video rounded-[var(--radius)] overflow-hidden bg-[var(--surface-raised)] relative">
-                    {project.images?.[0] ? (
-                      <img src={project.images[0]} alt={project.name} className="w-full h-full object-cover" />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center"><Building2 className="w-6 h-6 text-[var(--text-muted)]" /></div>
+      {/* Table */}
+      <div className="max-w-6xl mx-auto px-2 sm:px-6 py-6 overflow-x-auto">
+        <table className="w-full border-collapse" style={{ minWidth: `${projects.length * 200 + 160}px` }}>
+          <thead>
+            <tr>
+              <th className="w-36 p-3 text-left text-[10px] font-black text-[var(--text-muted)]
+                uppercase tracking-wider bg-[var(--surface-raised)] border border-[var(--border)] sticky left-0 z-10">
+                Feature
+              </th>
+              {projects.map(p => (
+                <th key={p.id} className="p-3 bg-[var(--surface)] border border-[var(--border)] min-w-[180px]">
+                  <div className="space-y-2 text-center">
+                    {p.images?.[0] && (
+                      <img src={p.images[0]} alt={p.name}
+                        className="w-full h-24 object-cover rounded-[var(--radius-xs)]" />
                     )}
-                    <div className="absolute top-2 right-2">
-                      <TrustScoreBadge score={project.trustScore} size="sm" />
-                    </div>
+                    <p className="font-bold text-sm text-[var(--text-primary)] line-clamp-2">{p.name}</p>
+                    <p className="text-[10px] text-[var(--text-muted)]">{p.location}</p>
+                    <Link href={`/projects/${p.slug}`}
+                      className="inline-block text-[10px] font-black text-[var(--primary)]">
+                      View Details →
+                    </Link>
                   </div>
-                  <div>
-                    <h3 className="font-bold text-[var(--text-primary)] line-clamp-1">{project.name}</h3>
-                    <p className="text-xs text-[var(--text-muted)] flex items-center gap-1 mt-1">
-                      <MapPin className="w-3 h-3" /> {project.location}
-                    </p>
-                  </div>
-                  <Link href={`/projects/${project.slug}`}
-                    className="block w-full py-2 text-center text-xs font-bold bg-[var(--primary-light)]
-                      text-[var(--primary)] rounded-[var(--radius-xs)] hover:bg-[var(--primary)]
-                      hover:text-white transition-colors">
-                    View Details
-                  </Link>
-                </div>
+                </th>
               ))}
-            </div>
-
-            {/* Price section */}
-            <div className="flex mb-6">
-              <div className="w-48 flex-shrink-0 py-4">
-                <p className="font-black text-sm text-[var(--text-secondary)] uppercase tracking-wider">Pricing</p>
-              </div>
-              {projects.map(project => {
-                const minPrice = project.unitConfigs.length
-                  ? Math.min(...project.unitConfigs.map(u => u.priceMin)) : 0;
-                return (
-                  <div key={project.id} className="w-64 flex-shrink-0 px-4 py-4 border-l border-[var(--border)]">
-                    <p className="text-xl font-black text-[var(--primary)]">{formatINR(minPrice)}</p>
-                    <p className="text-xs text-[var(--text-muted)] font-bold uppercase tracking-wider mt-1">Starting Price</p>
-                  </div>
-                );
-              })}
-            </div>
-
-            {/* Details section */}
-            <div className="flex mb-6">
-              <div className="w-48 flex-shrink-0 py-4">
-                <p className="font-black text-sm text-[var(--text-secondary)] uppercase tracking-wider">Details</p>
-              </div>
-              {projects.map(project => (
-                <div key={project.id} className="w-64 flex-shrink-0 px-4 py-4 border-l border-[var(--border)] space-y-4">
-                  <div>
-                    <p className="text-xs text-[var(--text-muted)] font-bold mb-1">Builder</p>
-                    <p className="text-sm font-semibold text-[var(--text-primary)]">{project.builderName}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-[var(--text-muted)] font-bold mb-1">Possession</p>
-                    <p className="text-sm font-semibold text-[var(--text-primary)]">{project.possessionDate}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-[var(--text-muted)] font-bold mb-1">Configurations</p>
-                    <div className="flex flex-wrap gap-1">
-                      {Array.from(new Set(project.unitConfigs.map(u => u.type))).map(type => (
-                        <span key={type} className="px-2 py-0.5 bg-[var(--surface-raised)] text-[var(--text-secondary)] text-[10px] font-bold rounded-full border border-[var(--border)]">
-                          {type}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                  <div>
-                    <p className="text-xs text-[var(--text-muted)] font-bold mb-1">RERA Status</p>
-                    <p className={`text-sm font-bold ${project.reraId ? 'text-[var(--success)]' : 'text-[var(--warning)]'}`}>
-                      {project.reraId ? 'Verified' : 'Pending'}
-                    </p>
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            {/* Amenities Section */}
-            <div className="flex">
-              <div className="w-48 flex-shrink-0 py-4">
-                <p className="font-black text-sm text-[var(--text-secondary)] uppercase tracking-wider">Amenities</p>
-              </div>
-              <div className="flex flex-1">
-                {/* We render cells per project for each amenity */}
-              </div>
-            </div>
-            
-            <div className="border-t border-[var(--border)]">
-              {allAmenities.map((amenity, idx) => (
-                <div key={amenity} className={`flex ${idx % 2 === 0 ? 'bg-[var(--surface-raised)]' : 'bg-white'}`}>
-                  <div className="w-48 flex-shrink-0 p-4 flex items-center">
-                    <p className="text-xs font-semibold text-[var(--text-primary)]">{amenity}</p>
-                  </div>
-                  {projects.map(project => {
-                    const hasAmenity = project.amenities.includes(amenity);
-                    return (
-                      <div key={project.id} className="w-64 flex-shrink-0 p-4 border-l border-[var(--border)] flex items-center justify-center">
-                        {hasAmenity 
-                          ? <Check className="w-5 h-5 text-[var(--success)]" />
-                          : <Minus className="w-5 h-5 text-[var(--border-strong)]" />
-                        }
-                      </div>
-                    );
-                  })}
-                </div>
-              ))}
-            </div>
-
-          </div>
-        </div>
-      </SectionContainer>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((row, i) => (
+              <tr key={row.label} className={i % 2 === 0 ? 'bg-white' : 'bg-[var(--surface-raised)]/40'}>
+                <td className="p-3 text-xs font-bold text-[var(--text-muted)] border border-[var(--border)]
+                  uppercase tracking-wider sticky left-0 bg-inherit z-10 whitespace-nowrap">
+                  {row.label}
+                </td>
+                {projects.map(p => (
+                  <td key={p.id} className="p-3 text-center border border-[var(--border)]">
+                    <div className="flex items-center justify-center">{row.render(p)}</div>
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }
@@ -211,13 +180,8 @@ function CompareContent() {
 export default function ComparePage() {
   return (
     <Suspense fallback={
-      <div className="min-h-screen flex items-center justify-center bg-[var(--background)]">
-        <div className="flex flex-col items-center gap-4">
-          <Loader2 className="w-8 h-8 animate-spin text-[var(--primary)]" />
-          <p className="text-sm font-bold text-[var(--text-muted)] animate-pulse">
-            Loading comparison...
-          </p>
-        </div>
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-[var(--primary)]" />
       </div>
     }>
       <CompareContent />

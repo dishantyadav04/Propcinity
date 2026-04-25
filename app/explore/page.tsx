@@ -76,12 +76,12 @@ export default function ExplorePage() {
     if (riskFilter !== 'all') result = result.filter(p => p.riskLabel === riskFilter);
     if (sortBy === 'trust') result.sort((a, b) => b.trustScore - a.trustScore);
     if (sortBy === 'price_asc') result.sort((a, b) =>
-      Math.min(...(a.unitConfigs.length ? a.unitConfigs.map(u => u.priceMin) : [0])) -
-      Math.min(...(b.unitConfigs.length ? b.unitConfigs.map(u => u.priceMin) : [0]))
+      (a.unitConfigs?.length ? Math.min(...a.unitConfigs.map(u => u.priceMin)) : 0) -
+      (b.unitConfigs?.length ? Math.min(...b.unitConfigs.map(u => u.priceMin)) : 0)
     );
     if (sortBy === 'price_desc') result.sort((a, b) =>
-      Math.min(...(b.unitConfigs.length ? b.unitConfigs.map(u => u.priceMin) : [0])) -
-      Math.min(...(a.unitConfigs.length ? a.unitConfigs.map(u => u.priceMin) : [0]))
+      (b.unitConfigs?.length ? Math.min(...b.unitConfigs.map(u => u.priceMin)) : 0) -
+      (a.unitConfigs?.length ? Math.min(...a.unitConfigs.map(u => u.priceMin)) : 0)
     );
     setFiltered(result);
     if (result.length > 0 && !result.find(p => p.id === selectedProject?.id)) {
@@ -192,7 +192,7 @@ export default function ExplorePage() {
             ) : (
               <div className="divide-y divide-[var(--border)]">
                 {filtered.map(project => {
-                  const minPrice = project.unitConfigs.length
+                  const minPrice = project.unitConfigs?.length
                     ? Math.min(...project.unitConfigs.map(u => u.priceMin)) : 0;
                   const isSelected = selectedProject?.id === project.id;
 
@@ -273,7 +273,7 @@ export default function ExplorePage() {
                 lng={selectedProject.lng}
                 projectName={selectedProject.name}
                 priceLabel={formatINR(
-                  selectedProject.unitConfigs.length
+                  selectedProject.unitConfigs?.length
                     ? Math.min(...selectedProject.unitConfigs.map(u => u.priceMin)) : 0
                 )}
                 zoom={14}

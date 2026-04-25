@@ -38,7 +38,7 @@ export default function RootLayout({
     <html lang="en" className={`${syne.variable} ${jakarta.variable}`} suppressHydrationWarning>
       <body className="font-sans bg-[var(--background)] text-[var(--text-primary)] antialiased">
         <TopHeader />
-        <main className="min-h-screen pb-20 md:pb-0 md:pt-0">
+        <main className="min-h-screen pb-40 md:pb-24 md:pt-0">
           <PageTransition>
             {children}
           </PageTransition>

@@ -39,8 +39,7 @@ export default function TopHeader() {
           {[
             { label: 'Dashboard', href: '/dashboard' },
             { label: 'Explore', href: '/explore' },
-            { label: 'AI Advisor', href: '/ai-chat' },
-            { label: 'Shortlist', href: '/saved' },
+            { label: 'AI Chat', href: '/ai-chat' },
             { label: 'Compare', href: '/compare' },
           ].map(item => (
             <Link key={item.href} href={item.href}

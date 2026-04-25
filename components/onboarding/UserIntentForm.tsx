@@ -42,6 +42,7 @@ export default function UserIntentForm() {
   const [step, setStep] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
   const [authMode, setAuthMode] = useState<'form' | 'google' | 'apple' | null>(null);
+  const [socialAuthUsed, setSocialAuthUsed] = useState(false);
   const [subInput, setSubInput] = useState('');
 
   const [form, setForm] = useState<FormData>({
@@ -70,7 +71,10 @@ export default function UserIntentForm() {
   const prev = () => setStep(s => Math.max(s - 1, 1));
 
   const canNext = () => {
-    if (step === 1) return form.name.length >= 2 && form.phone.length === 10 && form.email.includes('@');
+    if (step === 1) {
+      if (socialAuthUsed) return form.phone.length === 10;
+      return form.name.length >= 2 && form.phone.length === 10 && form.email.includes('@');
+    }
     if (step === 2) return !!form.purpose;
     if (step === 3) return form.propertyType.length > 0;
     if (step === 4) return form.bhkType.length > 0;
@@ -102,12 +106,12 @@ export default function UserIntentForm() {
 
   // Google / Apple auth — skip Step 1 for personal info, go to 1A (location)
   const handleSocialAuth = (provider: 'google' | 'apple') => {
+    setSocialAuthUsed(true);
     setAuthMode(provider);
     // Pre-fill mock name/email from provider (in real app, OAuth callback fills this)
     set('name', provider === 'google' ? 'Google User' : 'Apple User');
     set('email', provider === 'google' ? 'user@gmail.com' : 'user@icloud.com');
-    // Jump to step 1A — which we render as a sub-step of step 1
-    setStep(1);
+    // Don't advance step — stay on step 1 but show phone-only UI
   };
 
   const formatBudget = (val: number) => {
@@ -164,7 +168,7 @@ export default function UserIntentForm() {
                 </div>
 
                 {/* Social auth buttons */}
-                {!authMode && (
+                {!socialAuthUsed ? (
                   <div className="space-y-3">
                     <button
                       onClick={() => handleSocialAuth('google')}
@@ -193,47 +197,84 @@ export default function UserIntentForm() {
                       <div className="flex-1 h-px bg-[var(--border)]" />
                     </div>
                   </div>
+                ) : (
+                  <div className="p-4 bg-[var(--success-light)] border border-[var(--success)]/20 rounded-[var(--radius)] flex items-center gap-3">
+                    <div className="w-8 h-8 bg-[var(--success)] rounded-full flex items-center justify-center text-white text-sm">✓</div>
+                    <div>
+                      <p className="text-sm font-bold text-[var(--text-primary)]">
+                        {authMode === 'google' ? 'Google' : 'Apple'} account connected
+                      </p>
+                      <p className="text-xs text-[var(--text-muted)]">{form.email}</p>
+                    </div>
+                  </div>
                 )}
 
                 {/* Personal info fields */}
-                <div className="space-y-3">
-                  <div className="relative">
-                    <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-muted)]" />
-                    <input
-                      value={form.name}
-                      onChange={e => set('name', e.target.value)}
-                      placeholder="Full name"
-                      className="w-full pl-10 pr-4 py-3 bg-[var(--surface-raised)] border border-[var(--border)]
-                        rounded-[var(--radius)] text-sm text-[var(--text-primary)]
-                        placeholder:text-[var(--text-muted)] focus:outline-none focus:border-[var(--primary)]"
-                    />
+                {!socialAuthUsed ? (
+                  <div className="space-y-3">
+                    {/* Name field */}
+                    <div className="relative">
+                      <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-muted)]" />
+                      <input
+                        value={form.name}
+                        onChange={e => set('name', e.target.value)}
+                        placeholder="Full name"
+                        className="w-full pl-10 pr-4 py-3 bg-[var(--surface-raised)] border border-[var(--border)]
+                          rounded-[var(--radius)] text-sm text-[var(--text-primary)]
+                          placeholder:text-[var(--text-muted)] focus:outline-none focus:border-[var(--primary)]"
+                      />
+                    </div>
+                    {/* Phone field */}
+                    <div className="relative">
+                      <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-muted)]" />
+                      <span className="absolute left-9 top-1/2 -translate-y-1/2 text-sm text-[var(--text-muted)] font-semibold">+91</span>
+                      <input
+                        value={form.phone}
+                        onChange={e => set('phone', e.target.value.replace(/\D/g, '').slice(0, 10))}
+                        placeholder="10-digit mobile"
+                        type="tel"
+                        className="w-full pl-16 pr-4 py-3 bg-[var(--surface-raised)] border border-[var(--border)]
+                          rounded-[var(--radius)] text-sm text-[var(--text-primary)]
+                          placeholder:text-[var(--text-muted)] focus:outline-none focus:border-[var(--primary)]"
+                      />
+                    </div>
+                    {/* Email field */}
+                    <div className="relative">
+                      <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-muted)]" />
+                      <input
+                        value={form.email}
+                        onChange={e => set('email', e.target.value)}
+                        placeholder="Email address"
+                        type="email"
+                        className="w-full pl-10 pr-4 py-3 bg-[var(--surface-raised)] border border-[var(--border)]
+                          rounded-[var(--radius)] text-sm text-[var(--text-primary)]
+                          placeholder:text-[var(--text-muted)] focus:outline-none focus:border-[var(--primary)]"
+                      />
+                    </div>
                   </div>
-                  <div className="relative">
-                    <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-muted)]" />
-                    <span className="absolute left-9 top-1/2 -translate-y-1/2 text-sm text-[var(--text-muted)] font-semibold">+91</span>
-                    <input
-                      value={form.phone}
-                      onChange={e => set('phone', e.target.value.replace(/\D/g, '').slice(0, 10))}
-                      placeholder="10-digit mobile"
-                      type="tel"
-                      className="w-full pl-16 pr-4 py-3 bg-[var(--surface-raised)] border border-[var(--border)]
-                        rounded-[var(--radius)] text-sm text-[var(--text-primary)]
-                        placeholder:text-[var(--text-muted)] focus:outline-none focus:border-[var(--primary)]"
-                    />
+                ) : (
+                  <div className="space-y-3">
+                    <p className="text-sm font-semibold text-[var(--text-secondary)]">
+                      One more thing — your mobile number
+                    </p>
+                    <div className="relative">
+                      <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-muted)]" />
+                      <span className="absolute left-9 top-1/2 -translate-y-1/2 text-sm text-[var(--text-muted)] font-semibold">+91</span>
+                      <input
+                        value={form.phone}
+                        onChange={e => set('phone', e.target.value.replace(/\D/g, '').slice(0, 10))}
+                        placeholder="10-digit mobile number"
+                        type="tel"
+                        className="w-full pl-16 pr-4 py-3 bg-[var(--surface-raised)] border border-[var(--border)]
+                          rounded-[var(--radius)] text-sm text-[var(--text-primary)]
+                          placeholder:text-[var(--text-muted)] focus:outline-none focus:border-[var(--primary)]"
+                      />
+                    </div>
+                    <p className="text-xs text-[var(--text-muted)]">
+                      Your advisor will use this to confirm your consultation.
+                    </p>
                   </div>
-                  <div className="relative">
-                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-muted)]" />
-                    <input
-                      value={form.email}
-                      onChange={e => set('email', e.target.value)}
-                      placeholder="Email address"
-                      type="email"
-                      className="w-full pl-10 pr-4 py-3 bg-[var(--surface-raised)] border border-[var(--border)]
-                        rounded-[var(--radius)] text-sm text-[var(--text-primary)]
-                        placeholder:text-[var(--text-muted)] focus:outline-none focus:border-[var(--primary)]"
-                    />
-                  </div>
-                </div>
+                )}
 
                 {/* Location section */}
                 <div className="space-y-3">
@@ -418,97 +459,129 @@ export default function UserIntentForm() {
                     What's your budget?
                   </h2>
                   <p className="text-sm text-[var(--text-secondary)] mt-1">
-                    Set your minimum and maximum range.
+                    Set your total property budget range.
                   </p>
                 </div>
 
-                {/* Min slider */}
+                {/* Quick range selector */}
                 <div className="space-y-2">
-                  <div className="flex justify-between items-center">
-                    <p className="text-xs font-black text-[var(--text-muted)] uppercase tracking-wider">Minimum</p>
-                    <p className="text-lg font-black text-[var(--text-primary)]"
-                      style={{ fontFamily: 'var(--font-display)' }}>
-                      {formatBudget(form.budgetMin)}
-                    </p>
-                  </div>
-                  <input type="range" min={1000000} max={50000000} step={500000}
-                    value={form.budgetMin}
-                    onChange={e => set('budgetMin', Math.min(Number(e.target.value), form.budgetMax - 500000))}
-                    className="w-full accent-[var(--primary)]" />
-                  <div className="flex justify-between text-[10px] text-[var(--text-muted)] font-bold">
-                    <span>₹10 L</span><span>₹5 Cr</span>
+                  <p className="text-xs font-black text-[var(--text-muted)] uppercase tracking-wider">
+                    Choose a range
+                  </p>
+                  <div className="grid grid-cols-2 gap-2">
+                    {[
+                      { label: 'Under ₹50L', min: 0, max: 5000000 },
+                      { label: '₹50L – ₹1Cr', min: 5000000, max: 10000000 },
+                      { label: '₹1Cr – ₹2Cr', min: 10000000, max: 20000000 },
+                      { label: '₹2Cr – ₹5Cr', min: 20000000, max: 50000000 },
+                      { label: '₹5Cr – ₹10Cr', min: 50000000, max: 100000000 },
+                      { label: '₹10Cr & above', min: 100000000, max: 200000000, openMax: true },
+                    ].map(range => {
+                      const isActive = form.budgetMin === range.min && form.budgetMax === range.max;
+                      return (
+                        <button key={range.label}
+                          onClick={() => {
+                            set('budgetMin', range.min);
+                            set('budgetMax', range.max);
+                            set('isOpenMax', !!range.openMax);
+                          }}
+                          className={`py-3 px-4 rounded-[var(--radius)] border text-sm font-bold text-left transition-all ${
+                            isActive
+                              ? 'bg-[var(--primary)] text-white border-[var(--primary)] shadow-[var(--shadow-primary)]'
+                              : 'bg-[var(--surface-raised)] border-[var(--border)] text-[var(--text-secondary)] hover:border-[var(--primary)]/50'
+                          }`}>
+                          {range.label}
+                        </button>
+                      );
+                    })}
                   </div>
                 </div>
 
-                {/* Max slider */}
-                <div className="space-y-2">
-                  <div className="flex justify-between items-center">
-                    <p className="text-xs font-black text-[var(--text-muted)] uppercase tracking-wider">Maximum</p>
-                    <p className="text-lg font-black text-[var(--primary)]"
-                      style={{ fontFamily: 'var(--font-display)' }}>
-                      {form.isOpenMax ? `${formatBudget(form.budgetMax)}+` : formatBudget(form.budgetMax)}
-                    </p>
+                {/* Manual input */}
+                <div className="space-y-3">
+                  <p className="text-xs font-black text-[var(--text-muted)] uppercase tracking-wider">
+                    Or enter manually
+                  </p>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1">
+                      <label className="text-xs font-semibold text-[var(--text-muted)]">Minimum (₹)</label>
+                      <div className="relative">
+                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm font-bold text-[var(--text-muted)]">₹</span>
+                        <input
+                          type="number"
+                          value={form.budgetMin === 0 ? '' : Math.round(form.budgetMin / 100000)}
+                          onChange={e => {
+                            const lakhs = Number(e.target.value);
+                            if (!isNaN(lakhs)) set('budgetMin', lakhs * 100000);
+                          }}
+                          placeholder="e.g. 50"
+                          className="w-full pl-7 pr-3 py-2.5 bg-[var(--surface-raised)] border border-[var(--border)]
+                            rounded-[var(--radius-xs)] text-sm text-[var(--text-primary)]
+                            focus:outline-none focus:border-[var(--primary)]"
+                        />
+                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-[var(--text-muted)]">L</span>
+                      </div>
+                      <p className="text-[10px] text-[var(--text-muted)]">
+                        {form.budgetMin > 0 ? formatBudget(form.budgetMin) : 'Enter in lakhs'}
+                      </p>
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-xs font-semibold text-[var(--text-muted)]">Maximum (₹)</label>
+                      <div className="relative">
+                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm font-bold text-[var(--text-muted)]">₹</span>
+                        <input
+                          type="number"
+                          value={form.isOpenMax ? '' : form.budgetMax === 0 ? '' : Math.round(form.budgetMax / 100000)}
+                          onChange={e => {
+                            const lakhs = Number(e.target.value);
+                            if (!isNaN(lakhs)) {
+                              set('budgetMax', lakhs * 100000);
+                              set('isOpenMax', false);
+                            }
+                          }}
+                          placeholder={form.isOpenMax ? 'No limit' : 'e.g. 200'}
+                          disabled={form.isOpenMax}
+                          className="w-full pl-7 pr-3 py-2.5 bg-[var(--surface-raised)] border border-[var(--border)]
+                            rounded-[var(--radius-xs)] text-sm text-[var(--text-primary)]
+                            focus:outline-none focus:border-[var(--primary)]
+                            disabled:opacity-50 disabled:cursor-not-allowed"
+                        />
+                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-[var(--text-muted)]">L</span>
+                      </div>
+                      <p className="text-[10px] text-[var(--text-muted)]">
+                        {form.isOpenMax ? 'No upper limit' : form.budgetMax > 0 ? formatBudget(form.budgetMax) : 'Enter in lakhs'}
+                      </p>
+                    </div>
                   </div>
-                  <input type="range" min={1000000} max={100000000} step={500000}
-                    value={form.budgetMax}
-                    onChange={e => {
-                      const val = Number(e.target.value);
-                      set('budgetMax', Math.max(val, form.budgetMin + 500000));
-                      set('isOpenMax', val >= 100000000);
-                    }}
-                    className="w-full accent-[var(--primary)]" />
-                  <div className="flex justify-between text-[10px] text-[var(--text-muted)] font-bold">
-                    <span>₹10 L</span><span>₹10 Cr+</span>
-                  </div>
-                </div>
 
-                {/* Open max toggle */}
-                <div className="flex items-center gap-3 p-4 bg-[var(--surface-raised)] rounded-[var(--radius)] border border-[var(--border)]">
+                  {/* No upper limit toggle */}
                   <button
                     onClick={() => set('isOpenMax', !form.isOpenMax)}
-                    className={cn(
-                      "relative w-10 h-6 rounded-full transition-colors flex-shrink-0",
-                      form.isOpenMax ? "bg-[var(--primary)]" : "bg-[var(--border-strong)]"
-                    )}>
-                    <span className={cn(
-                      "absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform",
-                      form.isOpenMax ? "translate-x-4" : "translate-x-0.5"
-                    )} />
+                    className={`flex items-center gap-2.5 text-sm font-semibold transition-colors ${
+                      form.isOpenMax ? 'text-[var(--primary)]' : 'text-[var(--text-secondary)]'
+                    }`}>
+                    <div className={`w-10 h-5 rounded-full transition-colors relative flex-shrink-0 ${
+                      form.isOpenMax ? 'bg-[var(--primary)]' : 'bg-[var(--border-strong)]'
+                    }`}>
+                      <span className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform ${
+                        form.isOpenMax ? 'translate-x-5' : 'translate-x-0.5'
+                      }`} />
+                    </div>
+                    ₹10Cr and above (no upper limit)
                   </button>
-                  <div>
-                    <p className="text-sm font-bold text-[var(--text-primary)]">No upper limit</p>
-                    <p className="text-xs text-[var(--text-muted)]">Show me the best projects above {formatBudget(form.budgetMax)}</p>
-                  </div>
                 </div>
 
-                {/* Quick select budget ranges */}
-                <div>
-                  <p className="text-xs font-bold text-[var(--text-muted)] mb-2">Quick select</p>
-                  <div className="flex flex-wrap gap-2">
-                    {[
-                      { label: '₹30L–60L', min: 3000000, max: 6000000 },
-                      { label: '₹60L–1Cr', min: 6000000, max: 10000000 },
-                      { label: '₹1Cr–2Cr', min: 10000000, max: 20000000 },
-                      { label: '₹2Cr–5Cr', min: 20000000, max: 50000000 },
-                      { label: '₹5Cr+', min: 50000000, max: 100000000, openMax: true },
-                    ].map(r => (
-                      <button key={r.label}
-                        onClick={() => {
-                          set('budgetMin', r.min);
-                          set('budgetMax', r.max);
-                          set('isOpenMax', !!r.openMax);
-                        }}
-                        className={cn(
-                          "px-3 py-1.5 rounded-full text-xs font-bold border transition-all",
-                          form.budgetMin === r.min && form.budgetMax === r.max
-                            ? "bg-[var(--primary)] text-white border-[var(--primary)]"
-                            : "bg-[var(--surface-raised)] border-[var(--border)] text-[var(--text-secondary)]"
-                        )}>
-                        {r.label}
-                      </button>
-                    ))}
+                {/* Summary */}
+                {(form.budgetMin > 0 || form.budgetMax > 0) && (
+                  <div className="p-4 bg-[var(--primary-light)] border border-[var(--primary)]/20 rounded-[var(--radius)]">
+                    <p className="text-xs font-bold text-[var(--text-muted)] uppercase tracking-wider mb-1">Your Budget</p>
+                    <p className="text-xl font-black text-[var(--primary)]" style={{ fontFamily: 'var(--font-display)' }}>
+                      {form.budgetMin > 0 ? formatBudget(form.budgetMin) : '₹0'}
+                      {' '}&mdash;{' '}
+                      {form.isOpenMax ? `${formatBudget(form.budgetMax)}+` : form.budgetMax > 0 ? formatBudget(form.budgetMax) : '?'}
+                    </p>
                   </div>
-                </div>
+                )}
               </div>
             )}
 

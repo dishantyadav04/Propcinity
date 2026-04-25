@@ -116,12 +116,12 @@ function StatCard({ icon: Icon, value, label, delay }: {
         border border-[var(--border)] rounded-[var(--radius-sm)] px-4 py-3
         shadow-[var(--shadow-md)]"
     >
-      <div className="w-10 h-10 bg-[var(--primary-light)] rounded-[var(--radius-xs)]
+      <div className="w-11 h-11 sm:w-12 sm:h-12 bg-[var(--primary-light)] rounded-[var(--radius-xs)]
         flex items-center justify-center flex-shrink-0">
-        <Icon className="w-5 h-5 text-[var(--primary)]" />
+        <Icon className="w-5 h-5 sm:w-6 sm:h-6 text-[var(--primary)]" />
       </div>
       <div>
-        <p className="text-lg font-black text-[var(--text-primary)] leading-none"
+        <p className="text-xl sm:text-2xl lg:text-3xl font-black text-[var(--text-primary)] leading-none"
           style={{ fontFamily: 'var(--font-display)' }}>{value}</p>
         <p className="text-[10px] text-[var(--text-muted)] font-bold mt-1 uppercase tracking-tight">{label}</p>
       </div>
@@ -176,7 +176,7 @@ export default function LandingPage() {
                 bg-[var(--primary-light)] text-[var(--primary)] text-xs font-bold rounded-full
                 border border-[var(--primary)]/20">
               <Star className="w-3 h-3 fill-[var(--primary)]" />
-              AI-Powered · Zero Brokerage · Pune
+              Trusted by Pune homebuyers · Zero brokerage
             </motion.div>
 
             {/* Headline */}
@@ -234,7 +234,7 @@ export default function LandingPage() {
           <div className="hidden lg:flex flex-col gap-3 absolute right-0 top-1/2 -translate-y-1/2">
             <StatCard icon={Building2} value={projectCount > 0 ? `${projectCount}+` : '...'} label="Audited projects" delay={0.5} />
             <StatCard icon={ShieldCheck} value="100%" label="RERA verified" delay={0.6} />
-            <StatCard icon={MapPin} value="Pune" label="Serving Buyers" delay={0.7} />
+            <StatCard icon={MapPin} value="100%" label="Buyer Trust" delay={0.7} />
             <StatCard icon={TrendingUp} value="₹0" label="Brokerage Fees" delay={0.8} />
           </div>
         </div>
@@ -247,14 +247,14 @@ export default function LandingPage() {
           {[
             { icon: Building2, value: projectCount > 0 ? `${projectCount}+` : '...', label: 'Audited Projects' },
             { icon: ShieldCheck, value: '100%', label: 'RERA Verified' },
-            { icon: MapPin, value: 'Pune', label: 'Serving Buyers' },
+            { icon: MapPin, value: '100%', label: 'Buyer Trust' },
             { icon: TrendingUp, value: '₹0', label: 'Brokerage Fees' },
           ].map(stat => (
             <div key={stat.label} className="text-center space-y-1">
               <div className="mx-auto w-9 h-9 bg-[var(--primary-light)] rounded-full flex items-center justify-center mb-1">
                 <stat.icon className="w-4 h-4 text-[var(--primary)]" />
               </div>
-              <p className="text-2xl font-black text-[var(--text-primary)]"
+              <p className="text-3xl sm:text-4xl lg:text-5xl font-black text-[var(--text-primary)]"
                 style={{ fontFamily: 'var(--font-display)' }}>{stat.value}</p>
               <p className="text-[10px] text-[var(--text-muted)] font-bold uppercase tracking-widest">
                 {stat.label}
