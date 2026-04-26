@@ -30,7 +30,7 @@ export default function TopHeader() {
         <Link href="/dashboard" className="flex items-center flex-shrink-0">
           <span className="text-xl font-black text-[var(--text-primary)] tracking-tight"
             style={{ fontFamily: 'var(--font-display)' }}>
-            Prop<span className="text-[var(--primary)]">IQ</span>
+            Prop<span className="text-[var(--primary)]">cinity</span>
           </span>
         </Link>
 

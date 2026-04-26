@@ -268,7 +268,7 @@ export default function LandingPage() {
       <section className="max-w-6xl mx-auto px-4 sm:px-6 py-28 sm:py-36 space-y-16">
         <div className="text-center space-y-4">
           <h2 className="text-3xl sm:text-4xl font-black text-[var(--text-primary)] tracking-tight"
-            style={{ fontFamily: 'var(--font-display)' }}>How PropIQ works</h2>
+            style={{ fontFamily: 'var(--font-display)' }}>How Propcinity works</h2>
           <p className="text-[var(--text-secondary)] max-w-lg mx-auto text-lg">
             We're on your side — our advisors help you choose right, for free.
           </p>
@@ -334,7 +334,7 @@ export default function LandingPage() {
         <div className="max-w-6xl mx-auto px-4 sm:px-6 py-16 space-y-10">
           <h2 className="text-2xl sm:text-3xl font-black text-[var(--text-primary)] tracking-tight text-center"
             style={{ fontFamily: 'var(--font-display)' }}>
-            PropIQ vs other platforms
+            Propcinity vs other platforms
           </h2>
           <div className="grid sm:grid-cols-2 gap-4 max-w-3xl mx-auto">
             <div className="p-6 bg-white rounded-[var(--radius)] border border-[var(--border)]">
@@ -360,7 +360,7 @@ export default function LandingPage() {
             <div className="p-6 bg-[var(--primary-light)] rounded-[var(--radius)]
               border-2 border-[var(--primary)]/30">
               <p className="text-xs font-black text-[var(--primary)] uppercase tracking-widest mb-4">
-                PropIQ
+                Propcinity
               </p>
               <ul className="space-y-3">
                 {[
@@ -404,9 +404,9 @@ export default function LandingPage() {
           flex flex-col sm:flex-row items-center justify-between gap-4">
           <span className="text-base font-black text-[var(--text-primary)]"
             style={{ fontFamily: 'var(--font-display)' }}>
-            Prop<span className="text-[var(--primary)]">IQ</span>
+            Prop<span className="text-[var(--primary)]">cinity</span>
           </span>
-          <p className="text-sm text-[var(--text-muted)]">© 2025 PropIQ. Zero brokerage, always.</p>
+          <p className="text-sm text-[var(--text-muted)]">© 2025 Propcinity. Zero brokerage, always.</p>
           <div className="flex items-center gap-6 text-sm text-[var(--text-muted)]">
             <Link href="/privacy" className="hover:text-[var(--text-primary)] transition-colors">Privacy</Link>
             <Link href="/terms" className="hover:text-[var(--text-primary)] transition-colors">Terms</Link>

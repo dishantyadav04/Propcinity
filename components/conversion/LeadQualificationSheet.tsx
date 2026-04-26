@@ -370,7 +370,7 @@ export default function LeadQualificationSheet({ isOpen, onClose, project, unitC
                       </div>
                       <div>
                         <p className="text-sm font-semibold text-[var(--text-primary)]">Your Assigned Advisor</p>
-                        <p className="text-xs text-[var(--text-secondary)]">PropIQ Expert Team</p>
+                        <p className="text-xs text-[var(--text-secondary)]">Propcinity Expert Team</p>
                       </div>
                     </div>
 

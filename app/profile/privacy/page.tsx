@@ -116,7 +116,7 @@ export default function PrivacyPage() {
         </div>
 
         <p className="text-xs text-[var(--text-muted)] text-center">
-          PropIQ Privacy Policy · Last updated Jan 2025
+          Propcinity Privacy Policy · Last updated Jan 2025
         </p>
       </SectionContainer>
     </div>

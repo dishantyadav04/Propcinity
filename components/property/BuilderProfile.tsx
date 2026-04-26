@@ -39,7 +39,7 @@ export default function BuilderProfile({ name, experience, projectsDelivered }: 
       <div className="flex items-start gap-3 p-4 bg-white/5 rounded-xl border border-white/10">
         <Info className="w-4 h-4 text-[var(--text-muted)] mt-0.5 shrink-0" />
         <p className="text-[11px] leading-relaxed text-[var(--text-secondary)]">
-          PropIQ audits builders based on delivery track record, legal compliance, and customer satisfaction scores. {name} has a strong presence in this micro-market.
+          Propcinity audits builders based on delivery track record, legal compliance, and customer satisfaction scores. {name} has a strong presence in this micro-market.
         </p>
       </div>
     </div>

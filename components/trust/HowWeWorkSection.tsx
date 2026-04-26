@@ -22,7 +22,7 @@ export default function HowWeWorkSection() {
   return (
     <section className="py-20 px-6 space-y-12 max-w-md mx-auto">
       <div className="text-center space-y-3">
-        <h2 className="text-3xl font-black text-[var(--text-primary)] leading-tight" style={{ fontFamily: 'var(--font-display)' }}>The PropIQ Path</h2>
+        <h2 className="text-3xl font-black text-[var(--text-primary)] leading-tight" style={{ fontFamily: 'var(--font-display)' }}>The Propcinity Path</h2>
         <p className="text-[var(--text-secondary)] font-medium">Unbiased intelligence for the biggest decision of your life.</p>
       </div>
 

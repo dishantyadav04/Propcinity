@@ -43,7 +43,7 @@ export default function AdminLayout({
         <div className="w-full max-w-sm space-y-6">
           <div className="text-center space-y-2">
             <div className="w-12 h-12 bg-[var(--primary)] rounded-xl flex items-center justify-center text-white font-black text-2xl mx-auto">P</div>
-            <h1 className="text-2xl font-bold text-[var(--text-primary)]">PropIQ Admin</h1>
+            <h1 className="text-2xl font-bold text-[var(--text-primary)]">Propcinity Admin</h1>
             <p className="text-sm text-[var(--text-muted)]">Enter your admin password to continue</p>
           </div>
           <form onSubmit={handleLogin} className="space-y-4">

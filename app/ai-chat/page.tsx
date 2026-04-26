@@ -12,7 +12,7 @@ interface Message {
 
 export default function AIChatPage() {
   const [messages, setMessages] = useState<Message[]>([
-    { role: 'assistant', content: "Hello! I'm your PropIQ Advisor. I have data on over 50 verified projects in Pune. How can I help you find your dream home today?" }
+    { role: 'assistant', content: "Hello! I'm your Propcinity Advisor. I have data on over 50 verified projects in Pune. How can I help you find your dream home today?" }
   ]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);

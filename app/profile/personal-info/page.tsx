@@ -89,7 +89,7 @@ export default function PersonalInfoPage() {
           </div>
           <div className="text-center">
             <p className="font-black text-[var(--text-primary)] text-xl">{form.name}</p>
-            <p className="text-sm text-[var(--text-muted)]">PropIQ Buyer</p>
+            <p className="text-sm text-[var(--text-muted)]">Propcinity Buyer</p>
           </div>
         </div>
 

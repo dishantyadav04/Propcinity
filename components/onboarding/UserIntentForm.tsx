@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   ArrowRight, ArrowLeft, Home, Wallet, MapPin, Target,
@@ -8,6 +8,7 @@ import {
   ChevronRight
 } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { cn } from "@/lib/utils";
 
 const CITY_SUBLOCATIONS: Record<string, string[]> = {
   Pune: [
@@ -38,7 +39,7 @@ const OPTIONAL_PREFS = [
   "Swimming pool", "Gym", "Co-working space", "Power backup"
 ];
 
-function cn(...c: any[]) { return c.filter(Boolean).join(' '); }
+
 
 interface FormData {
   name: string; phone: string; email: string;
@@ -57,6 +58,15 @@ export default function UserIntentForm() {
   const [authMode, setAuthMode] = useState<'form' | 'google' | 'apple' | null>(null);
   const [socialAuthUsed, setSocialAuthUsed] = useState(false);
   const [subInput, setSubInput] = useState('');
+  const [projects, setProjects] = useState<any[]>([]);
+
+  // Fetch projects to perform real-time availability checks
+  useEffect(() => {
+    fetch('/api/projects')
+      .then(r => r.json())
+      .then(data => setProjects(data))
+      .catch(console.error);
+  }, []);
 
   const [form, setForm] = useState<FormData>({
     name: '', phone: '', email: '',
@@ -132,6 +142,43 @@ export default function UserIntentForm() {
     return `₹${(val / 100000).toFixed(0)} L`;
   };
 
+  // Real-time matching logic
+  const matchingCount = useMemo(() => {
+    if (projects.length === 0) return 0;
+    
+    return projects.filter(p => {
+      // 1. City & Sub-location
+      if (p.city?.toLowerCase() !== form.city.toLowerCase()) return false;
+      if (form.subLocations.length > 0 && !form.subLocations.some(l => l.toLowerCase() === p.location.toLowerCase())) {
+        return false;
+      }
+
+      // 2. Property Type
+      if (form.propertyType.length > 0) {
+        const pType = p.type?.toLowerCase();
+        if (!form.propertyType.some(t => t.toLowerCase() === pType)) return false;
+      }
+
+      // 3. BHK
+      if (form.bhkType.length > 0) {
+        const pBhks = (p.unitConfigs || []).map((u: any) => u.type);
+        const hasBhkMatch = form.bhkType.some((b: string) => 
+          pBhks.some((pb: string) => pb.includes(b.split('BHK')[0]))
+        );
+        if (!hasBhkMatch) return false;
+      }
+
+      // 4. Budget
+      const pPrice = p.unitConfigs?.length ? Math.min(...p.unitConfigs.map((u: any) => u.priceMin)) : 0;
+      if (pPrice < form.budgetMin) return false;
+      if (!form.isOpenMax && pPrice > form.budgetMax) return false;
+
+      return true;
+    }).length;
+  }, [projects, form]);
+
+  const showNoAvailabilityWarning = step > 1 && matchingCount === 0;
+
   return (
     <div className="min-h-screen bg-[var(--background)] flex flex-col">
       {/* Header */}
@@ -152,6 +199,19 @@ export default function UserIntentForm() {
               className="h-full bg-gradient-to-r from-[var(--primary)] to-orange-400 rounded-full"
             />
           </div>
+          {step > 1 && (
+            <div className="flex justify-center mt-2">
+              <div className={cn(
+                "px-3 py-1 rounded-full text-[10px] font-black tracking-widest transition-all",
+                matchingCount > 0 ? "bg-[var(--success-light)] text-[var(--success)]" : "bg-[var(--danger-light)] text-[var(--danger)]"
+              )}>
+                {matchingCount > 0 
+                  ? `${matchingCount} VERIFIED PROJECTS MATCHING` 
+                  : "NO DIRECT MATCHES FOUND"
+                }
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
@@ -706,6 +766,19 @@ export default function UserIntentForm() {
 
         {/* Navigation buttons */}
         <div className="mt-8 space-y-3">
+          {showNoAvailabilityWarning && (
+            <div className="p-4 bg-[var(--warning-light)] border border-amber-200 rounded-xl space-y-2 mb-4 animate-in fade-in slide-in-from-bottom-2">
+              <div className="flex items-center gap-2 text-amber-700 font-bold text-xs uppercase tracking-tight">
+                <Target className="w-3.5 h-3.5" />
+                No Direct Matches
+              </div>
+              <p className="text-[11px] text-amber-800 leading-relaxed font-medium">
+                Your current filters result in 0 matches. We recommend broadening your search 
+                (location or budget) to see more options in the next step.
+              </p>
+            </div>
+          )}
+
           {step === 6 ? (
             <button
               disabled={!canNext() || isLoading}

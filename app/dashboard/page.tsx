@@ -5,7 +5,7 @@ import SectionContainer from "@/components/layout/SectionContainer";
 import ProjectCard from "@/components/property/ProjectCard";
 import { Project } from "@/types/project";
 import { UserIntent } from "@/types/user";
-import { Search, Sparkles, X, ArrowRight, Plus } from "lucide-react";
+import { Search, Sparkles, X, ArrowRight, Plus, Target, Info } from "lucide-react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import Skeleton from "@/components/ui/Skeleton";
@@ -15,14 +15,12 @@ export default function DashboardPage() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [userIntent, setUserIntent] = useState<UserIntent | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  // curatedIds = IDs the user has added to their curated list
   const [curatedIds, setCuratedIds] = useState<string[]>([]);
 
   useEffect(() => {
     const savedIntent = localStorage.getItem('userIntent');
     if (savedIntent) setUserIntent(JSON.parse(savedIntent));
 
-    // Load curated IDs (can be added from explore page)
     const saved = JSON.parse(localStorage.getItem('curatedIds') || '[]');
     setCuratedIds(saved);
 
@@ -33,7 +31,6 @@ export default function DashboardPage() {
       .finally(() => setIsLoading(false));
   }, []);
 
-  // Listen for curated updates from explore page
   useEffect(() => {
     const handler = () => {
       const ids = JSON.parse(localStorage.getItem('curatedIds') || '[]');
@@ -43,29 +40,69 @@ export default function DashboardPage() {
     return () => window.removeEventListener('curatedUpdated', handler);
   }, []);
 
-  // Curated list: user-selected IDs + top 10 by trust score as default
-  const curatedProjects = useMemo(() => {
-    if (curatedIds.length > 0) {
-      return projects.filter(p => curatedIds.includes(p.id));
-    }
-    // Default: show top 10 by trust score
-    return projects.sort((a, b) => b.trustScore - a.trustScore).slice(0, 10);
-  }, [projects, curatedIds]);
+  // Matching Engine
+  const matches = useMemo(() => {
+    if (!userIntent || projects.length === 0) return { perfect: [], closest: [] };
+
+    const scored = projects.map(p => {
+      let score = 0;
+      const reasons: string[] = [];
+
+      // 1. Location (Weight: 40)
+      const subLocs = userIntent.subLocations.map(s => s.toLowerCase());
+      if (subLocs.includes(p.location.toLowerCase())) {
+        score += 40;
+        reasons.push('Matches your preferred locality');
+      }
+
+      // 2. Budget (Weight: 30)
+      const pPrice = p.unitConfigs?.length ? Math.min(...p.unitConfigs.map(u => u.priceMin)) : 0;
+      const uMin = userIntent.budget.min;
+      const uMax = userIntent.budget.max;
+      const uOpen = userIntent.budget.isOpenMax;
+
+      if (pPrice >= uMin && (uOpen || pPrice <= uMax)) {
+        score += 30;
+        reasons.push('Within your budget range');
+      } else if (pPrice >= uMin * 0.8 && (uOpen || pPrice <= uMax * 1.2)) {
+        score += 15;
+        reasons.push('Slightly outside preferred budget');
+      }
+
+      // 3. BHK/Config (Weight: 20)
+      const uBhk = userIntent.bhkType;
+      const pBhks = (p.unitConfigs || []).map(u => u.type);
+      const hasBhkMatch = uBhk.some(b => pBhks.some(pb => pb.includes(b.split('BHK')[0])));
+      if (hasBhkMatch) {
+        score += 20;
+        reasons.push('Matches required BHK configuration');
+      }
+
+      // 4. Purpose (Weight: 10)
+      if (userIntent.purpose === 'investment' && p.trustScore > 85) {
+        score += 10;
+        reasons.push('High trust score (Great for Investment)');
+      } else if (userIntent.purpose === 'self-use' && p.amenities.length > 8) {
+        score += 10;
+        reasons.push('Amenity rich (Great for Family)');
+      }
+
+      return { ...p, matchScore: score, matchReasons: reasons };
+    });
+
+    const perfect = scored.filter(p => p.matchScore >= 90).sort((a, b) => b.matchScore - a.matchScore);
+    const closest = scored.filter(p => p.matchScore >= 40 && p.matchScore < 90).sort((a, b) => b.matchScore - a.matchScore);
+
+    return { perfect, closest };
+  }, [projects, userIntent]);
 
   const removeFromCurated = (id: string) => {
-    const updated = curatedIds.filter(cid => cid !== id);
-    // If was using defaults and user removes one, lock in current list minus removed
-    const effectiveIds = curatedIds.length > 0
-      ? curatedIds
-      : curatedProjects.map(p => p.id);
-    const next = effectiveIds.filter(cid => cid !== id);
+    const next = curatedIds.filter(cid => cid !== id);
     setCuratedIds(next);
     localStorage.setItem('curatedIds', JSON.stringify(next));
     window.dispatchEvent(new Event('curatedUpdated'));
-    toast('Removed from your list');
+    toast('Removed from shortlist');
   };
-
-  const userName = userIntent ? (userIntent as any).name?.split(' ')[0] || null : null;
 
   if (isLoading) {
     return (
@@ -80,97 +117,117 @@ export default function DashboardPage() {
 
   return (
     <div className="min-h-screen pb-28">
-      {/* Header */}
-      <div className="bg-white border-b border-[var(--border)] pt-8 pb-6">
+      <div className="bg-white border-b border-[var(--border)] pt-12 pb-8">
         <SectionContainer wide>
-          <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
-            <div className="space-y-1">
-              <div className="flex items-center gap-2 text-[var(--primary)] font-bold text-xs uppercase tracking-wider">
-                <Sparkles className="w-3.5 h-3.5" />
-                <span>Curated Matches</span>
-                <span className="bg-[var(--primary-light)] text-[var(--primary)] px-2 py-0.5 rounded-full font-black">
-                  {curatedProjects.length}
-                </span>
+          <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+            <div className="space-y-2">
+              <div className="inline-flex items-center gap-2 px-2.5 py-1 bg-[var(--primary-light)] text-[var(--primary)] rounded-full text-[10px] font-black uppercase tracking-wider">
+                <Sparkles className="w-3 h-3" />
+                AI-Powered Analysis
               </div>
-              <h1 className="text-2xl sm:text-3xl font-black text-[var(--text-primary)]"
-                style={{ fontFamily: 'var(--font-display)' }}>
-                Top Picks For You
+              <h1 className="text-3xl md:text-4xl font-black text-[var(--text-primary)]" style={{ fontFamily: 'var(--font-display)' }}>
+                Welcome back, {userIntent?.name?.split(' ')[0] || 'Buyer'}
               </h1>
-              <p className="text-sm text-[var(--text-secondary)]">
-                Your personally curated shortlist · Add more from Explore
+              <p className="text-[var(--text-secondary)] max-w-xl font-medium">
+                We've analyzed 50+ projects against your {userIntent?.subLocations[0]} preferences. 
+                Here are your best matches.
               </p>
             </div>
-            <Link href="/explore"
-              className="flex-shrink-0 flex items-center gap-2 px-4 py-2.5
-                bg-[var(--primary)] text-white text-sm font-bold rounded-[var(--radius)]
-                shadow-[var(--shadow-primary)] hover:opacity-90 transition-opacity">
-              <Search className="w-4 h-4" /> Explore Projects
-            </Link>
+            <div className="flex gap-3">
+              <Link href="/onboarding" className="px-5 py-2.5 bg-[var(--surface-raised)] border border-[var(--border)] text-[var(--text-primary)] text-sm font-bold rounded-xl hover:bg-[var(--surface)] transition-colors">
+                Edit Preferences
+              </Link>
+              <Link href="/explore" className="px-5 py-2.5 bg-[var(--primary)] text-white text-sm font-bold rounded-xl shadow-[var(--shadow-primary)] hover:opacity-90 transition-opacity flex items-center gap-2">
+                <Search className="w-4 h-4" /> Explore All
+              </Link>
+            </div>
           </div>
         </SectionContainer>
       </div>
 
-      <SectionContainer wide className="py-6">
-        <AnimatePresence mode="popLayout">
-          {curatedProjects.length === 0 ? (
-            <motion.div
-              initial={{ opacity: 0 }} animate={{ opacity: 1 }}
-              className="flex flex-col items-center justify-center py-24 text-center space-y-5"
-            >
-              <div className="w-20 h-20 bg-[var(--primary-light)] rounded-full flex items-center justify-center">
-                <Sparkles className="w-9 h-9 text-[var(--primary)]" />
-              </div>
-              <div className="space-y-2">
-                <h3 className="text-xl font-black text-[var(--text-primary)]">Your list is empty</h3>
-                <p className="text-sm text-[var(--text-secondary)] max-w-xs">
-                  Browse projects in Explore and add them to your curated list.
-                </p>
-              </div>
-              <Link href="/explore"
-                className="flex items-center gap-2 px-6 py-3 bg-[var(--primary)] text-white
-                  font-bold rounded-[var(--radius)] shadow-[var(--shadow-primary)]">
-                <Plus className="w-4 h-4" /> Add Projects
-              </Link>
-            </motion.div>
-          ) : (
-            <div className="space-y-6">
-              <div className="card-grid">
-                {curatedProjects.map((project, index) => (
-                  <motion.div
-                    layout
-                    key={project.id}
-                    initial={{ opacity: 0, scale: 0.95 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    exit={{ opacity: 0, scale: 0.9 }}
-                    className="relative group"
-                  >
-                    <ProjectCard project={project} index={index} />
-                    {/* Remove button */}
-                    <button
-                      onClick={() => removeFromCurated(project.id)}
-                      className="absolute top-3 right-3 z-20 w-7 h-7 bg-black/50 backdrop-blur-sm
-                        text-white rounded-full flex items-center justify-center
-                        opacity-0 group-hover:opacity-100 transition-opacity hover:bg-[var(--danger)]">
-                      <X className="w-3.5 h-3.5" />
-                    </button>
-                  </motion.div>
-                ))}
-              </div>
+      <SectionContainer wide className="py-12 space-y-16">
+        {/* Perfect Matches */}
+        <section className="space-y-8">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-[var(--success-light)] text-[var(--success)] rounded-xl flex items-center justify-center">
+              <Target className="w-5 h-5" />
+            </div>
+            <div>
+              <h2 className="text-2xl font-black text-[var(--text-primary)]" style={{ fontFamily: 'var(--font-display)' }}>Perfect Matches</h2>
+              <p className="text-sm text-[var(--text-muted)] font-medium">90%+ match score based on your unique criteria</p>
+            </div>
+          </div>
 
-              {/* Add more button at bottom */}
-              <div className="mt-8 flex justify-center">
-                <Link href="/explore"
-                  className="flex items-center gap-2 px-6 py-3 bg-[var(--surface)]
-                    border-2 border-[var(--border-strong)] text-[var(--text-primary)]
-                    text-sm font-bold rounded-[var(--radius)] hover:border-[var(--primary)]
-                    transition-colors">
-                  <Plus className="w-4 h-4" /> Add More Projects from Explorer
-                  <ArrowRight className="w-4 h-4" />
-                </Link>
-              </div>
+          {matches.perfect.length > 0 ? (
+            <div className="card-grid">
+              {matches.perfect.map((p, i) => (
+                <div key={p.id} className="relative group">
+                  <ProjectCard project={p} index={i} />
+                  <div className="absolute top-4 right-4 z-20 flex gap-2">
+                    <div className="px-2 py-1 bg-[var(--success)] text-white text-[10px] font-black rounded-lg shadow-lg">
+                      {p.matchScore}% MATCH
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="p-12 border-2 border-dashed border-[var(--border)] rounded-[2rem] text-center space-y-4">
+              <p className="text-[var(--text-muted)] font-medium">No 100% matches found. Try broadening your budget or location.</p>
+              <Link href="/onboarding" className="text-[var(--primary)] font-bold text-sm hover:underline">Adjust preferences →</Link>
             </div>
           )}
-        </AnimatePresence>
+        </section>
+
+        {/* Closest Matches */}
+        <section className="space-y-8">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-[var(--primary-light)] text-[var(--primary)] rounded-xl flex items-center justify-center">
+              <Sparkles className="w-5 h-5" />
+            </div>
+            <div>
+              <h2 className="text-2xl font-black text-[var(--text-primary)]" style={{ fontFamily: 'var(--font-display)' }}>Closest Alternatives</h2>
+              <p className="text-sm text-[var(--text-muted)] font-medium">Highly relevant projects that meet most of your needs</p>
+            </div>
+          </div>
+
+          <div className="card-grid">
+            {matches.closest.slice(0, 6).map((p, i) => (
+              <div key={p.id} className="relative group">
+                <ProjectCard project={p} index={i} />
+                <div className="absolute top-4 right-4 z-20">
+                  <div className="px-2 py-1 bg-amber-500 text-white text-[10px] font-black rounded-lg shadow-lg">
+                    {p.matchScore}% MATCH
+                  </div>
+                </div>
+              </div>
+            ))}
+            {/* CTA Card */}
+            <Link href="/explore" className="group h-full min-h-[400px] border-2 border-dashed border-[var(--border)] rounded-[2rem] flex flex-col items-center justify-center p-8 text-center space-y-4 hover:border-[var(--primary)] transition-all bg-[var(--surface-raised)]/50">
+              <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center shadow-sm group-hover:scale-110 transition-transform">
+                <Plus className="w-8 h-8 text-[var(--primary)]" />
+              </div>
+              <div>
+                <h3 className="font-black text-lg text-[var(--text-primary)]">Explore More</h3>
+                <p className="text-sm text-[var(--text-secondary)]">View all 50+ verified projects in Pune</p>
+              </div>
+              <div className="flex items-center gap-2 text-[var(--primary)] font-bold text-sm">
+                Go to Explorer <ArrowRight className="w-4 h-4" />
+              </div>
+            </Link>
+          </div>
+        </section>
+
+        {/* Shortlist help */}
+        <div className="p-8 bg-black text-white rounded-[2rem] flex flex-col md:flex-row items-center justify-between gap-8">
+          <div className="space-y-2 text-center md:text-left">
+            <h3 className="text-xl font-black" style={{ fontFamily: 'var(--font-display)' }}>Need an expert second opinion?</h3>
+            <p className="text-white/60 text-sm max-w-md">Our advisors have deep insights into these builders and can help you negotiate better deals. 100% Free.</p>
+          </div>
+          <button className="px-8 py-4 bg-[var(--primary)] text-white font-black rounded-xl shadow-[0_10px_20px_rgba(255,107,0,0.3)] hover:-translate-y-1 transition-all">
+            Talk to Propcinity Advisor
+          </button>
+        </div>
       </SectionContainer>
     </div>
   );

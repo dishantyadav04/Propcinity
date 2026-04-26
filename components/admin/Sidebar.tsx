@@ -21,7 +21,7 @@ export default function Sidebar() {
       <Link href="/admin" className="flex items-center gap-3">
         <div className="w-10 h-10 bg-[var(--primary)] rounded-xl flex items-center justify-center text-white font-black text-xl">P</div>
         <div className="flex flex-col">
-          <span className="text-lg font-black text-[var(--text-primary)] tracking-tighter" style={{ fontFamily: 'var(--font-display)' }}>PropIQ</span>
+          <span className="text-lg font-black text-[var(--text-primary)] tracking-tighter" style={{ fontFamily: 'var(--font-display)' }}>Prop<span className="text-[var(--primary)]">cinity</span></span>
           <span className="text-[10px] font-bold text-[var(--primary)] uppercase tracking-[0.2em]">Admin Console</span>
         </div>
       </Link>
