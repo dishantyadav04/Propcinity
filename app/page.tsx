@@ -147,7 +147,7 @@ export default function LandingPage() {
         <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
           <span className="text-xl font-black text-[var(--text-primary)] tracking-tight"
             style={{ fontFamily: 'var(--font-display)' }}>
-            Prop<span className="text-[var(--primary)]">IQ</span>
+            Prop<span className="text-[var(--primary)]">cinity</span>
           </span>
           <div className="flex items-center gap-3">
             <span className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5
