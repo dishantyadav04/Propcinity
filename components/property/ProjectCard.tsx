@@ -83,11 +83,6 @@ export default function ProjectCard({ project, matchedUnit, fitScore, index = 0 
           <div className="absolute top-3 left-3 flex gap-2">
             <span style={{ background: risk.bg, color: risk.text }}
               className="px-2 py-1 text-[10px] font-bold rounded-full">{risk.label}</span>
-            {fitScore && fitScore >= 60 && (
-              <span className="px-2 py-1 text-[10px] font-bold rounded-full bg-[var(--primary-light)] text-[var(--primary)]">
-                {Math.round(fitScore)}% match
-              </span>
-            )}
           </div>
           <div className="absolute top-3 right-3">
             <TrustScoreBadge score={project.trustScore} size="sm" />

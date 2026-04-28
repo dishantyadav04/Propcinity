@@ -4,7 +4,8 @@ import { useEffect, useState } from "react";
 import { UserIntent } from "@/types/user";
 import {
   User, Settings, ShieldCheck, ChevronRight,
-  LogOut, Heart, Sparkles, MapPin, Target, Clock, Edit2
+  LogOut, LayoutDashboard, Sparkles, MapPin, Target, Clock, Edit2,
+  Wallet, Scale
 } from "lucide-react";
 import Link from "next/link";
 import SectionContainer from "@/components/layout/SectionContainer";
@@ -12,139 +13,171 @@ import { motion } from "framer-motion";
 
 export default function ProfilePage() {
   const [intent, setIntent] = useState<UserIntent | null>(null);
-  const [savedCount, setSavedCount] = useState(0);
+  const [curatedCount, setCuratedCount] = useState(0);
 
   useEffect(() => {
     const saved = localStorage.getItem('userIntent');
     if (saved) setIntent(JSON.parse(saved));
-    const ids = JSON.parse(localStorage.getItem('savedProjects') || '[]');
-    setSavedCount(ids.length);
+    const ids = JSON.parse(localStorage.getItem('curatedIds') || '[]');
+    setCuratedCount(ids.length);
   }, []);
 
+  const formatBudget = (val: number) => {
+    if (val >= 10000000) return `₹${(val / 10000000).toFixed(1)} Cr`;
+    return `₹${(val / 100000).toFixed(0)} L`;
+  };
+
   const menuItems = [
-    { icon: User, label: 'Personal Information', href: '/profile/personal-info', desc: 'Name, phone, email' },
-    { icon: Settings, label: 'Preferences', href: '/profile/preferences', desc: 'Budget, location, property type' },
+    { icon: LayoutDashboard, label: 'My Dashboard', href: '/dashboard', desc: 'Your personalized matches' },
+    { icon: Scale, label: 'Compare Projects', href: '/compare', desc: 'Side-by-side analysis' },
     { icon: ShieldCheck, label: 'Privacy & Security', href: '/profile/privacy', desc: 'Data and account security' },
   ];
 
   return (
     <div className="min-h-screen bg-[var(--background)] pb-24">
-      {/* Hero banner */}
-      <div className="bg-gradient-to-br from-[var(--primary)] to-orange-400 pt-10 pb-16 px-4 sm:px-6">
-        <div className="max-w-3xl mx-auto flex items-center gap-5">
+      {/* Identity Header */}
+      <div className="bg-white border-b border-[var(--border)] pt-12 pb-12">
+        <SectionContainer className="max-w-3xl text-center flex flex-col items-center">
           <motion.div
             initial={{ scale: 0.8, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
-            className="w-20 h-20 bg-white/20 backdrop-blur rounded-[var(--radius-xl)]
-              flex items-center justify-center text-white text-2xl font-black
-              border-2 border-white/30 flex-shrink-0">
-            {intent?.name ? intent.name.split(' ').map((n: string) => n[0]).join('').substring(0, 2).toUpperCase() : 'U'}
+            className="w-24 h-24 bg-gradient-to-br from-[var(--primary)] to-orange-400 
+              rounded-[2.5rem] flex items-center justify-center text-white text-3xl font-black
+              shadow-[0_20px_40px_rgba(255,107,0,0.2)] mb-6">
+            {intent?.name ? intent.name.split(' ').map((n: string) => n[0]).join('').substring(0, 2).toUpperCase() : <User className="w-10 h-10" />}
           </motion.div>
-          <div className="text-white space-y-1">
-            <h1 className="text-2xl font-black tracking-tight"
-              style={{ fontFamily: 'var(--font-display)' }}>{intent?.name || 'User'}</h1>
-            <p className="text-white/80 text-sm">{intent?.phone || 'Add phone number'}</p>
-            <div className="inline-flex items-center gap-1.5 px-2.5 py-1
-              bg-white/20 text-white text-xs font-bold rounded-full mt-1">
-              <ShieldCheck className="w-3 h-3" /> Phone Verified
-            </div>
+          
+          <div className="space-y-1">
+            <h1 className="text-3xl font-black text-[var(--text-primary)]"
+              style={{ fontFamily: 'var(--font-display)' }}>
+              {intent?.name || 'Your Profile'}
+            </h1>
+            <p className="text-[var(--text-secondary)] font-medium">
+              {intent?.phone ? `+91 ${intent.phone}` : intent?.email || 'Setup your profile'}
+            </p>
           </div>
-        </div>
+        </SectionContainer>
       </div>
 
-      <SectionContainer className="max-w-3xl -mt-8">
-        {/* Stats row */}
-        <div className="grid grid-cols-2 gap-3 mb-6">
-          <Link href="/saved"
-            className="bg-white border border-[var(--border)] rounded-[var(--radius)]
-              p-4 text-center card-hover shadow-[var(--shadow-sm)]">
-            <p className="text-3xl font-black text-[var(--primary)]"
-              style={{ fontFamily: 'var(--font-display)' }}>{savedCount}</p>
-            <p className="text-xs text-[var(--text-muted)] font-bold uppercase tracking-wider mt-1">
-              Saved Projects
-            </p>
-          </Link>
-          <div className="bg-white border border-[var(--border)] rounded-[var(--radius)]
-            p-4 text-center shadow-[var(--shadow-sm)]">
-            <p className="text-3xl font-black text-[var(--text-primary)]"
-              style={{ fontFamily: 'var(--font-display)' }}>
-              {intent ? '✓' : '—'}
-            </p>
-            <p className="text-xs text-[var(--text-muted)] font-bold uppercase tracking-wider mt-1">
-              Preferences Set
-            </p>
+      <SectionContainer className="max-w-3xl mt-8 space-y-8">
+        {/* Search Preferences Summary */}
+        <section className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-xs font-black text-[var(--text-muted)] uppercase tracking-widest">
+              Current Search Preferences
+            </h2>
+            <Link href="/onboarding?step=2" className="text-xs font-black text-[var(--primary)] hover:underline">
+              Retake Quiz
+            </Link>
           </div>
-        </div>
 
-        {/* Current preferences summary */}
-        {intent && (
-          <div className="bg-[var(--primary-light)] border border-[var(--primary)]/20
-            rounded-[var(--radius)] p-4 mb-6 space-y-3">
-            <div className="flex items-center justify-between">
-              <p className="text-xs font-black text-[var(--primary)] uppercase tracking-wider">
-                Your Preferences
-              </p>
-              <Link href="/profile/preferences"
-                className="flex items-center gap-1 text-xs text-[var(--primary)] font-bold">
-                <Edit2 className="w-3 h-3" /> Edit
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {/* City & Areas */}
+            <div className="bg-white border border-[var(--border)] rounded-[var(--radius)] p-5 space-y-3 relative group">
+              <div className="w-10 h-10 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center">
+                <MapPin className="w-5 h-5" />
+              </div>
+              <div>
+                <p className="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-wider">Location</p>
+                <p className="font-bold text-[var(--text-primary)]">{intent?.city || 'Not set'}</p>
+                <p className="text-xs text-[var(--text-secondary)] mt-1 truncate">
+                  {intent?.subLocations?.length ? intent.subLocations.join(', ') : 'All areas'}
+                </p>
+              </div>
+              <Link href="/onboarding?step=2" 
+                className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity p-2 bg-[var(--surface-raised)] rounded-lg">
+                <Edit2 className="w-3.5 h-3.5 text-[var(--primary)]" />
               </Link>
             </div>
-            <div className="grid grid-cols-2 gap-2 text-sm">
-              {[
-                { icon: MapPin, label: intent.location || 'Pune' },
-                { icon: Target, label: intent.purpose === 'investment' ? 'Investment' : 'Self Use' },
-                { icon: Clock, label: intent.timeline?.replace(/_/g, ' ') || 'Not set' },
-              ].map((item, i) => (
-                <div key={i} className="flex items-center gap-1.5 text-[var(--text-secondary)]">
-                  <item.icon className="w-3.5 h-3.5 text-[var(--primary)]" />
-                  <span className="font-medium capitalize">{item.label}</span>
-                </div>
-              ))}
-              {intent.budget && (
-                <div className="flex items-center gap-1.5 text-[var(--text-secondary)]">
-                  <span className="text-[var(--primary)]">₹</span>
-                  <span className="font-medium">
-                    {(intent.budget.min/100000).toFixed(0)}L –{' '}
-                    {(intent.budget.max/100000).toFixed(0)}L
-                  </span>
-                </div>
-              )}
+
+            {/* Purpose */}
+            <div className="bg-white border border-[var(--border)] rounded-[var(--radius)] p-5 space-y-3 relative group">
+              <div className="w-10 h-10 bg-orange-50 text-orange-600 rounded-xl flex items-center justify-center">
+                <Target className="w-5 h-5" />
+              </div>
+              <div>
+                <p className="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-wider">Goal</p>
+                <p className="font-bold text-[var(--text-primary)]">
+                  {intent?.purpose === 'investment' ? 'Investment' : intent?.purpose === 'self-use' ? 'Home for Family' : 'Both'}
+                </p>
+                <p className="text-xs text-[var(--text-secondary)] mt-1">Focused on ROI & Amenities</p>
+              </div>
+              <Link href="/onboarding?step=3" 
+                className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity p-2 bg-[var(--surface-raised)] rounded-lg">
+                <Edit2 className="w-3.5 h-3.5 text-[var(--primary)]" />
+              </Link>
+            </div>
+
+            {/* Budget */}
+            <div className="bg-white border border-[var(--border)] rounded-[var(--radius)] p-5 space-y-3 relative group">
+              <div className="w-10 h-10 bg-green-50 text-green-600 rounded-xl flex items-center justify-center">
+                <Wallet className="w-5 h-5" />
+              </div>
+              <div>
+                <p className="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-wider">Budget Range</p>
+                <p className="font-bold text-[var(--text-primary)]">
+                  {intent?.budget ? `${formatBudget(intent.budget.min)} - ${intent.budget.isOpenMax ? 'No Limit' : formatBudget(intent.budget.max)}` : 'Not set'}
+                </p>
+                <p className="text-xs text-[var(--text-secondary)] mt-1">Total property cost</p>
+              </div>
+              <Link href="/onboarding?step=6" 
+                className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity p-2 bg-[var(--surface-raised)] rounded-lg">
+                <Edit2 className="w-3.5 h-3.5 text-[var(--primary)]" />
+              </Link>
+            </div>
+
+            {/* Timeline */}
+            <div className="bg-white border border-[var(--border)] rounded-[var(--radius)] p-5 space-y-3 relative group">
+              <div className="w-10 h-10 bg-purple-50 text-purple-600 rounded-xl flex items-center justify-center">
+                <Clock className="w-5 h-5" />
+              </div>
+              <div>
+                <p className="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-wider">Timeline</p>
+                <p className="font-bold text-[var(--text-primary)] capitalize">
+                  {intent?.timeline?.replace(/_/g, ' ') || 'Not set'}
+                </p>
+                <p className="text-xs text-[var(--text-secondary)] mt-1">Purchase window</p>
+              </div>
+              <Link href="/onboarding?step=7" 
+                className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity p-2 bg-[var(--surface-raised)] rounded-lg">
+                <Edit2 className="w-3.5 h-3.5 text-[var(--primary)]" />
+              </Link>
             </div>
           </div>
-        )}
+        </section>
 
-        {/* Menu items */}
-        <div className="bg-white border border-[var(--border)] rounded-[var(--radius)]
-          shadow-[var(--shadow-sm)] overflow-hidden mb-4">
-          {menuItems.map((item, i) => (
-            <Link key={i} href={item.href}
-              className="flex items-center gap-4 p-4 sm:p-5 border-b border-[var(--border)]
-                last:border-0 hover:bg-[var(--surface-raised)] transition-colors group">
-              <div className="w-10 h-10 bg-[var(--primary-light)] rounded-full
-                flex items-center justify-center flex-shrink-0">
-                <item.icon className="w-5 h-5 text-[var(--primary)]" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="font-bold text-[var(--text-primary)] text-sm">{item.label}</p>
-                <p className="text-xs text-[var(--text-muted)] mt-0.5">{item.desc}</p>
-              </div>
-              <ChevronRight className="w-4 h-4 text-[var(--text-muted)]
-                group-hover:translate-x-1 group-hover:text-[var(--primary)] transition-all" />
-            </Link>
-          ))}
-        </div>
+        {/* Navigation Menu */}
+        <section className="space-y-4">
+          <h2 className="text-xs font-black text-[var(--text-muted)] uppercase tracking-widest">
+            Account & Activity
+          </h2>
+          <div className="bg-white border border-[var(--border)] rounded-[var(--radius)] overflow-hidden shadow-[var(--shadow-sm)]">
+            {menuItems.map((item, i) => (
+              <Link key={i} href={item.href}
+                className="flex items-center gap-4 p-5 border-b border-[var(--border)]
+                  last:border-0 hover:bg-[var(--surface-raised)] transition-colors group">
+                <div className="w-10 h-10 bg-[var(--primary-light)] text-[var(--primary)] 
+                  rounded-xl flex items-center justify-center flex-shrink-0">
+                  <item.icon className="w-5 h-5" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="font-bold text-[var(--text-primary)] text-sm">{item.label}</p>
+                  <p className="text-xs text-[var(--text-muted)] mt-0.5">{item.desc}</p>
+                </div>
+                <ChevronRight className="w-4 h-4 text-[var(--text-muted)]
+                  group-hover:translate-x-1 group-hover:text-[var(--primary)] transition-all" />
+              </Link>
+            ))}
+          </div>
+        </section>
 
-        <div className="bg-white border border-[var(--border)] rounded-[var(--radius)]
-          shadow-[var(--shadow-sm)] overflow-hidden">
-          <button className="w-full flex items-center gap-4 p-4 sm:p-5
-            hover:bg-[var(--danger-light)] transition-colors group">
-            <div className="w-10 h-10 bg-[var(--danger-light)] rounded-full
-              flex items-center justify-center">
-              <LogOut className="w-5 h-5 text-[var(--danger)]" />
-            </div>
-            <span className="font-bold text-[var(--danger)]">Log Out</span>
-          </button>
-        </div>
+        {/* Logout */}
+        <button className="w-full flex items-center justify-center gap-3 p-5
+          bg-white border border-[var(--border)] rounded-[var(--radius)]
+          hover:bg-[var(--danger-light)] transition-colors group">
+          <LogOut className="w-5 h-5 text-[var(--danger)]" />
+          <span className="font-bold text-[var(--danger)]">Log Out</span>
+        </button>
       </SectionContainer>
     </div>
   );

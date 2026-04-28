@@ -10,10 +10,10 @@ export default function PrivacyPage() {
   const router = useRouter();
   const [notifications, setNotifications] = useState({ email: true, whatsapp: false, updates: true });
 
-  const handleDeleteData = () => {
-    if (confirm('This will clear all your local data including preferences and saved projects. Continue?')) {
+  const handleDeleteAccount = () => {
+    if (confirm('Are you sure you want to delete your account? This will permanently remove all your preferences and saved data. This action cannot be undone.')) {
       localStorage.clear();
-      toast.success('All local data cleared');
+      toast.success('Account deleted successfully');
       router.push('/');
     }
   };
@@ -67,13 +67,13 @@ export default function PrivacyPage() {
               </div>
               <button
                 onClick={() => setNotifications(prev => ({ ...prev, [item.key]: !prev[item.key as keyof typeof prev] }))}
-                className={`relative w-11 h-6 rounded-full transition-colors flex-shrink-0 ${
+                className={`relative w-12 h-6 rounded-full transition-colors flex-shrink-0 ${
                   notifications[item.key as keyof typeof notifications]
                     ? 'bg-[var(--primary)]'
                     : 'bg-[var(--border-strong)]'
                 }`}>
                 <span className={`absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${
-                  notifications[item.key as keyof typeof notifications] ? 'translate-x-5' : 'translate-x-0.5'
+                  notifications[item.key as keyof typeof notifications] ? 'translate-x-6' : 'translate-x-0.5'
                 }`} />
               </button>
             </div>
@@ -104,13 +104,13 @@ export default function PrivacyPage() {
               <li>Store financial or payment information</li>
             </ul>
           </div>
-          <button onClick={handleDeleteData}
+          <button onClick={handleDeleteAccount}
             className="w-full flex items-center gap-3 px-4 sm:px-5 py-4
               hover:bg-[var(--danger-light)] transition-colors text-left">
             <Trash2 className="w-4 h-4 text-[var(--danger)]" />
             <div>
-              <p className="text-sm font-bold text-[var(--danger)]">Clear All My Data</p>
-              <p className="text-xs text-[var(--text-muted)]">Removes all local preferences and saved items</p>
+              <p className="text-sm font-bold text-[var(--danger)]">Delete Account</p>
+              <p className="text-xs text-[var(--text-muted)]">Permanently remove all your data from this device</p>
             </div>
           </button>
         </div>

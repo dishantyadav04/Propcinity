@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   ArrowRight, ArrowLeft, Home, Wallet, MapPin, Target,
   Sparkles, Loader2, Plus, X, Check, User, Phone, Mail,
-  ChevronRight
+  ChevronRight, Briefcase, Clock
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
@@ -39,8 +39,6 @@ const OPTIONAL_PREFS = [
   "Swimming pool", "Gym", "Co-working space", "Power backup"
 ];
 
-
-
 interface FormData {
   name: string; phone: string; email: string;
   city: string; subLocations: string[];
@@ -49,7 +47,7 @@ interface FormData {
   timeline: string; preferences: string[];
 }
 
-const TOTAL_STEPS = 6;
+const TOTAL_STEPS = 7;
 
 export default function UserIntentForm() {
   const router = useRouter();
@@ -58,14 +56,27 @@ export default function UserIntentForm() {
   const [authMode, setAuthMode] = useState<'form' | 'google' | 'apple' | null>(null);
   const [socialAuthUsed, setSocialAuthUsed] = useState(false);
   const [subInput, setSubInput] = useState('');
+  const [showMoreSubLocs, setShowMoreSubLocs] = useState(false);
   const [projects, setProjects] = useState<any[]>([]);
 
-  // Fetch projects to perform real-time availability checks
   useEffect(() => {
     fetch('/api/projects')
       .then(r => r.json())
       .then(data => setProjects(data))
       .catch(console.error);
+  }, []);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const startStep = params.get('step');
+      if (startStep) {
+        const n = parseInt(startStep);
+        if (!isNaN(n) && n >= 1 && n <= TOTAL_STEPS) {
+          setStep(n);
+        }
+      }
+    }
   }, []);
 
   const [form, setForm] = useState<FormData>({
@@ -84,12 +95,6 @@ export default function UserIntentForm() {
     set(key, cur.includes(val) ? cur.filter(v => v !== val) : [...cur, val]);
   };
 
-  const addSubLocation = (loc: string) => {
-    if (!loc.trim() || form.subLocations.includes(loc)) return;
-    set('subLocations', [...form.subLocations, loc]);
-    setSubInput('');
-  };
-
   const next = () => setStep(s => Math.min(s + 1, TOTAL_STEPS));
   const prev = () => setStep(s => Math.max(s - 1, 1));
 
@@ -98,11 +103,12 @@ export default function UserIntentForm() {
       if (socialAuthUsed) return form.phone.length === 10;
       return form.name.length >= 2 && form.phone.length === 10 && form.email.includes('@');
     }
-    if (step === 2) return !!form.purpose;
-    if (step === 3) return form.propertyType.length > 0;
-    if (step === 4) return form.bhkType.length > 0;
-    if (step === 5) return true;
-    if (step === 6) return !!form.timeline;
+    if (step === 2) return form.city.length > 0;
+    if (step === 3) return !!form.purpose;
+    if (step === 4) return form.propertyType.length > 0;
+    if (step === 5) return form.bhkType.length > 0;
+    if (step === 6) return true;
+    if (step === 7) return !!form.timeline;
     return true;
   };
 
@@ -127,14 +133,11 @@ export default function UserIntentForm() {
     router.push('/dashboard');
   };
 
-  // Google / Apple auth — skip Step 1 for personal info, go to 1A (location)
   const handleSocialAuth = (provider: 'google' | 'apple') => {
     setSocialAuthUsed(true);
     setAuthMode(provider);
-    // Pre-fill mock name/email from provider (in real app, OAuth callback fills this)
     set('name', provider === 'google' ? 'Google User' : 'Apple User');
     set('email', provider === 'google' ? 'user@gmail.com' : 'user@icloud.com');
-    // Don't advance step — stay on step 1 but show phone-only UI
   };
 
   const formatBudget = (val: number) => {
@@ -142,24 +145,26 @@ export default function UserIntentForm() {
     return `₹${(val / 100000).toFixed(0)} L`;
   };
 
-  // Real-time matching logic
   const matchingCount = useMemo(() => {
     if (projects.length === 0) return 0;
     
     return projects.filter(p => {
-      // 1. City & Sub-location
       if (p.city?.toLowerCase() !== form.city.toLowerCase()) return false;
-      if (form.subLocations.length > 0 && !form.subLocations.some(l => l.toLowerCase() === p.location.toLowerCase())) {
-        return false;
-      }
+      
+      const subMatch = form.subLocations.length === 0 ||
+        form.subLocations.some(sl => {
+          const pLoc = (p.location || '').toLowerCase();
+          const slLow = sl.toLowerCase();
+          return pLoc.includes(slLow) || slLow.includes(pLoc);
+        });
 
-      // 2. Property Type
+      if (!subMatch) return false;
+
       if (form.propertyType.length > 0) {
         const pType = p.type?.toLowerCase();
         if (!form.propertyType.some(t => t.toLowerCase() === pType)) return false;
       }
 
-      // 3. BHK
       if (form.bhkType.length > 0) {
         const pBhks = (p.unitConfigs || []).map((u: any) => u.type);
         const hasBhkMatch = form.bhkType.some((b: string) => 
@@ -168,7 +173,6 @@ export default function UserIntentForm() {
         if (!hasBhkMatch) return false;
       }
 
-      // 4. Budget
       const pPrice = p.unitConfigs?.length ? Math.min(...p.unitConfigs.map((u: any) => u.priceMin)) : 0;
       if (pPrice < form.budgetMin) return false;
       if (!form.isOpenMax && pPrice > form.budgetMax) return false;
@@ -177,11 +181,10 @@ export default function UserIntentForm() {
     }).length;
   }, [projects, form]);
 
-  const showNoAvailabilityWarning = step > 1 && matchingCount === 0;
+  const showNoAvailabilityWarning = step > 2 && matchingCount === 0;
 
   return (
     <div className="min-h-screen bg-[var(--background)] flex flex-col">
-      {/* Header */}
       <div className="sticky top-0 z-10 bg-white/90 backdrop-blur border-b border-[var(--border)] px-4 sm:px-6 py-3">
         <div className="max-w-lg mx-auto">
           <div className="flex items-center justify-between mb-2">
@@ -199,7 +202,7 @@ export default function UserIntentForm() {
               className="h-full bg-gradient-to-r from-[var(--primary)] to-orange-400 rounded-full"
             />
           </div>
-          {step > 1 && (
+          {step > 2 && (
             <div className="flex justify-center mt-2">
               <div className={cn(
                 "px-3 py-1 rounded-full text-[10px] font-black tracking-widest transition-all",
@@ -215,7 +218,6 @@ export default function UserIntentForm() {
         </div>
       </div>
 
-      {/* Content */}
       <div className="flex-1 max-w-lg mx-auto w-full px-4 sm:px-6 py-8">
         <AnimatePresence mode="wait">
           <motion.div
@@ -227,7 +229,7 @@ export default function UserIntentForm() {
             className="space-y-6"
           >
 
-            {/* ── STEP 1: Personal Info + Location ─────────── */}
+            {/* ── STEP 1: Identity ─────────── */}
             {step === 1 && (
               <div className="space-y-6">
                 <div className="space-y-1">
@@ -236,201 +238,148 @@ export default function UserIntentForm() {
                     Let's get started
                   </h2>
                   <p className="text-sm text-[var(--text-secondary)]">
-                    Tell us about yourself and where you're searching
+                    Tell us about yourself.
                   </p>
                 </div>
 
-                {/* Social auth buttons */}
                 {!socialAuthUsed ? (
                   <div className="space-y-3">
-                    <button
-                      onClick={() => handleSocialAuth('google')}
-                      className="w-full flex items-center gap-3 px-4 py-3 bg-white border-2 border-[var(--border-strong)]
-                        rounded-[var(--radius)] hover:border-[var(--primary)] transition-colors font-semibold text-sm">
-                      <svg className="w-5 h-5" viewBox="0 0 24 24">
-                        <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
-                        <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-                        <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
-                        <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
-                      </svg>
+                    <button onClick={() => handleSocialAuth('google')} className="w-full flex items-center gap-3 px-4 py-3 bg-white border-2 border-[var(--border-strong)] rounded-[var(--radius)] hover:border-[var(--primary)] transition-colors font-semibold text-sm">
+                      <svg className="w-5 h-5" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
                       Continue with Google
                     </button>
-                    <button
-                      onClick={() => handleSocialAuth('apple')}
-                      className="w-full flex items-center gap-3 px-4 py-3 bg-[var(--surface-dark)] text-white
-                        rounded-[var(--radius)] hover:opacity-90 transition-opacity font-semibold text-sm">
-                      <svg className="w-5 h-5 fill-white" viewBox="0 0 24 24">
-                        <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/>
-                      </svg>
+                    <button onClick={() => handleSocialAuth('apple')} className="w-full flex items-center gap-3 px-4 py-3 bg-[var(--surface-dark)] text-white rounded-[var(--radius)] hover:opacity-90 transition-opacity font-semibold text-sm">
+                      <svg className="w-5 h-5 fill-white" viewBox="0 0 24 24"><path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/></svg>
                       Continue with Apple
                     </button>
-                    <div className="flex items-center gap-3">
-                      <div className="flex-1 h-px bg-[var(--border)]" />
-                      <span className="text-xs text-[var(--text-muted)] font-semibold">or fill manually</span>
-                      <div className="flex-1 h-px bg-[var(--border)]" />
-                    </div>
+                    <div className="flex items-center gap-3"><div className="flex-1 h-px bg-[var(--border)]" /><span className="text-xs text-[var(--text-muted)] font-semibold">or fill manually</span><div className="flex-1 h-px bg-[var(--border)]" /></div>
                   </div>
                 ) : (
                   <div className="p-4 bg-[var(--success-light)] border border-[var(--success)]/20 rounded-[var(--radius)] flex items-center gap-3">
                     <div className="w-8 h-8 bg-[var(--success)] rounded-full flex items-center justify-center text-white text-sm">✓</div>
-                    <div>
-                      <p className="text-sm font-bold text-[var(--text-primary)]">
-                        {authMode === 'google' ? 'Google' : 'Apple'} account connected
-                      </p>
-                      <p className="text-xs text-[var(--text-muted)]">{form.email}</p>
-                    </div>
+                    <div><p className="text-sm font-bold text-[var(--text-primary)]">{authMode === 'google' ? 'Google' : 'Apple'} account connected</p><p className="text-xs text-[var(--text-muted)]">{form.email}</p></div>
                   </div>
                 )}
 
-                {/* Personal info fields */}
                 {!socialAuthUsed ? (
                   <div className="space-y-3">
-                    {/* Name field */}
-                    <div className="relative">
-                      <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-muted)]" />
-                      <input
-                        value={form.name}
-                        onChange={e => set('name', e.target.value)}
-                        placeholder="Full name"
-                        className="w-full pl-10 pr-4 py-3 bg-[var(--surface-raised)] border border-[var(--border)]
-                          rounded-[var(--radius)] text-sm text-[var(--text-primary)]
-                          placeholder:text-[var(--text-muted)] focus:outline-none focus:border-[var(--primary)]"
-                      />
-                    </div>
-                    {/* Phone field */}
-                    <div className="relative">
-                      <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-muted)]" />
-                      <span className="absolute left-9 top-1/2 -translate-y-1/2 text-sm text-[var(--text-muted)] font-semibold">+91</span>
-                      <input
-                        value={form.phone}
-                        onChange={e => set('phone', e.target.value.replace(/\D/g, '').slice(0, 10))}
-                        placeholder="10-digit mobile"
-                        type="tel"
-                        className="w-full pl-16 pr-4 py-3 bg-[var(--surface-raised)] border border-[var(--border)]
-                          rounded-[var(--radius)] text-sm text-[var(--text-primary)]
-                          placeholder:text-[var(--text-muted)] focus:outline-none focus:border-[var(--primary)]"
-                      />
-                    </div>
-                    {/* Email field */}
-                    <div className="relative">
-                      <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-muted)]" />
-                      <input
-                        value={form.email}
-                        onChange={e => set('email', e.target.value)}
-                        placeholder="Email address"
-                        type="email"
-                        className="w-full pl-10 pr-4 py-3 bg-[var(--surface-raised)] border border-[var(--border)]
-                          rounded-[var(--radius)] text-sm text-[var(--text-primary)]
-                          placeholder:text-[var(--text-muted)] focus:outline-none focus:border-[var(--primary)]"
-                      />
-                    </div>
+                    <div className="relative"><User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-muted)]" /><input value={form.name} onChange={e => set('name', e.target.value)} placeholder="Full name" className="w-full pl-10 pr-4 py-3 bg-[var(--surface-raised)] border border-[var(--border)] rounded-[var(--radius)] text-sm text-[var(--text-primary)] focus:outline-none focus:border-[var(--primary)]" /></div>
+                    <div className="relative"><Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-muted)]" /><span className="absolute left-9 top-1/2 -translate-y-1/2 text-sm text-[var(--text-muted)] font-semibold">+91</span><input value={form.phone} onChange={e => set('phone', e.target.value.replace(/\D/g, '').slice(0, 10))} placeholder="10-digit mobile" type="tel" className="w-full pl-16 pr-4 py-3 bg-[var(--surface-raised)] border border-[var(--border)] rounded-[var(--radius)] text-sm text-[var(--text-primary)] focus:outline-none focus:border-[var(--primary)]" /></div>
+                    <div className="relative"><Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-muted)]" /><input value={form.email} onChange={e => set('email', e.target.value)} placeholder="Email address" type="email" className="w-full pl-10 pr-4 py-3 bg-[var(--surface-raised)] border border-[var(--border)] rounded-[var(--radius)] text-sm text-[var(--text-primary)] focus:outline-none focus:border-[var(--primary)]" /></div>
                   </div>
                 ) : (
                   <div className="space-y-3">
-                    <p className="text-sm font-semibold text-[var(--text-secondary)]">
-                      One more thing — your mobile number
-                    </p>
-                    <div className="relative">
-                      <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-muted)]" />
-                      <span className="absolute left-9 top-1/2 -translate-y-1/2 text-sm text-[var(--text-muted)] font-semibold">+91</span>
-                      <input
-                        value={form.phone}
-                        onChange={e => set('phone', e.target.value.replace(/\D/g, '').slice(0, 10))}
-                        placeholder="10-digit mobile number"
-                        type="tel"
-                        className="w-full pl-16 pr-4 py-3 bg-[var(--surface-raised)] border border-[var(--border)]
-                          rounded-[var(--radius)] text-sm text-[var(--text-primary)]
-                          placeholder:text-[var(--text-muted)] focus:outline-none focus:border-[var(--primary)]"
-                      />
-                    </div>
-                    <p className="text-xs text-[var(--text-muted)]">
-                      Your advisor will use this to confirm your consultation.
-                    </p>
+                    <p className="text-sm font-semibold text-[var(--text-secondary)]">One more thing — your mobile number</p>
+                    <div className="relative"><Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-muted)]" /><span className="absolute left-9 top-1/2 -translate-y-1/2 text-sm text-[var(--text-muted)] font-semibold">+91</span><input value={form.phone} onChange={e => set('phone', e.target.value.replace(/\D/g, '').slice(0, 10))} placeholder="10-digit mobile number" type="tel" className="w-full pl-16 pr-4 py-3 bg-[var(--surface-raised)] border border-[var(--border)] rounded-[var(--radius)] text-sm text-[var(--text-primary)] focus:outline-none focus:border-[var(--primary)]" /></div>
+                    <p className="text-xs text-[var(--text-muted)]">Your advisor will use this to confirm your consultation.</p>
                   </div>
                 )}
+              </div>
+            )}
 
-                {/* Location section */}
+            {/* ── STEP 2: Location ─────────── */}
+            {step === 2 && (
+              <div className="space-y-6">
+                <div>
+                  <h2 className="text-2xl font-black text-[var(--text-primary)]"
+                    style={{ fontFamily: 'var(--font-display)' }}>
+                    Where are you looking?
+                  </h2>
+                  <p className="text-sm text-[var(--text-secondary)] mt-1">
+                    Select your city and preferred areas.
+                  </p>
+                </div>
+                {/* City selector */}
                 <div className="space-y-3">
-                  <div>
-                    <p className="text-xs font-black text-[var(--text-muted)] uppercase tracking-wider mb-2">
-                      City
-                    </p>
-                    <div className="flex gap-2">
-                      {['Pune', 'Mumbai', 'Bangalore', 'Hyderabad'].map(c => (
-                        <button key={c}
-                          onClick={() => {
-                            if (form.city !== c) {
-                              set('city', c);
-                              set('subLocations', []);
-                            }
-                          }}
-                          className={cn(
-                            "px-4 py-2 rounded-full text-xs font-bold border transition-all",
-                            form.city === c
-                              ? "bg-[var(--primary)] text-white border-[var(--primary)]"
-                              : "bg-[var(--surface-raised)] border-[var(--border)] text-[var(--text-secondary)]"
-                          )}>
-                          {c}
-                        </button>
+                  <p className="text-xs font-black text-[var(--text-muted)] uppercase tracking-wider">City</p>
+                  <div className="flex gap-2 flex-wrap">
+                    {Object.keys(CITY_SUBLOCATIONS).map(c => (
+                      <button key={c}
+                        onClick={() => { set('city', c); set('subLocations', []); }}
+                        className={cn(
+                          "px-4 py-2 rounded-full text-sm font-bold border transition-all",
+                          form.city === c
+                            ? "bg-[var(--primary)] text-white border-[var(--primary)]"
+                            : "bg-[var(--surface-raised)] border-[var(--border)] text-[var(--text-secondary)]"
+                        )}>{c}</button>
+                    ))}
+                  </div>
+                </div>
+                {/* Sub-locations */}
+                <div className="space-y-3">
+                  <p className="text-xs font-black text-[var(--text-muted)] uppercase tracking-wider">
+                    Areas in {form.city}
+                    <span className="normal-case font-normal ml-1">(add one or more)</span>
+                  </p>
+                  {/* Selected chips */}
+                  {form.subLocations.length > 0 && (
+                    <div className="flex flex-wrap gap-2">
+                      {form.subLocations.map(loc => (
+                        <span key={loc}
+                          className="flex items-center gap-1 px-3 py-1
+                            bg-[var(--primary-light)] text-[var(--primary)] rounded-full text-xs font-bold">
+                          {loc}
+                          <button onClick={() => set('subLocations', form.subLocations.filter(l => l !== loc))}>
+                            <X className="w-3 h-3" />
+                          </button>
+                        </span>
                       ))}
                     </div>
-                  </div>
-
-                  <div>
-                    <p className="text-xs font-black text-[var(--text-muted)] uppercase tracking-wider mb-2">
-                      Sub-locations in {form.city} <span className="normal-case font-normal">(add one or more)</span>
-                    </p>
-                    {/* Selected sub-locations */}
-                    {form.subLocations.length > 0 && (
-                      <div className="flex flex-wrap gap-2 mb-2">
-                        {form.subLocations.map(loc => (
-                          <span key={loc}
-                            className="flex items-center gap-1 px-3 py-1 bg-[var(--primary-light)]
-                              text-[var(--primary)] rounded-full text-xs font-bold">
-                            {loc}
-                            <button onClick={() => set('subLocations', form.subLocations.filter(l => l !== loc))}>
-                              <X className="w-3 h-3" />
-                            </button>
-                          </span>
-                        ))}
-                      </div>
-                    )}
-                    {/* Suggestion chips */}
-                    <div className="flex flex-wrap gap-1.5 mb-2">
-                      {(CITY_SUBLOCATIONS[form.city] || []).filter(l => !form.subLocations.includes(l)).slice(0, 8).map(loc => (
+                  )}
+                  {/* Available area chips */}
+                  <div className="flex flex-wrap gap-1.5">
+                    {(CITY_SUBLOCATIONS[form.city] || [])
+                      .filter(l => !form.subLocations.includes(l))
+                      .slice(0, showMoreSubLocs ? undefined : 8)
+                      .map(loc => (
                         <button key={loc}
-                          onClick={() => addSubLocation(loc)}
-                          className="px-3 py-1 bg-[var(--surface-raised)] border border-[var(--border)]
-                            rounded-full text-xs font-medium text-[var(--text-secondary)]
-                            hover:border-[var(--primary)] hover:text-[var(--primary)] transition-colors">
+                          onClick={() => {
+                            set('subLocations', [...form.subLocations, loc]);
+                          }}
+                          className="px-3 py-1 border border-[var(--border)] rounded-full
+                            text-xs font-medium text-[var(--text-secondary)]
+                            bg-[var(--surface-raised)] hover:border-[var(--primary)]
+                            hover:text-[var(--primary)] transition-colors">
                           + {loc}
                         </button>
                       ))}
-                    </div>
-                    {/* Custom input */}
-                    <div className="flex gap-2">
-                      <input
-                        value={subInput}
-                        onChange={e => setSubInput(e.target.value)}
-                        onKeyDown={e => e.key === 'Enter' && addSubLocation(subInput)}
-                        placeholder="Type a locality and press Enter"
-                        className="flex-1 px-3 py-2 bg-[var(--surface-raised)] border border-[var(--border)]
-                          rounded-[var(--radius-xs)] text-sm text-[var(--text-primary)]
-                          placeholder:text-[var(--text-muted)] focus:outline-none focus:border-[var(--primary)]"
-                      />
+                    {/* More+ / Less- button */}
+                    {(CITY_SUBLOCATIONS[form.city] || []).filter(l => !form.subLocations.includes(l)).length > 8 && (
                       <button
-                        onClick={() => addSubLocation(subInput)}
-                        className="px-3 py-2 bg-[var(--primary)] text-white rounded-[var(--radius-xs)]">
-                        <Plus className="w-4 h-4" />
+                        onClick={() => setShowMoreSubLocs(!showMoreSubLocs)}
+                        className="px-3 py-1 border-2 border-dashed border-[var(--primary)]/40
+                          text-[var(--primary)] text-xs font-bold rounded-full
+                          hover:border-[var(--primary)] transition-colors">
+                        {showMoreSubLocs
+                          ? '− Less'
+                          : `+${(CITY_SUBLOCATIONS[form.city] || []).filter(l => !form.subLocations.includes(l)).length - 8} More`
+                        }
                       </button>
-                    </div>
+                    )}
+                  </div>
+                  {/* Manual input */}
+                  <div className="flex gap-2">
+                    <input
+                      value={subInput}
+                      onChange={e => setSubInput(e.target.value)}
+                      onKeyDown={e => { if (e.key === 'Enter' && subInput.trim()) { set('subLocations', [...form.subLocations, subInput.trim()]); setSubInput(''); } }}
+                      placeholder="Type a locality and press Enter"
+                      className="flex-1 px-3 py-2 bg-[var(--surface-raised)] border border-[var(--border)]
+                        rounded-[var(--radius-xs)] text-sm text-[var(--text-primary)]
+                        placeholder:text-[var(--text-muted)] focus:outline-none focus:border-[var(--primary)]"
+                    />
+                    <button
+                      onClick={() => { if (subInput.trim()) { set('subLocations', [...form.subLocations, subInput.trim()]); setSubInput(''); } }}
+                      className="px-3 py-2 bg-[var(--primary)] text-white rounded-[var(--radius-xs)]">
+                      <Plus className="w-4 h-4" />
+                    </button>
                   </div>
                 </div>
               </div>
             )}
 
-            {/* ── STEP 2: Purpose ───────────────────────────── */}
-            {step === 2 && (
+            {/* ── STEP 3: Purpose ───────────────────────────── */}
+            {step === 3 && (
               <div className="space-y-6">
                 <div>
                   <h2 className="text-2xl font-black text-[var(--text-primary)]"
@@ -465,8 +414,8 @@ export default function UserIntentForm() {
               </div>
             )}
 
-            {/* ── STEP 3: Property Type ─────────────────────── */}
-            {step === 3 && (
+            {/* ── STEP 4: Property Type ─────────────────────── */}
+            {step === 4 && (
               <div className="space-y-6">
                 <div>
                   <h2 className="text-2xl font-black text-[var(--text-primary)]"
@@ -501,8 +450,8 @@ export default function UserIntentForm() {
               </div>
             )}
 
-            {/* ── STEP 4: BHK or Plot Size ───────────────────── */}
-            {step === 4 && (
+            {/* ── STEP 5: BHK or Plot Size ───────────────────── */}
+            {step === 5 && (
               <div className="space-y-6">
                 {form.propertyType.some(t => ['apartment', 'villa', 'penthouse'].includes(t)) && (
                   <div>
@@ -558,8 +507,8 @@ export default function UserIntentForm() {
               </div>
             )}
 
-            {/* ── STEP 5: Budget ────────────────────────────── */}
-            {step === 5 && (
+            {/* ── STEP 6: Budget ────────────────────────────── */}
+            {step === 6 && (
               <div className="space-y-6">
                 <div>
                   <h2 className="text-2xl font-black text-[var(--text-primary)]"
@@ -629,9 +578,6 @@ export default function UserIntentForm() {
                         />
                         <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-[var(--text-muted)]">L</span>
                       </div>
-                      <p className="text-[10px] text-[var(--text-muted)]">
-                        {form.budgetMin > 0 ? formatBudget(form.budgetMin) : 'Enter in lakhs'}
-                      </p>
                     </div>
                     <div className="space-y-1">
                       <label className="text-xs font-semibold text-[var(--text-muted)]">Maximum (₹)</label>
@@ -656,9 +602,6 @@ export default function UserIntentForm() {
                         />
                         <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-[var(--text-muted)]">L</span>
                       </div>
-                      <p className="text-[10px] text-[var(--text-muted)]">
-                        {form.isOpenMax ? 'No upper limit' : form.budgetMax > 0 ? formatBudget(form.budgetMax) : 'Enter in lakhs'}
-                      </p>
                     </div>
                   </div>
 
@@ -687,15 +630,15 @@ export default function UserIntentForm() {
                     <p className="text-xl font-black text-[var(--primary)]" style={{ fontFamily: 'var(--font-display)' }}>
                       {form.budgetMin > 0 ? formatBudget(form.budgetMin) : '₹0'}
                       {' '}&mdash;{' '}
-                      {form.isOpenMax ? `${formatBudget(form.budgetMax)}+` : form.budgetMax > 0 ? formatBudget(form.budgetMax) : '?'}
+                      {form.isOpenMax ? `Above ₹10Cr` : form.budgetMax > 0 ? formatBudget(form.budgetMax) : '?'}
                     </p>
                   </div>
                 )}
               </div>
             )}
 
-            {/* ── STEP 6: Timeline + Optional prefs ────────── */}
-            {step === 6 && (
+            {/* ── STEP 7: Timeline + Optional prefs ────────── */}
+            {step === 7 && (
               <div className="space-y-6">
                 <div>
                   <h2 className="text-2xl font-black text-[var(--text-primary)]"
@@ -779,7 +722,7 @@ export default function UserIntentForm() {
             </div>
           )}
 
-          {step === 6 ? (
+          {step === 7 ? (
             <button
               disabled={!canNext() || isLoading}
               onClick={handleFinish}
@@ -791,22 +734,25 @@ export default function UserIntentForm() {
                 : <><Sparkles className="w-5 h-5" /> See My Recommendations</>
               }
             </button>
-          ) : step !== 2 /* step 2 auto-advances */ && (
+          ) : step !== 3 /* step 3 auto-advances */ && (
             <button
               disabled={!canNext()}
               onClick={next}
               className="w-full py-4 bg-[var(--primary)] disabled:opacity-50 text-white font-black
                 rounded-[var(--radius)] flex items-center justify-center gap-2
                 shadow-[var(--shadow-primary)] hover:opacity-90 transition-opacity">
-              Continue <ArrowRight className="w-4 h-4" />
+              Continue
+              <ArrowRight className="w-5 h-5" />
             </button>
           )}
 
           {step > 1 && (
-            <button onClick={prev}
-              className="w-full py-3 flex items-center justify-center gap-2
-                text-[var(--text-muted)] text-sm font-bold">
-              <ArrowLeft className="w-4 h-4" /> Back
+            <button
+              onClick={prev}
+              className="w-full py-3 text-[var(--text-secondary)] font-bold text-sm
+                hover:text-[var(--text-primary)] transition-colors flex items-center justify-center gap-2">
+              <ArrowLeft className="w-4 h-4" />
+              Go Back
             </button>
           )}
         </div>

@@ -7,7 +7,7 @@ import Skeleton from "@/components/ui/Skeleton";
 import ProjectCard from "@/components/property/ProjectCard";
 import {
   Search, SlidersHorizontal, X, LayoutGrid, List,
-  Building2, MapPin, Star, Heart, ChevronDown, TrendingUp,
+  Building2, MapPin, LayoutDashboard, ChevronDown, TrendingUp,
   ShieldCheck, ArrowUpDown
 } from "lucide-react";
 import Link from "next/link";
@@ -113,7 +113,7 @@ export default function ExplorePage() {
 
   useEffect(() => { applyFilters(); }, [applyFilters]);
 
-  const toggleCurated = (id: string, e: React.MouseEvent) => {
+  const toggleDashboard = (id: string, e: React.MouseEvent) => {
     e.preventDefault(); e.stopPropagation();
     const next = curatedIds.includes(id)
       ? curatedIds.filter(i => i !== id)
@@ -121,17 +121,7 @@ export default function ExplorePage() {
     setCuratedIds(next);
     localStorage.setItem('curatedIds', JSON.stringify(next));
     window.dispatchEvent(new Event('curatedUpdated'));
-    toast(next.includes(id) ? 'Added to Dashboard ⭐' : 'Removed from Dashboard');
-  };
-
-  const toggleSave = (id: string, e: React.MouseEvent) => {
-    e.preventDefault(); e.stopPropagation();
-    const next = savedIds.includes(id)
-      ? savedIds.filter(i => i !== id)
-      : [...savedIds, id];
-    setSavedIds(next);
-    localStorage.setItem('savedIds', JSON.stringify(next));
-    toast(next.includes(id) ? 'Saved ❤️' : 'Removed from saved');
+    toast(next.includes(id) ? 'Added to your matches' : 'Removed from matches');
   };
 
   const handleCompare = (project: Project, e: React.MouseEvent) => {
@@ -346,26 +336,18 @@ export default function ExplorePage() {
                 className="relative group"
               >
                 <ProjectCard project={project} index={index} />
-                {/* Action overlay on hover */}
-                <div className="absolute top-12 left-3 flex flex-col gap-1.5 z-10
-                  opacity-0 group-hover:opacity-100 transition-opacity">
-                  <button onClick={e => toggleCurated(project.id, e)}
-                    title={curatedIds.includes(project.id) ? 'Remove from Dashboard' : 'Add to Dashboard'}
-                    className={`p-2 rounded-full shadow-md transition-all text-sm backdrop-blur-sm ${
+                {/* Unified Dashboard Action Overlay */}
+                <div className="absolute top-2 left-2 z-20">
+                  <button
+                    onClick={e => toggleDashboard(project.id, e)}
+                    className={`flex items-center gap-2 px-3 py-2 rounded-full font-bold text-[10px]
+                      shadow-lg backdrop-blur-md transition-all ${
                       curatedIds.includes(project.id)
                         ? 'bg-[var(--primary)] text-white'
-                        : 'bg-white/90 text-[var(--text-muted)] hover:text-[var(--primary)]'
+                        : 'bg-white/90 text-[var(--text-secondary)] hover:bg-[var(--primary)] hover:text-white'
                     }`}>
-                    <Star className="w-3.5 h-3.5" />
-                  </button>
-                  <button onClick={e => toggleSave(project.id, e)}
-                    title={savedIds.includes(project.id) ? 'Unsave' : 'Save'}
-                    className={`p-2 rounded-full shadow-md transition-all backdrop-blur-sm ${
-                      savedIds.includes(project.id)
-                        ? 'bg-[var(--danger)] text-white'
-                        : 'bg-white/90 text-[var(--text-muted)] hover:text-[var(--danger)]'
-                    }`}>
-                    <Heart className="w-3.5 h-3.5" />
+                    <LayoutDashboard className="w-3 h-3" />
+                    {curatedIds.includes(project.id) ? 'Shortlisted' : 'Add to Dashboard'}
                   </button>
                 </div>
               </motion.div>
@@ -442,23 +424,16 @@ export default function ExplorePage() {
 
                     {/* Actions — right side */}
                     <div className="flex flex-col items-center gap-2 flex-shrink-0 justify-center">
-                      <button onClick={e => toggleCurated(project.id, e)}
-                        title="Add to Dashboard"
-                        className={`p-2 rounded-full transition-all ${
+                      <button
+                        onClick={e => toggleDashboard(project.id, e)}
+                        className={`flex items-center gap-2 px-3 py-2 rounded-full font-bold text-[10px]
+                          transition-all ${
                           curatedIds.includes(project.id)
                             ? 'bg-[var(--primary)] text-white'
-                            : 'bg-[var(--surface-raised)] text-[var(--text-muted)] hover:text-[var(--primary)]'
+                            : 'bg-[var(--surface-raised)] text-[var(--text-muted)] hover:bg-[var(--primary)] hover:text-white'
                         }`}>
-                        <Star className="w-4 h-4" />
-                      </button>
-                      <button onClick={e => toggleSave(project.id, e)}
-                        title="Save"
-                        className={`p-2 rounded-full transition-all ${
-                          savedIds.includes(project.id)
-                            ? 'bg-[var(--danger)] text-white'
-                            : 'bg-[var(--surface-raised)] text-[var(--text-muted)] hover:text-[var(--danger)]'
-                        }`}>
-                        <Heart className="w-4 h-4" />
+                        <LayoutDashboard className="w-4 h-4" />
+                        <span className="hidden sm:inline">{curatedIds.includes(project.id) ? 'Shortlisted' : 'Dashboard'}</span>
                       </button>
                     </div>
                   </Link>

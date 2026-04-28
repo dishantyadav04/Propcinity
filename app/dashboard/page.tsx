@@ -49,8 +49,13 @@ export default function DashboardPage() {
       const reasons: string[] = [];
 
       // 1. Location (Weight: 40)
-      const subLocs = userIntent.subLocations.map(s => s.toLowerCase());
-      if (subLocs.includes(p.location.toLowerCase())) {
+      const locMatch = userIntent.subLocations?.some((sl: string) => {
+        const pLoc = (p.location || '').toLowerCase();
+        const slLow = sl.toLowerCase();
+        return pLoc.includes(slLow) || slLow.includes(pLoc);
+      });
+
+      if (locMatch) {
         score += 40;
         reasons.push('Matches your preferred locality');
       }
@@ -70,7 +75,7 @@ export default function DashboardPage() {
       }
 
       // 3. BHK/Config (Weight: 20)
-      const uBhk = userIntent.bhkType;
+      const uBhk = userIntent.bhkType || [];
       const pBhks = (p.unitConfigs || []).map(u => u.type);
       const hasBhkMatch = uBhk.some(b => pBhks.some(pb => pb.includes(b.split('BHK')[0])));
       if (hasBhkMatch) {
@@ -129,7 +134,7 @@ export default function DashboardPage() {
                 Welcome back, {userIntent?.name?.split(' ')[0] || 'Buyer'}
               </h1>
               <p className="text-[var(--text-secondary)] max-w-xl font-medium">
-                We've analyzed 50+ projects against your {userIntent?.subLocations[0]} preferences. 
+                We've analyzed 50+ projects against your {userIntent?.city || userIntent?.location} preferences. 
                 Here are your best matches.
               </p>
             </div>
@@ -146,77 +151,53 @@ export default function DashboardPage() {
       </div>
 
       <SectionContainer wide className="py-12 space-y-16">
-        {/* Perfect Matches */}
-        <section className="space-y-8">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-[var(--success-light)] text-[var(--success)] rounded-xl flex items-center justify-center">
-              <Target className="w-5 h-5" />
+        <div className="card-grid">
+          {[...matches.perfect, ...matches.closest.slice(0, Math.max(0, 10 - matches.perfect.length))].map((p, i) => (
+            <div key={p.id} className="relative group">
+              <ProjectCard project={p} index={i} />
+              {/* Remove button — shown on hover */}
+              <button
+                onClick={() => removeFromCurated(p.id)}
+                className="absolute top-2 left-2 z-30 w-7 h-7 bg-black/60 backdrop-blur-sm
+                  text-white rounded-full items-center justify-center
+                  hidden group-hover:flex transition-all hover:bg-[var(--danger)]"
+                title="Remove from dashboard">
+                <X className="w-3.5 h-3.5" />
+              </button>
+              {/* Match % badge — bottom right of image, not overlapping trust score */}
+              {p.matchScore >= 40 && (
+                <div className="absolute bottom-[120px] right-3 z-20">
+                  <span className={`px-2 py-0.5 text-[10px] font-black rounded-full text-white ${
+                    p.matchScore >= 90
+                      ? 'bg-[var(--success)]'
+                      : p.matchScore >= 70
+                        ? 'bg-[var(--primary)]'
+                        : 'bg-[var(--warning)]'
+                  }`}>
+                    {p.matchScore}% match
+                  </span>
+                </div>
+              )}
+            </div>
+          ))}
+          {/* Explore more CTA card */}
+          <Link href="/explore"
+            className="group h-full min-h-[360px] border-2 border-dashed border-[var(--border)]
+              rounded-[2rem] flex flex-col items-center justify-center p-8 text-center
+              space-y-4 hover:border-[var(--primary)] transition-all bg-[var(--surface-raised)]/50">
+            <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center
+              shadow-sm group-hover:scale-110 transition-transform">
+              <Plus className="w-8 h-8 text-[var(--primary)]" />
             </div>
             <div>
-              <h2 className="text-2xl font-black text-[var(--text-primary)]" style={{ fontFamily: 'var(--font-display)' }}>Perfect Matches</h2>
-              <p className="text-sm text-[var(--text-muted)] font-medium">90%+ match score based on your unique criteria</p>
+              <h3 className="font-black text-lg text-[var(--text-primary)]">Explore More</h3>
+              <p className="text-sm text-[var(--text-secondary)]">Browse all verified projects</p>
             </div>
-          </div>
-
-          {matches.perfect.length > 0 ? (
-            <div className="card-grid">
-              {matches.perfect.map((p, i) => (
-                <div key={p.id} className="relative group">
-                  <ProjectCard project={p} index={i} />
-                  <div className="absolute top-4 right-4 z-20 flex gap-2">
-                    <div className="px-2 py-1 bg-[var(--success)] text-white text-[10px] font-black rounded-lg shadow-lg">
-                      {p.matchScore}% MATCH
-                    </div>
-                  </div>
-                </div>
-              ))}
+            <div className="flex items-center gap-2 text-[var(--primary)] font-bold text-sm">
+              Go to Explorer <ArrowRight className="w-4 h-4" />
             </div>
-          ) : (
-            <div className="p-12 border-2 border-dashed border-[var(--border)] rounded-[2rem] text-center space-y-4">
-              <p className="text-[var(--text-muted)] font-medium">No 100% matches found. Try broadening your budget or location.</p>
-              <Link href="/onboarding" className="text-[var(--primary)] font-bold text-sm hover:underline">Adjust preferences →</Link>
-            </div>
-          )}
-        </section>
-
-        {/* Closest Matches */}
-        <section className="space-y-8">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-[var(--primary-light)] text-[var(--primary)] rounded-xl flex items-center justify-center">
-              <Sparkles className="w-5 h-5" />
-            </div>
-            <div>
-              <h2 className="text-2xl font-black text-[var(--text-primary)]" style={{ fontFamily: 'var(--font-display)' }}>Closest Alternatives</h2>
-              <p className="text-sm text-[var(--text-muted)] font-medium">Highly relevant projects that meet most of your needs</p>
-            </div>
-          </div>
-
-          <div className="card-grid">
-            {matches.closest.slice(0, 6).map((p, i) => (
-              <div key={p.id} className="relative group">
-                <ProjectCard project={p} index={i} />
-                <div className="absolute top-4 right-4 z-20">
-                  <div className="px-2 py-1 bg-amber-500 text-white text-[10px] font-black rounded-lg shadow-lg">
-                    {p.matchScore}% MATCH
-                  </div>
-                </div>
-              </div>
-            ))}
-            {/* CTA Card */}
-            <Link href="/explore" className="group h-full min-h-[400px] border-2 border-dashed border-[var(--border)] rounded-[2rem] flex flex-col items-center justify-center p-8 text-center space-y-4 hover:border-[var(--primary)] transition-all bg-[var(--surface-raised)]/50">
-              <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center shadow-sm group-hover:scale-110 transition-transform">
-                <Plus className="w-8 h-8 text-[var(--primary)]" />
-              </div>
-              <div>
-                <h3 className="font-black text-lg text-[var(--text-primary)]">Explore More</h3>
-                <p className="text-sm text-[var(--text-secondary)]">View all 50+ verified projects in Pune</p>
-              </div>
-              <div className="flex items-center gap-2 text-[var(--primary)] font-bold text-sm">
-                Go to Explorer <ArrowRight className="w-4 h-4" />
-              </div>
-            </Link>
-          </div>
-        </section>
+          </Link>
+        </div>
 
         {/* Shortlist help */}
         <div className="p-8 bg-black text-white rounded-[2rem] flex flex-col md:flex-row items-center justify-between gap-8">
