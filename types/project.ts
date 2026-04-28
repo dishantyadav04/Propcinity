@@ -17,6 +17,7 @@ export interface Project {
   id: string
   slug: string
   name: string
+  builder_id?: string
   builderName: string
   builderScore: number
   builderLogo?: string

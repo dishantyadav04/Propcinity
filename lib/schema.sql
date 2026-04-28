@@ -167,3 +167,85 @@ create policy "Users manage own rejected"
 
 create policy "Anyone can submit lead"
   on leads for insert with check (true);
+
+-- Builders table (create once, reuse across projects)
+create table if not exists builders (
+  id uuid primary key default gen_random_uuid(),
+
+  -- Identity
+  name text not null,
+  logo text,
+  website text,
+  established_year integer,
+  headquartered text,
+  description text,
+
+  -- Static data (admin enters once)
+  rera_registered boolean default false,
+  rera_id text,
+  total_projects_delivered integer default 0,
+  total_units_delivered integer default 0,
+  years_in_business integer default 0,
+
+  -- Dynamic data (updated per-project, affects score)
+  avg_delay_months numeric default 0,       -- avg across all projects
+  on_time_delivery_percent numeric default 100,
+  legal_cases integer default 0,
+  customer_complaints integer default 0,
+  refund_disputes integer default 0,
+
+  -- Computed score (0-100, auto-calculated)
+  builder_score integer default 50,
+  score_breakdown jsonb,                     -- { rera:25, track:30, delay:20, legal:15, customer:10 }
+
+  -- Meta
+  is_active boolean default true,
+  created_at timestamptz default now(),
+  updated_at timestamptz default now()
+);
+
+-- Builder project updates (tracks per-project delivery data)
+create table if not exists builder_project_updates (
+  id uuid primary key default gen_random_uuid(),
+  builder_id uuid references builders on delete cascade,
+  project_id uuid references projects on delete cascade,
+  project_name text,
+
+  -- Per-project delivery record
+  promised_possession date,
+  actual_possession date,          -- null if ongoing
+  delay_months numeric default 0,
+  is_delivered boolean default false,
+  quality_rating integer,          -- 1-5, can be entered by admin
+  complaints_count integer default 0,
+  notes text,
+
+  updated_at timestamptz default now()
+);
+
+-- Users table (reads from auth.users, admin view)
+create table if not exists user_profiles (
+  id uuid primary key references auth.users on delete cascade,
+  display_name text,
+  phone text,
+  email text,
+  city text,
+  onboarding_complete boolean default false,
+  created_at timestamptz default now(),
+  last_active timestamptz
+);
+
+-- RLS
+alter table builders enable row level security;
+alter table builder_project_updates enable row level security;
+alter table user_profiles enable row level security;
+
+create policy "Service role full access builders"
+  on builders for all using (true);
+create policy "Service role full access bpu"
+  on builder_project_updates for all using (true);
+create policy "Service role full access users"
+  on user_profiles for all using (true);
+
+-- Add builder_id FK to projects table
+alter table projects add column if not exists builder_id uuid references builders;

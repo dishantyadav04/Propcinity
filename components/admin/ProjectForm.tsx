@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Project, UnitConfig } from "@/types/project";
 import ImageUpload from "./ImageUpload";
 import UnitConfigForm from "./UnitConfigForm";
@@ -16,6 +16,9 @@ interface ProjectFormProps {
 export default function ProjectForm({ initialData }: ProjectFormProps) {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
+  const [builders, setBuilders] = useState<any[]>([]);
+  const [selectedBuilderId, setSelectedBuilderId] = useState(initialData?.builder_id || '');
+  
   const [project, setProject] = useState<Partial<Project>>(initialData || {
     name: '',
     slug: '',
@@ -30,12 +33,19 @@ export default function ProjectForm({ initialData }: ProjectFormProps) {
     amenities: [],
     unitConfigs: [],
     lat: 18.5204,
-    lng: 13.8567,
+    lng: 73.8567,
     reraId: '',
     possessionDate: '',
     launchDate: '',
     isPublished: true
   });
+
+  useEffect(() => {
+    fetch('/api/admin/builders', { credentials: 'include' })
+      .then(r => r.json())
+      .then(d => setBuilders(d.builders || []))
+      .catch(console.error);
+  }, []);
 
   const [newPro, setNewPro] = useState("");
   const [newCon, setNewCon] = useState("");
@@ -46,10 +56,11 @@ export default function ProjectForm({ initialData }: ProjectFormProps) {
     setIsLoading(true);
 
     try {
+      const body = { ...project, builder_id: selectedBuilderId || null };
       const response = await fetch(initialData ? `/api/admin/projects/${initialData.id}` : '/api/admin/projects', {
         method: initialData ? 'PATCH' : 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(project)
+        body: JSON.stringify(body)
       });
 
       if (!response.ok) throw new Error("Failed to save project");
@@ -81,17 +92,50 @@ export default function ProjectForm({ initialData }: ProjectFormProps) {
               required
             />
           </div>
+          
           <div className="space-y-2">
-            <label className="text-[10px] text-[var(--text-muted)] uppercase font-bold">Builder Name</label>
-            <input 
-              type="text" 
-              value={project.builderName}
-              onChange={(e) => setProject({...project, builderName: e.target.value})}
-              className="w-full bg-[var(--surface-raised)] border border-[var(--border)] rounded-xl px-4 py-2.5 text-sm"
-              placeholder="e.g. Godrej Properties"
-              required
-            />
+            <label className="text-sm font-bold text-[var(--text-primary)]">
+              Builder <span className="text-red-500">*</span>
+            </label>
+            <select value={selectedBuilderId}
+              onChange={e => {
+                setSelectedBuilderId(e.target.value);
+                const builder = builders.find(b => b.id === e.target.value);
+                if (builder) {
+                  setProject(prev => ({ ...prev, builderName: builder.name }));
+                }
+              }}
+              className="w-full px-3 py-2.5 bg-[var(--surface-raised)] border border-[var(--border)]
+                rounded-[var(--radius-xs)] text-sm focus:outline-none focus:border-[var(--primary)]">
+              <option value="">Select a builder...</option>
+              {builders.map(b => (
+                <option key={b.id} value={b.id}>
+                  {b.name} (Score: {b.builder_score}/100)
+                </option>
+              ))}
+            </select>
+            {!builders.length && (
+              <p className="text-xs text-[var(--warning)]">
+                No builders found. <a href="/admin/builders/new" className="underline text-[var(--primary)]">Create a builder first →</a>
+              </p>
+            )}
+            {selectedBuilderId && (() => {
+              const b = builders.find(x => x.id === selectedBuilderId);
+              if (!b) return null;
+              return (
+                <div className="p-3 bg-[var(--primary-light)] border border-[var(--primary)]/20 rounded-[var(--radius-xs)]">
+                  <p className="text-xs font-bold text-[var(--primary)]">{b.name}</p>
+                  <p className="text-[10px] text-[var(--text-muted)] mt-0.5">
+                    Builder Score: {b.builder_score}/100 · RERA: {b.rera_registered ? 'Yes' : 'No'}
+                  </p>
+                  <p className="text-[10px] text-[var(--text-muted)]">
+                    This builder's score will contribute to the project trust score automatically.
+                  </p>
+                </div>
+              );
+            })()}
           </div>
+
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <label className="text-[10px] text-[var(--text-muted)] uppercase font-bold">Location</label>

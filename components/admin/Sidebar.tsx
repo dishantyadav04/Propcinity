@@ -2,67 +2,83 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, Building, Users, Settings, LogOut, ExternalLink, Shield } from "lucide-react";
+import {
+  LayoutDashboard, Building2, HardHat,
+  Users, MessageSquare, Settings, LogOut, ExternalLink
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const ADMIN_NAV = [
-  { label: 'Overview', href: '/admin', icon: LayoutDashboard },
-  { label: 'Projects', href: '/admin/projects', icon: Building },
-  { label: 'Leads', href: '/admin/leads', icon: Users },
-  { label: 'Score Calculator', href: '/admin/score-calculator', icon: Shield },
-  { label: 'Settings', href: '/admin/settings', icon: Settings },
+  { label: 'Overview',  href: '/admin',              icon: LayoutDashboard },
+  { label: 'Projects',  href: '/admin/projects',      icon: Building2 },
+  { label: 'Builders',  href: '/admin/builders',      icon: HardHat },
+  { label: 'Leads',     href: '/admin/leads',         icon: MessageSquare },
+  { label: 'Users',     href: '/admin/users',         icon: Users },
+  { label: 'Settings',  href: '/admin/settings',      icon: Settings },
 ];
 
 export default function Sidebar() {
   const pathname = usePathname();
 
-  return (
-    <div className="w-64 h-screen sticky top-0 bg-[var(--surface)] border-r border-[var(--border)] flex flex-col p-6 space-y-8 hidden md:flex">
-      <Link href="/admin" className="flex items-center gap-3">
-        <div className="w-10 h-10 bg-[var(--primary)] rounded-xl flex items-center justify-center text-white font-black text-xl">P</div>
-        <div className="flex flex-col">
-          <span className="text-lg font-black text-[var(--text-primary)] tracking-tighter" style={{ fontFamily: 'var(--font-display)' }}>Prop<span className="text-[var(--primary)]">cinity</span></span>
-          <span className="text-[10px] font-bold text-[var(--primary)] uppercase tracking-[0.2em]">Admin Console</span>
-        </div>
-      </Link>
+  const isActive = (href: string) =>
+    href === '/admin' ? pathname === href : pathname.startsWith(href);
 
-      <nav className="flex-1 space-y-1">
-        {ADMIN_NAV.map((item) => {
-          const isActive = pathname === item.href;
+  return (
+    <aside className="w-60 h-screen sticky top-0 bg-[#0E0E14] flex flex-col hidden md:flex">
+      {/* Logo */}
+      <div className="px-6 py-6 border-b border-white/5">
+        <Link href="/admin" className="flex items-center gap-3">
+          <div className="w-8 h-8 bg-[var(--primary)] rounded-lg flex items-center
+            justify-center text-white font-black text-sm flex-shrink-0">P</div>
+          <div>
+            <span className="text-sm font-black text-white tracking-tight"
+              style={{ fontFamily: 'var(--font-display)' }}>
+              Prop<span className="text-[var(--primary)]">cinity</span>
+            </span>
+            <p className="text-[9px] text-white/30 font-bold uppercase tracking-widest">
+              Admin
+            </p>
+          </div>
+        </Link>
+      </div>
+
+      {/* Nav */}
+      <nav className="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto">
+        {ADMIN_NAV.map(item => {
+          const active = isActive(item.href);
           return (
-            <Link 
-              key={item.href} 
-              href={item.href}
+            <Link key={item.href} href={item.href}
               className={cn(
-                "flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition-all",
-                isActive 
-                  ? "bg-[var(--primary)]/10 text-[var(--primary)]" 
-                  : "text-[var(--text-secondary)] hover:bg-[var(--surface-raised)]"
-              )}
-            >
-              <item.icon className="w-5 h-5" />
-              <span>{item.label}</span>
+                "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-semibold transition-all",
+                active
+                  ? "bg-[var(--primary)]/15 text-[var(--primary)]"
+                  : "text-white/40 hover:text-white/80 hover:bg-white/5"
+              )}>
+              <item.icon className="w-4 h-4 flex-shrink-0" />
+              {item.label}
+              {active && <div className="ml-auto w-1.5 h-1.5 rounded-full bg-[var(--primary)]" />}
             </Link>
           );
         })}
       </nav>
 
-      <div className="pt-6 border-t border-[var(--border)] space-y-1">
-        <Link 
-          href="/dashboard"
-          target="_blank"
-          className="flex items-center justify-between px-4 py-3 text-sm font-bold text-[var(--text-muted)] hover:text-[var(--primary)] transition-all"
-        >
-          <div className="flex items-center gap-3">
-            <ExternalLink className="w-4 h-4" />
-            <span>Visit Site</span>
-          </div>
+      {/* Footer */}
+      <div className="px-3 py-4 border-t border-white/5 space-y-0.5">
+        <Link href="/" target="_blank"
+          className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-semibold
+            text-white/30 hover:text-white/60 hover:bg-white/5 transition-all">
+          <ExternalLink className="w-4 h-4" /> View Site
         </Link>
-        <button className="w-full flex items-center gap-3 px-4 py-3 text-sm font-bold text-[var(--danger)] hover:bg-[var(--danger)]/5 rounded-xl transition-all">
-          <LogOut className="w-5 h-5" />
-          <span>Sign Out</span>
+        <button
+          onClick={() => {
+            document.cookie = 'admin_session=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/';
+            window.location.href = '/admin';
+          }}
+          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-semibold
+            text-red-400/60 hover:text-red-400 hover:bg-red-400/5 transition-all">
+          <LogOut className="w-4 h-4" /> Sign Out
         </button>
       </div>
-    </div>
+    </aside>
   );
 }
