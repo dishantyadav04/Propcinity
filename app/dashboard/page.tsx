@@ -10,6 +10,7 @@ import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import Skeleton from "@/components/ui/Skeleton";
 import { toast } from "sonner";
+import { prismMatch, PRISMResult } from '@/lib/prism'
 
 export default function DashboardPage() {
   const [projects, setProjects] = useState<Project[]>([]);
@@ -40,66 +41,33 @@ export default function DashboardPage() {
     return () => window.removeEventListener('curatedUpdated', handler);
   }, []);
 
-  // Matching Engine
-  const matches = useMemo(() => {
-    if (!userIntent || projects.length === 0) return { perfect: [], closest: [] };
+  const prismResults = useMemo((): PRISMResult[] => {
+    if (!userIntent || projects.length === 0) return []
 
-    const scored = projects.map(p => {
-      let score = 0;
-      const reasons: string[] = [];
+    const buyer = {
+      city: (userIntent as any).city || userIntent.location || 'Pune',
+      subLocations: (userIntent as any).subLocations || [],
+      purpose: userIntent.purpose,
+      propertyType: userIntent.propertyType || [],
+      bhkType: (userIntent as any).bhkType || [],
+      budget: userIntent.budget,
+      timeline: userIntent.timeline,
+      preferences: (userIntent as any).preferences || [],
+      rejectedIds: [],
+    }
 
-      // 1. Location (Weight: 40)
-      const locMatch = userIntent.subLocations?.some((sl: string) => {
-        const pLoc = (p.location || '').toLowerCase();
-        const slLow = sl.toLowerCase();
-        return pLoc.includes(slLow) || slLow.includes(pLoc);
-      });
+    return prismMatch(projects, buyer)
+  }, [projects, userIntent])
 
-      if (locMatch) {
-        score += 40;
-        reasons.push('Matches your preferred locality');
-      }
-
-      // 2. Budget (Weight: 30)
-      const pPrice = p.unitConfigs?.length ? Math.min(...p.unitConfigs.map(u => u.priceMin)) : 0;
-      const uMin = userIntent.budget.min;
-      const uMax = userIntent.budget.max;
-      const uOpen = userIntent.budget.isOpenMax;
-
-      if (pPrice >= uMin && (uOpen || pPrice <= uMax)) {
-        score += 30;
-        reasons.push('Within your budget range');
-      } else if (pPrice >= uMin * 0.8 && (uOpen || pPrice <= uMax * 1.2)) {
-        score += 15;
-        reasons.push('Slightly outside preferred budget');
-      }
-
-      // 3. BHK/Config (Weight: 20)
-      const uBhk = userIntent.bhkType || [];
-      const pBhks = (p.unitConfigs || []).map(u => u.type);
-      const hasBhkMatch = uBhk.some(b => pBhks.some(pb => pb.includes(b.split('BHK')[0])));
-      if (hasBhkMatch) {
-        score += 20;
-        reasons.push('Matches required BHK configuration');
-      }
-
-      // 4. Purpose (Weight: 10)
-      if (userIntent.purpose === 'investment' && p.trustScore > 85) {
-        score += 10;
-        reasons.push('High trust score (Great for Investment)');
-      } else if (userIntent.purpose === 'self-use' && p.amenities.length > 8) {
-        score += 10;
-        reasons.push('Amenity rich (Great for Family)');
-      }
-
-      return { ...p, matchScore: score, matchReasons: reasons };
-    });
-
-    const perfect = scored.filter(p => p.matchScore >= 90).sort((a, b) => b.matchScore - a.matchScore);
-    const closest = scored.filter(p => p.matchScore >= 40 && p.matchScore < 90).sort((a, b) => b.matchScore - a.matchScore);
-
-    return { perfect, closest };
-  }, [projects, userIntent]);
+  const displayResults = useMemo(() => {
+    if (curatedIds.length > 0) {
+      // User has manually curated — show those first
+      const curated = prismResults.filter(r => curatedIds.includes(r.project.id))
+      const others = prismResults.filter(r => !curatedIds.includes(r.project.id))
+      return [...curated, ...others].slice(0, 12)
+    }
+    return prismResults.slice(0, 12)
+  }, [prismResults, curatedIds])
 
   const removeFromCurated = (id: string) => {
     const next = curatedIds.filter(cid => cid !== id);
@@ -151,49 +119,68 @@ export default function DashboardPage() {
       </div>
 
       <SectionContainer wide className="py-12 space-y-16">
-        <div className="card-grid">
-          {[...matches.perfect, ...matches.closest.slice(0, Math.max(0, 10 - matches.perfect.length))].map((p, i) => (
-            <div key={p.id} className="relative group">
-              <ProjectCard project={p} index={i} />
-              {/* Remove button — shown on hover */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+          {displayResults.map((result, i) => (
+            <div key={result.project.id} className="relative group">
+              {/* Card wrapper — fixed aspect enforced by ProjectCard itself */}
+              <ProjectCard project={result.project} index={i} />
+
+              {/* Remove button — perfectly round, hover popup style */}
               <button
-                onClick={() => removeFromCurated(p.id)}
-                className="absolute top-2 left-2 z-30 w-7 h-7 bg-black/60 backdrop-blur-sm
-                  text-white rounded-full items-center justify-center
-                  hidden group-hover:flex transition-all hover:bg-[var(--danger)]"
-                title="Remove from dashboard">
+                onClick={() => removeFromCurated(result.project.id)}
+                title="Remove from list"
+                className="
+                  absolute top-2.5 left-2.5 z-30
+                  w-7 h-7 rounded-full
+                  bg-black/50 backdrop-blur-sm text-white
+                  flex items-center justify-center
+                  opacity-0 group-hover:opacity-100
+                  transition-all duration-200
+                  hover:bg-[var(--danger)] hover:scale-110 hover:shadow-lg
+                  focus:opacity-100 focus:ring-2 focus:ring-white
+                "
+              >
                 <X className="w-3.5 h-3.5" />
               </button>
-              {/* Match % badge — bottom right of image, not overlapping trust score */}
-              {p.matchScore >= 40 && (
-                <div className="absolute bottom-[120px] right-3 z-20">
-                  <span className={`px-2 py-0.5 text-[10px] font-black rounded-full text-white ${
-                    p.matchScore >= 90
+
+              {/* PRISM match badge — top right, BELOW trust score */}
+              {result.totalScore >= 30 && (
+                <div className="absolute top-14 right-3 z-20">
+                  <div className={`
+                    flex items-center gap-1 px-2 py-0.5
+                    rounded-full text-[10px] font-black text-white
+                    shadow-sm
+                    ${result.tier === 'precision'
                       ? 'bg-[var(--success)]'
-                      : p.matchScore >= 70
+                      : result.tier === 'value'
                         ? 'bg-[var(--primary)]'
                         : 'bg-[var(--warning)]'
-                  }`}>
-                    {p.matchScore}% match
-                  </span>
+                    }
+                  `}>
+                    {result.totalScore}%
+                  </div>
                 </div>
               )}
             </div>
           ))}
-          {/* Explore more CTA card */}
+
+          {/* Explore more card — same size as other cards */}
           <Link href="/explore"
-            className="group h-full min-h-[360px] border-2 border-dashed border-[var(--border)]
-              rounded-[2rem] flex flex-col items-center justify-center p-8 text-center
-              space-y-4 hover:border-[var(--primary)] transition-all bg-[var(--surface-raised)]/50">
-            <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center
+            className="
+              group min-h-[360px] border-2 border-dashed border-[var(--border)]
+              rounded-[var(--radius)] flex flex-col items-center justify-center p-8
+              text-center space-y-4 hover:border-[var(--primary)]
+              transition-all bg-[var(--surface-raised)]/30
+            ">
+            <div className="w-14 h-14 bg-white rounded-2xl flex items-center justify-center
               shadow-sm group-hover:scale-110 transition-transform">
-              <Plus className="w-8 h-8 text-[var(--primary)]" />
+              <Plus className="w-7 h-7 text-[var(--primary)]" />
             </div>
             <div>
-              <h3 className="font-black text-lg text-[var(--text-primary)]">Explore More</h3>
-              <p className="text-sm text-[var(--text-secondary)]">Browse all verified projects</p>
+              <h3 className="font-black text-base text-[var(--text-primary)]">Explore More</h3>
+              <p className="text-sm text-[var(--text-secondary)] mt-1">Browse all verified projects</p>
             </div>
-            <div className="flex items-center gap-2 text-[var(--primary)] font-bold text-sm">
+            <div className="flex items-center gap-1.5 text-[var(--primary)] font-bold text-sm">
               Go to Explorer <ArrowRight className="w-4 h-4" />
             </div>
           </Link>

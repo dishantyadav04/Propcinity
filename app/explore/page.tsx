@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { Project } from "@/types/project";
 import { formatINR } from "@/lib/finance-calculations";
 import Skeleton from "@/components/ui/Skeleton";
@@ -8,7 +8,7 @@ import ProjectCard from "@/components/property/ProjectCard";
 import {
   Search, SlidersHorizontal, X, LayoutGrid, List,
   Building2, MapPin, LayoutDashboard, ChevronDown, TrendingUp,
-  ShieldCheck, ArrowUpDown
+  ShieldCheck, ArrowUpDown, Check
 } from "lucide-react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
@@ -33,6 +33,17 @@ export default function ExplorePage() {
   const [compareIds, setCompareIds] = useState<string[]>([]);
   const [typeFilter, setTypeFilter] = useState<string>('all');
   const [budgetFilter, setBudgetFilter] = useState<string>('all');
+  const [sortOpen, setSortOpen] = useState(false)
+  const sortRef = useRef<HTMLDivElement>(null)
+
+  const SORT_OPTIONS: { value: SortOption; label: string; icon: string }[] = [
+    { value: 'trust', label: 'Trust Score', icon: '⭐' },
+    { value: 'price_asc', label: 'Price: Low → High', icon: '↑' },
+    { value: 'price_desc', label: 'Price: High → Low', icon: '↓' },
+    { value: 'newest', label: 'Newest First', icon: '🆕' },
+  ]
+
+  const currentSort = SORT_OPTIONS.find(o => o.value === sortBy)!
 
   useEffect(() => {
     setCuratedIds(JSON.parse(localStorage.getItem('curatedIds') || '[]'));
@@ -47,6 +58,16 @@ export default function ExplorePage() {
     window.addEventListener('compareUpdated', onCompare);
     return () => window.removeEventListener('compareUpdated', onCompare);
   }, []);
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (sortRef.current && !sortRef.current.contains(e.target as Node)) {
+        setSortOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [])
 
   useEffect(() => {
     fetch('/api/projects')
@@ -187,21 +208,69 @@ export default function ExplorePage() {
             </button>
 
             {/* Sort */}
-            <div className="relative flex-shrink-0">
-              <select
-                value={sortBy}
-                onChange={e => setSortBy(e.target.value as SortOption)}
-                className="appearance-none pl-8 pr-8 py-2.5 bg-[var(--surface-raised)] border
-                  border-[var(--border)] rounded-[var(--radius-xs)] text-sm font-semibold
-                  text-[var(--text-secondary)] focus:outline-none focus:border-[var(--primary)] cursor-pointer"
-              >
-                <option value="trust">Trust Score</option>
-                <option value="price_asc">Price ↑</option>
-                <option value="price_desc">Price ↓</option>
-                <option value="newest">Newest</option>
-              </select>
-              <ArrowUpDown className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[var(--text-muted)] pointer-events-none" />
-              <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[var(--text-muted)] pointer-events-none" />
+            <div ref={sortRef} className="relative flex-shrink-0">
+              {/* Trigger button */}
+              <button
+                onClick={() => setSortOpen(!sortOpen)}
+                className={`
+                  flex items-center gap-2 pl-3 pr-2.5 py-2.5
+                  bg-[var(--surface-raised)] border rounded-[var(--radius-xs)]
+                  text-sm font-semibold text-[var(--text-secondary)]
+                  hover:border-[var(--primary)] hover:text-[var(--text-primary)]
+                  transition-all whitespace-nowrap
+                  ${sortOpen ? 'border-[var(--primary)] text-[var(--text-primary)]' : 'border-[var(--border)]'}
+                `}>
+                <ArrowUpDown className="w-3.5 h-3.5 text-[var(--text-muted)]" />
+                <span className="hidden sm:inline">{currentSort.label}</span>
+                <span className="sm:hidden">{currentSort.icon}</span>
+                <ChevronDown className={`w-3.5 h-3.5 transition-transform ${sortOpen ? 'rotate-180' : ''}`} />
+              </button>
+
+              {/* Dropdown panel */}
+              <AnimatePresence>
+                {sortOpen && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -8, scale: 0.96 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: -8, scale: 0.96 }}
+                    transition={{ duration: 0.12 }}
+                    className="
+                      absolute right-0 top-[calc(100%+6px)] z-50
+                      w-52 bg-white border border-[var(--border)]
+                      rounded-[var(--radius)] shadow-[var(--shadow-lg)]
+                      overflow-hidden
+                    "
+                  >
+                    <div className="px-3 py-2 border-b border-[var(--border)]">
+                      <p className="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-wider">
+                        Sort by
+                      </p>
+                    </div>
+                    <div className="p-1.5 space-y-0.5">
+                      {SORT_OPTIONS.map(opt => (
+                        <button
+                          key={opt.value}
+                          onClick={() => { setSortBy(opt.value); setSortOpen(false); }}
+                          className={`
+                            w-full flex items-center gap-3 px-3 py-2.5
+                            rounded-[var(--radius-xs)] text-sm font-semibold
+                            transition-all text-left
+                            ${sortBy === opt.value
+                              ? 'bg-[var(--primary-light)] text-[var(--primary)]'
+                              : 'text-[var(--text-secondary)] hover:bg-[var(--surface-raised)] hover:text-[var(--text-primary)]'
+                            }
+                          `}>
+                          <span className="text-base w-5 text-center">{opt.icon}</span>
+                          <span className="flex-1">{opt.label}</span>
+                          {sortBy === opt.value && (
+                            <Check className="w-3.5 h-3.5 text-[var(--primary)]" />
+                          )}
+                        </button>
+                      ))}
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
 
             {/* View mode — desktop only */}

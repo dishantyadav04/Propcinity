@@ -146,42 +146,176 @@ export default function UserIntentForm() {
   };
 
   const matchingCount = useMemo(() => {
-    if (projects.length === 0) return 0;
-    
-    return projects.filter(p => {
-      if (p.city?.toLowerCase() !== form.city.toLowerCase()) return false;
-      
-      const subMatch = form.subLocations.length === 0 ||
-        form.subLocations.some(sl => {
-          const pLoc = (p.location || '').toLowerCase();
+    if (projects.length === 0) return null; // null = still loading
+
+    let filtered = [...projects];
+
+    // Step 2+: filter by city
+    filtered = filtered.filter(p =>
+      (p.city || '').toLowerCase() === form.city.toLowerCase()
+    );
+
+    // Step 2 sub-locations: filter if any selected
+    if (form.subLocations.length > 0) {
+      filtered = filtered.filter(p => {
+        const pLoc = (p.location || '').toLowerCase();
+        return form.subLocations.some(sl => {
           const slLow = sl.toLowerCase();
           return pLoc.includes(slLow) || slLow.includes(pLoc);
         });
+      });
+    }
 
-      if (!subMatch) return false;
-
-      if (form.propertyType.length > 0) {
-        const pType = p.type?.toLowerCase();
-        if (!form.propertyType.some(t => t.toLowerCase() === pType)) return false;
-      }
-
-      if (form.bhkType.length > 0) {
-        const pBhks = (p.unitConfigs || []).map((u: any) => u.type);
-        const hasBhkMatch = form.bhkType.some((b: string) => 
-          pBhks.some((pb: string) => pb.includes(b.split('BHK')[0]))
+    // Step 4+: property type filter
+    if (step >= 4 && form.propertyType.length > 0) {
+      filtered = filtered.filter(p => {
+        const configs = (p.unitConfigs || []).map((u: any) =>
+          (u.type || '').toLowerCase()
         );
-        if (!hasBhkMatch) return false;
-      }
+        return form.propertyType.some(selected => {
+          const sel = selected.toLowerCase();
+          if (sel === 'apartment') {
+            return configs.some((c: string) =>
+              c.includes('bhk') || c.includes('studio') ||
+              c.includes('rk') || c.includes('duplex') ||
+              c.includes('penthouse')
+            );
+          }
+          if (sel === 'villa') {
+            return configs.some((c: string) =>
+              c.includes('villa') || c.includes('row house') ||
+              c.includes('bungalow')
+            );
+          }
+          if (sel === 'plot') {
+            return configs.some((c: string) => c.includes('plot'));
+          }
+          if (sel === 'penthouse') {
+            return configs.some((c: string) =>
+              c.includes('penthouse') || c.includes('4.5') || c.includes('5bhk')
+            );
+          }
+          return false;
+        });
+      });
+    }
 
-      const pPrice = p.unitConfigs?.length ? Math.min(...p.unitConfigs.map((u: any) => u.priceMin)) : 0;
-      if (pPrice < form.budgetMin) return false;
-      if (!form.isOpenMax && pPrice > form.budgetMax) return false;
+    // Step 5+: BHK type filter
+    if (step >= 5 && form.bhkType.length > 0) {
+      filtered = filtered.filter(p => {
+        const configs = (p.unitConfigs || []).map((u: any) =>
+          (u.type || '').toLowerCase()
+        );
+        return form.bhkType.some(b => {
+          const bLow = b.toLowerCase();
+          const bhkNum = bLow.replace('bhk', '').trim();
+          return configs.some((c: string) =>
+            c.includes(bLow) || (bhkNum && c.startsWith(bhkNum))
+          );
+        });
+      });
+    }
 
-      return true;
+    // Step 6+: budget filter
+    if (step >= 6 && (form.budgetMin > 0 || form.budgetMax > 0)) {
+      filtered = filtered.filter(p => {
+        const prices = (p.unitConfigs || []).map((u: any) => u.priceMin).filter(Boolean);
+        if (prices.length === 0) return true;
+        const minPrice = Math.min(...prices);
+        const maxPrice = Math.max(...(p.unitConfigs || []).map((u: any) => u.priceMax || u.priceMin).filter(Boolean));
+        const userMin = form.budgetMin || 0;
+        const userMax = form.isOpenMax ? Infinity : (form.budgetMax || Infinity);
+        return minPrice <= userMax && maxPrice >= userMin;
+      });
+    }
+
+    // Step 7+: timeline filter (soft)
+    if (step >= 7 && form.timeline) {
+      const now = new Date();
+      const timelineFiltered = filtered.filter(p => {
+        if (!p.possessionDate) return true;
+        const months = Math.round(
+          (new Date(p.possessionDate).getTime() - now.getTime()) /
+          (1000 * 60 * 60 * 24 * 30)
+        );
+        if (form.timeline === 'under_1_year') return months <= 12;
+        if (form.timeline === '1_to_2_years') return months <= 24;
+        if (form.timeline === '3_to_5_years') return months <= 60;
+        if (form.timeline === '5_plus') return months > 36;
+        return true;
+      });
+      if (timelineFiltered.length > 0) filtered = timelineFiltered;
+    }
+
+    return filtered.length;
+  }, [projects, form, step]);
+
+  const countForType = (typeId: string) => {
+    if (projects.length === 0) return null;
+    let base = projects.filter(p =>
+      (p.city || '').toLowerCase() === form.city.toLowerCase()
+    );
+    if (form.subLocations.length > 0) {
+      base = base.filter(p => {
+        const pLoc = (p.location || '').toLowerCase();
+        return form.subLocations.some(sl => {
+          const slLow = sl.toLowerCase();
+          return pLoc.includes(slLow) || slLow.includes(pLoc);
+        });
+      });
+    }
+    return base.filter(p => {
+      const configs = (p.unitConfigs || []).map((u: any) =>
+        (u.type || '').toLowerCase()
+      );
+      if (typeId === 'apartment') return configs.some((c: string) =>
+        c.includes('bhk') || c.includes('studio') || c.includes('rk') || c.includes('duplex')
+      );
+      if (typeId === 'villa') return configs.some((c: string) =>
+        c.includes('villa') || c.includes('row house')
+      );
+      if (typeId === 'plot') return configs.some((c: string) => c.includes('plot'));
+      if (typeId === 'penthouse') return configs.some((c: string) =>
+        c.includes('penthouse') || c.includes('4.5') || c.includes('5bhk')
+      );
+      return false;
     }).length;
-  }, [projects, form]);
+  };
 
-  const showNoAvailabilityWarning = step > 2 && matchingCount === 0;
+  const countForBHK = (bhk: string) => {
+    if (projects.length === 0) return null;
+    let base = projects.filter(p =>
+      (p.city || '').toLowerCase() === form.city.toLowerCase()
+    );
+    if (form.subLocations.length > 0) {
+      base = base.filter(p => {
+        const pLoc = (p.location || '').toLowerCase();
+        return form.subLocations.some(sl => {
+          const slLow = sl.toLowerCase();
+          return pLoc.includes(slLow) || slLow.includes(pLoc);
+        });
+      });
+    }
+    if (form.propertyType.length > 0) {
+      base = base.filter(p => {
+        const configs = (p.unitConfigs || []).map((u: any) => (u.type || '').toLowerCase());
+        return form.propertyType.some(sel => {
+          if (sel === 'apartment') return configs.some((c: string) => c.includes('bhk') || c.includes('studio') || c.includes('rk'));
+          if (sel === 'villa') return configs.some((c: string) => c.includes('villa') || c.includes('row house'));
+          if (sel === 'plot') return configs.some((c: string) => c.includes('plot'));
+          return false;
+        });
+      });
+    }
+    const bLow = bhk.toLowerCase();
+    const bhkNum = bLow.replace('bhk', '').trim();
+    return base.filter(p =>
+      (p.unitConfigs || []).some((u: any) => {
+        const t = (u.type || '').toLowerCase();
+        return t.includes(bLow) || (bhkNum && t.startsWith(bhkNum));
+      })
+    ).length;
+  };
 
   return (
     <div className="min-h-screen bg-[var(--background)] flex flex-col">
@@ -202,17 +336,28 @@ export default function UserIntentForm() {
               className="h-full bg-gradient-to-r from-[var(--primary)] to-orange-400 rounded-full"
             />
           </div>
-          {step > 2 && (
+          {step >= 2 && (
             <div className="flex justify-center mt-2">
-              <div className={cn(
-                "px-3 py-1 rounded-full text-[10px] font-black tracking-widest transition-all",
-                matchingCount > 0 ? "bg-[var(--success-light)] text-[var(--success)]" : "bg-[var(--danger-light)] text-[var(--danger)]"
-              )}>
-                {matchingCount > 0 
-                  ? `${matchingCount} VERIFIED PROJECTS MATCHING` 
-                  : "NO DIRECT MATCHES FOUND"
-                }
-              </div>
+              <motion.div
+                key={matchingCount}
+                initial={{ scale: 0.9, opacity: 0.6 }}
+                animate={{ scale: 1, opacity: 1 }}
+                className={cn(
+                  "flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black tracking-widest transition-all",
+                  matchingCount === null
+                    ? "bg-[var(--surface-raised)] text-[var(--text-muted)]"
+                    : (matchingCount || 0) > 0
+                      ? "bg-[var(--success-light)] text-[var(--success)]"
+                      : "bg-[var(--warning-light)] text-[var(--warning)]"
+                )}>
+                {matchingCount === null ? (
+                  "LOADING..."
+                ) : (matchingCount || 0) > 0 ? (
+                  `${matchingCount} MATCHING PROPERT${matchingCount === 1 ? 'Y' : 'IES'}`
+                ) : (
+                  "EXPANDING SEARCH..."
+                )}
+              </motion.div>
             </div>
           )}
         </div>
@@ -388,6 +533,12 @@ export default function UserIntentForm() {
                   </h2>
                   <p className="text-sm text-[var(--text-secondary)] mt-1">We'll tailor recommendations to your goal.</p>
                 </div>
+                {matchingCount !== null && (
+                  <p className="text-sm text-[var(--text-muted)]">
+                    {matchingCount} projects available in your selected area.
+                    Tell us what you're looking for.
+                  </p>
+                )}
                 <div className="space-y-3">
                   {[
                     { id: 'self-use', label: 'Home for my family', sub: 'Focus on amenities & locality', emoji: '🏠' },
@@ -434,15 +585,23 @@ export default function UserIntentForm() {
                     <button key={opt.id}
                       onClick={() => toggleArr('propertyType', opt.id)}
                       className={cn(
-                        "flex flex-col gap-2 p-4 rounded-[var(--radius)] border text-left transition-all",
+                        "flex flex-col gap-2 p-4 rounded-[var(--radius)] border text-left transition-all relative",
                         form.propertyType.includes(opt.id)
                           ? "bg-[var(--primary-light)] border-[var(--primary)]"
                           : "bg-[var(--surface-raised)] border-[var(--border)]"
                       )}>
                       <span className="text-2xl">{opt.emoji}</span>
                       <p className="font-bold text-sm text-[var(--text-primary)]">{opt.label}</p>
+                      {(() => {
+                        const c = countForType(opt.id);
+                        return c !== null && (
+                          <p className={`text-[10px] font-bold ${c > 0 ? 'text-[var(--success)]' : 'text-[var(--text-muted)]'}`}>
+                            {c > 0 ? `${c} projects` : 'None found'}
+                          </p>
+                        );
+                      })()}
                       {form.propertyType.includes(opt.id) && (
-                        <Check className="w-4 h-4 text-[var(--primary)]" />
+                        <Check className="absolute top-4 right-4 w-4 h-4 text-[var(--primary)]" />
                       )}
                     </button>
                   ))}
@@ -467,12 +626,18 @@ export default function UserIntentForm() {
                         <button key={bhk}
                           onClick={() => toggleArr('bhkType', bhk)}
                           className={cn(
-                            "py-4 rounded-[var(--radius)] border font-black text-base transition-all",
+                            "py-3 rounded-[var(--radius)] border font-black text-base transition-all flex flex-col items-center justify-center gap-0.5",
                             form.bhkType.includes(bhk)
                               ? "bg-[var(--primary)] text-white border-[var(--primary)] shadow-[var(--shadow-primary)]"
                               : "bg-[var(--surface-raised)] border-[var(--border)] text-[var(--text-primary)]"
                           )}>
                           {bhk}
+                          {(() => {
+                            const c = countForBHK(bhk);
+                            return c !== null && c > 0 && (
+                              <span className="block text-[9px] font-bold opacity-70">{c}</span>
+                            );
+                          })()}
                         </button>
                       ))}
                     </div>
@@ -709,19 +874,6 @@ export default function UserIntentForm() {
 
         {/* Navigation buttons */}
         <div className="mt-8 space-y-3">
-          {showNoAvailabilityWarning && (
-            <div className="p-4 bg-[var(--warning-light)] border border-amber-200 rounded-xl space-y-2 mb-4 animate-in fade-in slide-in-from-bottom-2">
-              <div className="flex items-center gap-2 text-amber-700 font-bold text-xs uppercase tracking-tight">
-                <Target className="w-3.5 h-3.5" />
-                No Direct Matches
-              </div>
-              <p className="text-[11px] text-amber-800 leading-relaxed font-medium">
-                Your current filters result in 0 matches. We recommend broadening your search 
-                (location or budget) to see more options in the next step.
-              </p>
-            </div>
-          )}
-
           {step === 7 ? (
             <button
               disabled={!canNext() || isLoading}

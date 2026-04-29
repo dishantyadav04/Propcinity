@@ -63,11 +63,12 @@ export default function ProjectCard({ project, matchedUnit, fitScore, index = 0 
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true }}
       transition={{ delay: index * 0.05 }}
-      className="group bg-[var(--surface)] border border-[var(--border)] rounded-[var(--radius)] shadow-[var(--shadow-sm)] card-hover overflow-hidden"
+      className="group bg-[var(--surface)] border border-[var(--border)] rounded-[var(--radius)] shadow-[var(--shadow-sm)] card-hover overflow-hidden flex flex-col"
+      style={{ minHeight: '360px' }}
     >
-      <Link href={`/projects/${project.slug}`} className="block">
+      <Link href={`/projects/${project.slug}`} className="block flex flex-col flex-1">
         {/* Image */}
-        <div className="relative aspect-[16/9] overflow-hidden bg-[var(--surface-raised)]">
+        <div className="relative h-48 overflow-hidden bg-[var(--surface-raised)]">
           {project.images?.[0] ? (
             <img
               src={project.images[0]}
@@ -100,7 +101,7 @@ export default function ProjectCard({ project, matchedUnit, fitScore, index = 0 
         </div>
 
         {/* Body */}
-        <div className="p-4 space-y-4">
+        <div className="p-4 space-y-3 flex flex-col flex-1">
           {/* Price + config row */}
           <div className="flex items-center justify-between">
             <div>
