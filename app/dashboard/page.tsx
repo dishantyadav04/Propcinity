@@ -60,20 +60,15 @@ export default function DashboardPage() {
   }, [projects, userIntent])
 
   const displayResults = useMemo(() => {
+    const sorted = [...prismResults].sort((a, b) => b.totalScore - a.totalScore);
+
     if (curatedIds.length > 0) {
-      const curated = prismResults
-        .filter(r => curatedIds.includes(r.project.id))
-        .sort((a, b) => b.totalScore - a.totalScore)
-      const others = prismResults
-        .filter(r => !curatedIds.includes(r.project.id))
-        .sort((a, b) => b.totalScore - a.totalScore)
-      return [...curated, ...others].slice(0, 12)
+      const curated = sorted.filter(r => curatedIds.includes(r.project.id));
+      const rest = sorted.filter(r => !curatedIds.includes(r.project.id));
+      return [...curated, ...rest].slice(0, 12);
     }
-    // Always sort by totalScore descending
-    return [...prismResults]
-      .sort((a, b) => b.totalScore - a.totalScore)
-      .slice(0, 12)
-  }, [prismResults, curatedIds])
+    return sorted.slice(0, 12);
+  }, [prismResults, curatedIds]);
 
   const removeFromCurated = (id: string) => {
     const next = curatedIds.filter(cid => cid !== id);
@@ -127,13 +122,13 @@ export default function DashboardPage() {
       <SectionContainer wide className="py-12 space-y-16">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
           {displayResults.map((result, i) => (
-            <div key={result.project.id} className="relative group">
-              <ProjectCard project={result.project} index={i} prismResult={result} />
+            <div key={result.project.id} className="relative group cursor-default">
+              <ProjectCard project={result.project} index={i} />
 
-              {/* Match % badge — top right of image, above trust score */}
+              {/* Match % badge — top right */}
               {result.totalScore >= 25 && (
                 <div className="absolute top-3 right-3 z-20 pointer-events-none">
-                  <div className={`
+                  <span className={`
                     px-2 py-0.5 rounded-full text-[10px] font-black text-white shadow-sm
                     ${result.tier === 'precision'
                       ? 'bg-[var(--success)]'
@@ -143,32 +138,61 @@ export default function DashboardPage() {
                     }
                   `}>
                     {result.totalScore}% match
-                  </div>
+                  </span>
                 </div>
               )}
 
-              {/* Remove button — appears where risk badge is (top-left),
-                  visible on hover, matches risk badge pill styling */}
-              <button
-                onClick={() => removeFromCurated(result.project.id)}
-                title="Remove from dashboard"
-                className="
-                  absolute top-3 left-3 z-30
-                  opacity-0 group-hover:opacity-100
-                  transition-all duration-200
-                "
-              >
-                <div className="
-                  flex items-center gap-1 px-2 py-1
-                  bg-[var(--danger)] text-white
-                  text-[10px] font-bold rounded-full
-                  shadow-sm hover:scale-105 hover:shadow-md
-                  transition-all duration-150
-                ">
-                  <X className="w-3 h-3" />
+              {/*
+                Risk + Remove pill — top left.
+                Default: shows "Low Risk" / "Med Risk" / "High Risk"
+                On hover: transforms to "✕ Remove" with danger color
+                Uses CSS group-hover to switch — no JS needed
+              */}
+              <div className="absolute top-3 left-3 z-30">
+                {/* Default state — risk pill, hidden on group hover */}
+                <span
+                  className={`
+                    inline-flex items-center px-2 py-1 text-[10px] font-bold rounded-full
+                    transition-all duration-150
+                    group-hover:opacity-0 group-hover:scale-90 group-hover:pointer-events-none
+                  `}
+                  style={{
+                    background: result.project.riskLabel === 'low'
+                      ? 'var(--success-light)'
+                      : result.project.riskLabel === 'medium'
+                        ? 'var(--warning-light)'
+                        : 'var(--danger-light)',
+                    color: result.project.riskLabel === 'low'
+                      ? 'var(--success)'
+                      : result.project.riskLabel === 'medium'
+                        ? 'var(--warning)'
+                        : 'var(--danger)',
+                  }}
+                >
+                  {result.project.riskLabel === 'low' ? 'Low Risk'
+                    : result.project.riskLabel === 'medium' ? 'Med Risk'
+                    : 'High Risk'}
+                </span>
+
+                {/* Hover state — remove button, hidden by default */}
+                <button
+                  onClick={() => removeFromCurated(result.project.id)}
+                  className="
+                    absolute inset-0
+                    inline-flex items-center gap-1 px-2 py-1
+                    text-[10px] font-bold rounded-full
+                    bg-[var(--danger)] text-white
+                    opacity-0 scale-90
+                    group-hover:opacity-100 group-hover:scale-100
+                    transition-all duration-150
+                    hover:bg-red-600 hover:shadow-md
+                    whitespace-nowrap
+                  "
+                >
+                  <X className="w-3 h-3 flex-shrink-0" />
                   Remove
-                </div>
-              </button>
+                </button>
+              </div>
             </div>
           ))}
 

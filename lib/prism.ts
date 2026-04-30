@@ -282,12 +282,6 @@ export function prismMatch(projects: Project[], buyer: BuyerProfile): PRISMResul
     })
   }
 
-  // Sort: precision first (by score), then value, then stretch
-  return results.sort((a, b) => {
-    const tierOrder = { precision: 0, value: 1, stretch: 2 }
-    if (tierOrder[a.tier] !== tierOrder[b.tier]) {
-      return tierOrder[a.tier] - tierOrder[b.tier]
-    }
-    return b.totalScore - a.totalScore
-  })
+  // Sort: pure totalScore descending
+  return results.sort((a, b) => b.totalScore - a.totalScore)
 }

@@ -83,7 +83,7 @@ export default function UserIntentForm() {
     name: '', phone: '', email: '',
     city: 'Pune', subLocations: [],
     purpose: '', propertyType: [], bhkType: [],
-    budgetMin: 3000000, budgetMax: 10000000, isOpenMax: false,
+    budgetMin: 0, budgetMax: 0, isOpenMax: false,
     timeline: '', preferences: []
   });
 
@@ -146,177 +146,222 @@ export default function UserIntentForm() {
   };
 
   const matchingCount = useMemo(() => {
-    if (projects.length === 0) return null; // null = still loading
+    if (projects.length === 0) return null;
 
-    let filtered = [...projects];
+    let pool = [...projects];
 
-    // Step 2+: filter by city
-    filtered = filtered.filter(p =>
+    // ── 1. City filter (always active from step 2) ────────────
+    pool = pool.filter(p =>
       (p.city || '').toLowerCase() === form.city.toLowerCase()
     );
 
-    // Step 2 sub-locations: filter if any selected
+    // ── 2. Sub-location filter (active if any selected) ───────
     if (form.subLocations.length > 0) {
-      filtered = filtered.filter(p => {
-        const pLoc = (p.location || '').toLowerCase();
+      pool = pool.filter(p => {
+        const loc = (p.location || '').toLowerCase();
         return form.subLocations.some(sl => {
-          const slLow = sl.toLowerCase();
-          return pLoc.includes(slLow) || slLow.includes(pLoc);
+          const s = sl.toLowerCase();
+          // bidirectional: "Hinjewadi" matches "Hinjewadi Phase 2" and vice versa
+          return loc.includes(s) || s.includes(loc);
         });
       });
     }
 
-    // Step 4+: property type filter
+    // ── 3. Property type filter (step 4+, only if selected) ───
     if (step >= 4 && form.propertyType.length > 0) {
-      filtered = filtered.filter(p => {
-        const configs = (p.unitConfigs || []).map((u: any) =>
+      const typeFiltered = pool.filter(p => {
+        const types = (p.unitConfigs || []).map((u: any) =>
           (u.type || '').toLowerCase()
         );
-        return form.propertyType.some(selected => {
-          const sel = selected.toLowerCase();
-          if (sel === 'apartment') {
-            return configs.some((c: string) =>
-              c.includes('bhk') || c.includes('studio') ||
-              c.includes('rk') || c.includes('duplex') ||
-              c.includes('penthouse')
-            );
+        return form.propertyType.some(sel => {
+          switch (sel.toLowerCase()) {
+            case 'apartment':
+              // apartment = anything with BHK number, studio, RK, duplex
+              return types.some((t: string) =>
+                /^\d/.test(t) ||           // starts with digit: "2bhk", "3bhk"
+                t.includes('bhk') ||
+                t.includes('studio') ||
+                t.includes('rk') ||
+                t.includes('duplex')
+              );
+            case 'villa':
+              return types.some((t: string) =>
+                t.includes('villa') ||
+                t.includes('row house') ||
+                t.includes('bungalow') ||
+                t.includes('independent')
+              );
+            case 'plot':
+              return types.some((t: string) => t.includes('plot'));
+            case 'penthouse':
+              return types.some((t: string) =>
+                t.includes('penthouse') ||
+                t.includes('sky') ||
+                (t.includes('4.5') || t.includes('5bhk') || t.includes('5 bhk'))
+              );
+            default:
+              return false;
           }
-          if (sel === 'villa') {
-            return configs.some((c: string) =>
-              c.includes('villa') || c.includes('row house') ||
-              c.includes('bungalow')
-            );
-          }
-          if (sel === 'plot') {
-            return configs.some((c: string) => c.includes('plot'));
-          }
-          if (sel === 'penthouse') {
-            return configs.some((c: string) =>
-              c.includes('penthouse') || c.includes('4.5') || c.includes('5bhk')
-            );
-          }
-          return false;
         });
       });
+      // Only apply if it doesn't wipe all results
+      if (typeFiltered.length > 0) pool = typeFiltered;
     }
 
-    // Step 5+: BHK type filter
+    // ── 4. BHK filter (step 5+, only if selected) ─────────────
     if (step >= 5 && form.bhkType.length > 0) {
-      filtered = filtered.filter(p => {
-        const configs = (p.unitConfigs || []).map((u: any) =>
+      const bhkFiltered = pool.filter(p => {
+        const types = (p.unitConfigs || []).map((u: any) =>
           (u.type || '').toLowerCase()
         );
-        return form.bhkType.some(b => {
-          const bLow = b.toLowerCase();
-          const bhkNum = bLow.replace('bhk', '').trim();
-          return configs.some((c: string) =>
-            c.includes(bLow) || (bhkNum && c.startsWith(bhkNum))
-          );
+        return form.bhkType.some(sel => {
+          const s = sel.toLowerCase().trim();
+          // Extract numeric part: "2BHK" → "2", "2.5BHK" → "2.5"
+          const numMatch = s.match(/^(\d+\.?\d*)/);
+          const num = numMatch ? numMatch[1] : null;
+          return types.some((t: string) => {
+            if (t === s) return true;          // exact match
+            if (t.includes(s)) return true;    // t contains sel
+            if (s.includes(t)) return true;    // sel contains t (handles substrings)
+            // Numeric prefix match: sel="2bhk" matches t="2.5bhk" only if num matches exactly
+            if (num) {
+              const tNumMatch = t.match(/^(\d+\.?\d*)/);
+              if (tNumMatch && tNumMatch[1] === num) return true;
+            }
+            return false;
+          });
         });
       });
+      // Soft: only apply if result > 0
+      if (bhkFiltered.length > 0) pool = bhkFiltered;
     }
 
-    // Step 6+: budget filter
-    if (step >= 6 && (form.budgetMin > 0 || form.budgetMax > 0)) {
-      filtered = filtered.filter(p => {
-        const prices = (p.unitConfigs || []).map((u: any) => u.priceMin).filter(Boolean);
-        if (prices.length === 0) return true;
-        const minPrice = Math.min(...prices);
-        const maxPrice = Math.max(...(p.unitConfigs || []).map((u: any) => u.priceMax || u.priceMin).filter(Boolean));
-        const userMin = form.budgetMin || 0;
-        const userMax = form.isOpenMax ? Infinity : (form.budgetMax || Infinity);
-        return minPrice <= userMax && maxPrice >= userMin;
+    // ── 5. Budget filter (step 6+, ONLY if user actually set a budget) ─
+    // budgetMin=0 AND budgetMax=0 means user hasn't touched it yet — skip
+    const userHasBudget = form.budgetMin > 0 || form.budgetMax > 0;
+    if (step >= 6 && userHasBudget) {
+      const userMin = form.budgetMin || 0;
+      const userMax = form.isOpenMax ? Infinity : (form.budgetMax > 0 ? form.budgetMax : Infinity);
+
+      const budgetFiltered = pool.filter(p => {
+        const configs = p.unitConfigs || [];
+        if (configs.length === 0) return true; // no price data — include
+
+        // Check if ANY unit config overlaps with user's budget range
+        return configs.some((u: any) => {
+          const uMin = u.priceMin || 0;
+          const uMax = u.priceMax || u.priceMin || 0;
+          // Overlap check: project range [uMin, uMax] overlaps user range [userMin, userMax]
+          return uMin <= userMax && uMax >= userMin;
+        });
       });
+      // Soft: keep if > 0
+      if (budgetFiltered.length > 0) pool = budgetFiltered;
     }
 
-    // Step 7+: timeline filter (soft — never drops to 0)
+    // ── 6. Timeline filter (step 7+, soft) ────────────────────
     if (step >= 7 && form.timeline) {
       const now = new Date();
-      const timelineFiltered = filtered.filter(p => {
+      const timelineFiltered = pool.filter(p => {
         if (!p.possessionDate) return true;
-        const possDate = new Date(p.possessionDate);
-        const months = Math.round(
-          (possDate.getTime() - now.getTime()) /
-          (1000 * 60 * 60 * 24 * 30)
+        const poss = new Date(p.possessionDate);
+        const monthsFromNow = Math.round(
+          (poss.getTime() - now.getTime()) / (1000 * 60 * 60 * 24 * 30)
         );
-        // For past dates (already delivered), always include — ready to move
-        if (months <= 0) return true;
-        if (form.timeline === 'under_1_year') return months <= 14;
-        if (form.timeline === '1_to_2_years') return months <= 30;
-        if (form.timeline === '3_to_5_years') return months <= 66;
-        if (form.timeline === '5_plus') return true; // 5+ includes everything
-        return true;
+        // Past possession = already delivered = always include
+        if (monthsFromNow <= 0) return true;
+        switch (form.timeline) {
+          case 'under_1_year':  return monthsFromNow <= 14;
+          case '1_to_2_years':  return monthsFromNow <= 30;
+          case '3_to_5_years':  return monthsFromNow <= 66;
+          case '5_plus':        return true; // everything qualifies
+          default:              return true;
+        }
       });
-      // Only apply if at least 1 result — never wipe everything
-      if (timelineFiltered.length > 0) filtered = timelineFiltered;
+      // Soft: never drop to 0 from timeline alone
+      if (timelineFiltered.length > 0) pool = timelineFiltered;
     }
 
-    return filtered.length;
+    // Preferences have ZERO impact on count — purely cosmetic/soft
+    return pool.length;
+
   }, [projects, form, step]);
 
-  const countForType = (typeId: string) => {
+  const countForType = (typeId: string): number | null => {
     if (projects.length === 0) return null;
     let base = projects.filter(p =>
       (p.city || '').toLowerCase() === form.city.toLowerCase()
     );
     if (form.subLocations.length > 0) {
       base = base.filter(p => {
-        const pLoc = (p.location || '').toLowerCase();
+        const loc = (p.location || '').toLowerCase();
         return form.subLocations.some(sl => {
-          const slLow = sl.toLowerCase();
-          return pLoc.includes(slLow) || slLow.includes(pLoc);
+          const s = sl.toLowerCase();
+          return loc.includes(s) || s.includes(loc);
         });
       });
     }
     return base.filter(p => {
-      const configs = (p.unitConfigs || []).map((u: any) =>
-        (u.type || '').toLowerCase()
-      );
-      if (typeId === 'apartment') return configs.some((c: string) =>
-        c.includes('bhk') || c.includes('studio') || c.includes('rk') || c.includes('duplex')
-      );
-      if (typeId === 'villa') return configs.some((c: string) =>
-        c.includes('villa') || c.includes('row house')
-      );
-      if (typeId === 'plot') return configs.some((c: string) => c.includes('plot'));
-      if (typeId === 'penthouse') return configs.some((c: string) =>
-        c.includes('penthouse') || c.includes('4.5') || c.includes('5bhk')
-      );
-      return false;
+      const types = (p.unitConfigs || []).map((u: any) => (u.type || '').toLowerCase());
+      switch (typeId.toLowerCase()) {
+        case 'apartment': return types.some((t: string) =>
+          /^\d/.test(t) || t.includes('bhk') || t.includes('studio') ||
+          t.includes('rk') || t.includes('duplex')
+        );
+        case 'villa': return types.some((t: string) =>
+          t.includes('villa') || t.includes('row house')
+        );
+        case 'plot': return types.some((t: string) => t.includes('plot'));
+        case 'penthouse': return types.some((t: string) =>
+          t.includes('penthouse') || t.includes('4.5') || t.includes('5bhk')
+        );
+        default: return false;
+      }
     }).length;
   };
 
-  const countForBHK = (bhk: string) => {
+  const countForBHK = (bhk: string): number | null => {
     if (projects.length === 0) return null;
     let base = projects.filter(p =>
       (p.city || '').toLowerCase() === form.city.toLowerCase()
     );
     if (form.subLocations.length > 0) {
       base = base.filter(p => {
-        const pLoc = (p.location || '').toLowerCase();
+        const loc = (p.location || '').toLowerCase();
         return form.subLocations.some(sl => {
-          const slLow = sl.toLowerCase();
-          return pLoc.includes(slLow) || slLow.includes(pLoc);
+          const s = sl.toLowerCase();
+          return loc.includes(s) || s.includes(loc);
         });
       });
     }
+    // Apply property type filter if selected
     if (form.propertyType.length > 0) {
       base = base.filter(p => {
-        const configs = (p.unitConfigs || []).map((u: any) => (u.type || '').toLowerCase());
+        const types = (p.unitConfigs || []).map((u: any) => (u.type || '').toLowerCase());
         return form.propertyType.some(sel => {
-          if (sel === 'apartment') return configs.some((c: string) => c.includes('bhk') || c.includes('studio') || c.includes('rk'));
-          if (sel === 'villa') return configs.some((c: string) => c.includes('villa') || c.includes('row house'));
-          if (sel === 'plot') return configs.some((c: string) => c.includes('plot'));
-          return false;
+          switch (sel.toLowerCase()) {
+            case 'apartment': return types.some((t: string) =>
+              /^\d/.test(t) || t.includes('bhk') || t.includes('studio') || t.includes('rk') || t.includes('duplex')
+            );
+            case 'villa': return types.some((t: string) => t.includes('villa') || t.includes('row house'));
+            case 'plot': return types.some((t: string) => t.includes('plot'));
+            default: return false;
+          }
         });
       });
     }
-    const bLow = bhk.toLowerCase();
-    const bhkNum = bLow.replace('bhk', '').trim();
+    const s = bhk.toLowerCase().trim();
+    const numMatch = s.match(/^(\d+\.?\d*)/);
+    const num = numMatch ? numMatch[1] : null;
     return base.filter(p =>
       (p.unitConfigs || []).some((u: any) => {
         const t = (u.type || '').toLowerCase();
-        return t.includes(bLow) || (bhkNum && t.startsWith(bhkNum));
+        if (t === s || t.includes(s) || s.includes(t)) return true;
+        if (num) {
+          const tNum = t.match(/^(\d+\.?\d*)/);
+          if (tNum && tNum[1] === num) return true;
+        }
+        return false;
       })
     ).length;
   };
@@ -355,11 +400,11 @@ export default function UserIntentForm() {
                       : "bg-[var(--danger-light)] text-[var(--danger)]"
                 )}>
                 {matchingCount === null ? (
-                  "LOADING..."
-                ) : (matchingCount || 0) > 0 ? (
-                  `${matchingCount} MATCHING PROPERT${matchingCount === 1 ? 'Y' : 'IES'}`
+                  "LOADING PROJECTS..."
+                ) : matchingCount > 0 ? (
+                  `${matchingCount} PROJECT${matchingCount === 1 ? '' : 'S'} FOUND`
                 ) : (
-                  "No projects matched"
+                  "NO PROJECTS MATCHED"
                 )}
               </motion.div>
             </div>

@@ -86,7 +86,7 @@ export default function ProjectCard({ project, matchedUnit, fitScore, index = 0,
             <span style={{ background: risk.bg, color: risk.text }}
               className="px-2 py-1 text-[10px] font-bold rounded-full">{risk.label}</span>
           </div>
-          <div className="absolute bottom-12 right-3">
+          <div className="absolute bottom-3 right-3">
             <TrustScoreBadge score={project.trustScore} size="sm" />
           </div>
 
@@ -99,22 +99,6 @@ export default function ProjectCard({ project, matchedUnit, fitScore, index = 0,
               <span>{project.location}, {project.city}</span>
             </div>
           </div>
-          {/* Bottom-right: PRISM score */}
-          {prismResult && prismResult.totalScore >= 30 && (
-            <div className="absolute bottom-3 right-3">
-              <div className={`
-                px-2 py-1 rounded-full text-[10px] font-black text-white shadow-sm
-                ${prismResult.tier === 'precision'
-                  ? 'bg-[var(--success)]'
-                  : prismResult.tier === 'value'
-                    ? 'bg-[var(--primary)]'
-                    : 'bg-[var(--warning)]'
-                }
-              `}>
-                Score {prismResult.totalScore}
-              </div>
-            </div>
-          )}
         </div>
 
         {/* Body */}
