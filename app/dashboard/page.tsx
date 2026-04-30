@@ -10,7 +10,7 @@ import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import Skeleton from "@/components/ui/Skeleton";
 import { toast } from "sonner";
-import { prismMatch, PRISMResult } from '@/lib/prism'
+import { rankProjects, MatchResult } from '@/lib/onboarding-matcher'
 
 export default function DashboardPage() {
   const [projects, setProjects] = useState<Project[]>([]);
@@ -41,34 +41,48 @@ export default function DashboardPage() {
     return () => window.removeEventListener('curatedUpdated', handler);
   }, []);
 
-  const prismResults = useMemo((): PRISMResult[] => {
-    if (!userIntent || projects.length === 0) return []
+  const matchResults = useMemo((): MatchResult[] => {
+    if (projects.length === 0) return []
+    if (!userIntent) {
+      // No preferences: sort by trust score
+      return projects
+        .sort((a, b) => (b.trustScore || 0) - (a.trustScore || 0))
+        .map(p => ({
+          project: p,
+          score: p.trustScore || 50,
+          matchPct: p.trustScore || 50,
+          tier: 'fallback' as const,
+          reasons: ['Highly trusted project'],
+          flags: [],
+        }))
+    }
 
-    const buyer = {
+    const state = {
       city: (userIntent as any).city || userIntent.location || 'Pune',
       subLocations: (userIntent as any).subLocations || [],
-      purpose: userIntent.purpose,
+      purpose: userIntent.purpose || '',
       propertyType: userIntent.propertyType || [],
       bhkType: (userIntent as any).bhkType || [],
-      budget: userIntent.budget,
-      timeline: userIntent.timeline,
+      budgetMin: userIntent.budget?.min || 0,
+      budgetMax: userIntent.budget?.max || 0,
+      isOpenMax: userIntent.budget?.isOpenMax || false,
+      timeline: userIntent.timeline || '',
       preferences: (userIntent as any).preferences || [],
-      rejectedIds: [],
     }
 
-    return prismMatch(projects, buyer)
+    return rankProjects(projects, state)
   }, [projects, userIntent])
 
-  const displayResults = useMemo(() => {
-    const sorted = [...prismResults].sort((a, b) => b.totalScore - a.totalScore);
+  const displayResults = useMemo((): MatchResult[] => {
+    const sorted = [...matchResults].sort((a, b) => b.score - a.score)
 
     if (curatedIds.length > 0) {
-      const curated = sorted.filter(r => curatedIds.includes(r.project.id));
-      const rest = sorted.filter(r => !curatedIds.includes(r.project.id));
-      return [...curated, ...rest].slice(0, 12);
+      const curated = sorted.filter(r => curatedIds.includes(r.project.id))
+      const rest = sorted.filter(r => !curatedIds.includes(r.project.id))
+      return [...curated, ...rest].slice(0, 12)
     }
-    return sorted.slice(0, 12);
-  }, [prismResults, curatedIds]);
+    return sorted.slice(0, 12)
+  }, [matchResults, curatedIds])
 
   const removeFromCurated = (id: string) => {
     const next = curatedIds.filter(cid => cid !== id);
@@ -125,36 +139,17 @@ export default function DashboardPage() {
             <div key={result.project.id} className="relative group cursor-default">
               <ProjectCard project={result.project} index={i} />
 
-              {/* Match % badge — top right */}
-              {result.totalScore >= 25 && (
-                <div className="absolute top-3 right-3 z-20 pointer-events-none">
-                  <span className={`
-                    px-2 py-0.5 rounded-full text-[10px] font-black text-white shadow-sm
-                    ${result.tier === 'precision'
-                      ? 'bg-[var(--success)]'
-                      : result.tier === 'value'
-                        ? 'bg-[var(--primary)]'
-                        : 'bg-[var(--warning)]'
-                    }
-                  `}>
-                    {result.totalScore}% match
-                  </span>
-                </div>
-              )}
-
-              {/*
-                Risk + Remove pill — top left.
-                Default: shows "Low Risk" / "Med Risk" / "High Risk"
-                On hover: transforms to "✕ Remove" with danger color
-                Uses CSS group-hover to switch — no JS needed
-              */}
-              <div className="absolute top-3 left-3 z-30">
-                {/* Default state — risk pill, hidden on group hover */}
+              {/* Risk + Remove — same height, same position, toggle on hover */}
+              <div className="absolute top-3 left-3 z-30 h-[22px]">
+                {/* Risk pill — shown normally, fades on hover */}
                 <span
                   className={`
-                    inline-flex items-center px-2 py-1 text-[10px] font-bold rounded-full
+                    absolute inset-0
+                    inline-flex items-center justify-center
+                    px-2 text-[10px] font-bold rounded-full
+                    h-[22px] whitespace-nowrap
                     transition-all duration-150
-                    group-hover:opacity-0 group-hover:scale-90 group-hover:pointer-events-none
+                    group-hover:opacity-0 group-hover:pointer-events-none
                   `}
                   style={{
                     background: result.project.riskLabel === 'low'
@@ -174,25 +169,45 @@ export default function DashboardPage() {
                     : 'High Risk'}
                 </span>
 
-                {/* Hover state — remove button, hidden by default */}
+                {/* Remove pill — shown on hover, exact same size container */}
                 <button
                   onClick={() => removeFromCurated(result.project.id)}
                   className="
                     absolute inset-0
-                    inline-flex items-center gap-1 px-2 py-1
-                    text-[10px] font-bold rounded-full
+                    inline-flex items-center justify-center gap-1
+                    px-2 text-[10px] font-bold rounded-full
+                    h-[22px] whitespace-nowrap
                     bg-[var(--danger)] text-white
-                    opacity-0 scale-90
-                    group-hover:opacity-100 group-hover:scale-100
+                    opacity-0 pointer-events-none
+                    group-hover:opacity-100 group-hover:pointer-events-auto
                     transition-all duration-150
-                    hover:bg-red-600 hover:shadow-md
-                    whitespace-nowrap
+                    hover:brightness-90
                   "
                 >
                   <X className="w-3 h-3 flex-shrink-0" />
                   Remove
                 </button>
               </div>
+
+              {/* Match % — top right, fixed height, properly sized */}
+              {result.matchPct >= 20 && (
+                <div className="absolute top-3 right-3 z-20 pointer-events-none">
+                  <span className={`
+                    inline-flex items-center justify-center
+                    h-[22px] px-2.5
+                    rounded-full text-[10px] font-black text-white
+                    whitespace-nowrap shadow-sm
+                    ${result.tier === 'exact'
+                      ? 'bg-[var(--success)]'
+                      : result.tier === 'close'
+                        ? 'bg-[var(--primary)]'
+                        : 'bg-[var(--warning)] text-[var(--text-primary)]'
+                    }
+                  `}>
+                    {result.matchPct}% match
+                  </span>
+                </div>
+              )}
             </div>
           ))}
 

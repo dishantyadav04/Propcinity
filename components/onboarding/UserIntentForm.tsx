@@ -9,6 +9,14 @@ import {
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
+import {
+  getMatchingCount,
+  countsByPropertyType,
+  countsByBHK,
+  countsByBudget,
+  countsByTimeline,
+  OnboardingState,
+} from '@/lib/onboarding-matcher';
 
 const CITY_SUBLOCATIONS: Record<string, string[]> = {
   Pune: [
@@ -145,226 +153,96 @@ export default function UserIntentForm() {
     return `₹${(val / 100000).toFixed(0)} L`;
   };
 
-  const matchingCount = useMemo(() => {
-    if (projects.length === 0) return null;
-
-    let pool = [...projects];
-
-    // ── 1. City filter (always active from step 2) ────────────
-    pool = pool.filter(p =>
-      (p.city || '').toLowerCase() === form.city.toLowerCase()
-    );
-
-    // ── 2. Sub-location filter (active if any selected) ───────
-    if (form.subLocations.length > 0) {
-      pool = pool.filter(p => {
-        const loc = (p.location || '').toLowerCase();
-        return form.subLocations.some(sl => {
-          const s = sl.toLowerCase();
-          // bidirectional: "Hinjewadi" matches "Hinjewadi Phase 2" and vice versa
-          return loc.includes(s) || s.includes(loc);
-        });
-      });
+  const matchingCount = useMemo((): number | null => {
+    if (projects.length === 0) return null
+    const state: OnboardingState = {
+      city: form.city,
+      subLocations: form.subLocations,
+      purpose: form.purpose,
+      propertyType: form.propertyType,
+      bhkType: form.bhkType,
+      budgetMin: form.budgetMin,
+      budgetMax: form.budgetMax,
+      isOpenMax: form.isOpenMax,
+      timeline: form.timeline,
+      preferences: form.preferences,
     }
+    return getMatchingCount(projects, state, step)
+  }, [projects, form, step])
 
-    // ── 3. Property type filter (step 4+, only if selected) ───
-    if (step >= 4 && form.propertyType.length > 0) {
-      const typeFiltered = pool.filter(p => {
-        const types = (p.unitConfigs || []).map((u: any) =>
-          (u.type || '').toLowerCase()
-        );
-        return form.propertyType.some(sel => {
-          switch (sel.toLowerCase()) {
-            case 'apartment':
-              // apartment = anything with BHK number, studio, RK, duplex
-              return types.some((t: string) =>
-                /^\d/.test(t) ||           // starts with digit: "2bhk", "3bhk"
-                t.includes('bhk') ||
-                t.includes('studio') ||
-                t.includes('rk') ||
-                t.includes('duplex')
-              );
-            case 'villa':
-              return types.some((t: string) =>
-                t.includes('villa') ||
-                t.includes('row house') ||
-                t.includes('bungalow') ||
-                t.includes('independent')
-              );
-            case 'plot':
-              return types.some((t: string) => t.includes('plot'));
-            case 'penthouse':
-              return types.some((t: string) =>
-                t.includes('penthouse') ||
-                t.includes('sky') ||
-                (t.includes('4.5') || t.includes('5bhk') || t.includes('5 bhk'))
-              );
-            default:
-              return false;
-          }
-        });
-      });
-      // Only apply if it doesn't wipe all results
-      if (typeFiltered.length > 0) pool = typeFiltered;
+  const typeCountsMap = useMemo(() => {
+    if (projects.length === 0) return null
+    const state: OnboardingState = {
+      city: form.city, subLocations: form.subLocations,
+      purpose: form.purpose, propertyType: [], bhkType: [],
+      budgetMin: 0, budgetMax: 0, isOpenMax: false,
+      timeline: '', preferences: [],
     }
-
-    // ── 4. BHK filter (step 5+, only if selected) ─────────────
-    if (step >= 5 && form.bhkType.length > 0) {
-      const bhkFiltered = pool.filter(p => {
-        const types = (p.unitConfigs || []).map((u: any) =>
-          (u.type || '').toLowerCase()
-        );
-        return form.bhkType.some(sel => {
-          const s = sel.toLowerCase().trim();
-          // Extract numeric part: "2BHK" → "2", "2.5BHK" → "2.5"
-          const numMatch = s.match(/^(\d+\.?\d*)/);
-          const num = numMatch ? numMatch[1] : null;
-          return types.some((t: string) => {
-            if (t === s) return true;          // exact match
-            if (t.includes(s)) return true;    // t contains sel
-            if (s.includes(t)) return true;    // sel contains t (handles substrings)
-            // Numeric prefix match: sel="2bhk" matches t="2.5bhk" only if num matches exactly
-            if (num) {
-              const tNumMatch = t.match(/^(\d+\.?\d*)/);
-              if (tNumMatch && tNumMatch[1] === num) return true;
-            }
-            return false;
-          });
-        });
-      });
-      // Soft: only apply if result > 0
-      if (bhkFiltered.length > 0) pool = bhkFiltered;
-    }
-
-    // ── 5. Budget filter (step 6+, ONLY if user actually set a budget) ─
-    // budgetMin=0 AND budgetMax=0 means user hasn't touched it yet — skip
-    const userHasBudget = form.budgetMin > 0 || form.budgetMax > 0;
-    if (step >= 6 && userHasBudget) {
-      const userMin = form.budgetMin || 0;
-      const userMax = form.isOpenMax ? Infinity : (form.budgetMax > 0 ? form.budgetMax : Infinity);
-
-      const budgetFiltered = pool.filter(p => {
-        const configs = p.unitConfigs || [];
-        if (configs.length === 0) return true; // no price data — include
-
-        // Check if ANY unit config overlaps with user's budget range
-        return configs.some((u: any) => {
-          const uMin = u.priceMin || 0;
-          const uMax = u.priceMax || u.priceMin || 0;
-          // Overlap check: project range [uMin, uMax] overlaps user range [userMin, userMax]
-          return uMin <= userMax && uMax >= userMin;
-        });
-      });
-      // Soft: keep if > 0
-      if (budgetFiltered.length > 0) pool = budgetFiltered;
-    }
-
-    // ── 6. Timeline filter (step 7+, soft) ────────────────────
-    if (step >= 7 && form.timeline) {
-      const now = new Date();
-      const timelineFiltered = pool.filter(p => {
-        if (!p.possessionDate) return true;
-        const poss = new Date(p.possessionDate);
-        const monthsFromNow = Math.round(
-          (poss.getTime() - now.getTime()) / (1000 * 60 * 60 * 24 * 30)
-        );
-        // Past possession = already delivered = always include
-        if (monthsFromNow <= 0) return true;
-        switch (form.timeline) {
-          case 'under_1_year':  return monthsFromNow <= 14;
-          case '1_to_2_years':  return monthsFromNow <= 30;
-          case '3_to_5_years':  return monthsFromNow <= 66;
-          case '5_plus':        return true; // everything qualifies
-          default:              return true;
-        }
-      });
-      // Soft: never drop to 0 from timeline alone
-      if (timelineFiltered.length > 0) pool = timelineFiltered;
-    }
-
-    // Preferences have ZERO impact on count — purely cosmetic/soft
-    return pool.length;
-
-  }, [projects, form, step]);
+    return countsByPropertyType(projects, state)
+  }, [projects, form.city, form.subLocations])
 
   const countForType = (typeId: string): number | null => {
-    if (projects.length === 0) return null;
-    let base = projects.filter(p =>
-      (p.city || '').toLowerCase() === form.city.toLowerCase()
-    );
-    if (form.subLocations.length > 0) {
-      base = base.filter(p => {
-        const loc = (p.location || '').toLowerCase();
-        return form.subLocations.some(sl => {
-          const s = sl.toLowerCase();
-          return loc.includes(s) || s.includes(loc);
-        });
-      });
+    if (!typeCountsMap) return null
+    return typeCountsMap[typeId.toLowerCase() as keyof typeof typeCountsMap] ?? 0
+  }
+
+  const BHK_OPTIONS = ['Studio', '1RK', '1BHK', '2BHK', '3BHK', '4BHK', '4BHK+', 'Villa']
+
+  const bhkCountsMap = useMemo(() => {
+    if (projects.length === 0) return null
+    const state: OnboardingState = {
+      city: form.city, subLocations: form.subLocations,
+      purpose: form.purpose, propertyType: form.propertyType, bhkType: [],
+      budgetMin: 0, budgetMax: 0, isOpenMax: false,
+      timeline: '', preferences: [],
     }
-    return base.filter(p => {
-      const types = (p.unitConfigs || []).map((u: any) => (u.type || '').toLowerCase());
-      switch (typeId.toLowerCase()) {
-        case 'apartment': return types.some((t: string) =>
-          /^\d/.test(t) || t.includes('bhk') || t.includes('studio') ||
-          t.includes('rk') || t.includes('duplex')
-        );
-        case 'villa': return types.some((t: string) =>
-          t.includes('villa') || t.includes('row house')
-        );
-        case 'plot': return types.some((t: string) => t.includes('plot'));
-        case 'penthouse': return types.some((t: string) =>
-          t.includes('penthouse') || t.includes('4.5') || t.includes('5bhk')
-        );
-        default: return false;
-      }
-    }).length;
-  };
+    return countsByBHK(projects, state, BHK_OPTIONS)
+  }, [projects, form.city, form.subLocations, form.propertyType])
 
   const countForBHK = (bhk: string): number | null => {
-    if (projects.length === 0) return null;
-    let base = projects.filter(p =>
-      (p.city || '').toLowerCase() === form.city.toLowerCase()
-    );
-    if (form.subLocations.length > 0) {
-      base = base.filter(p => {
-        const loc = (p.location || '').toLowerCase();
-        return form.subLocations.some(sl => {
-          const s = sl.toLowerCase();
-          return loc.includes(s) || s.includes(loc);
-        });
-      });
+    if (!bhkCountsMap) return null
+    return bhkCountsMap[bhk] ?? 0
+  }
+
+  const BUDGET_OPTIONS: { label: string; min: number; max: number; openMax?: boolean }[] = [
+    { label: 'Under ₹50L', min: 0, max: 5000000 },
+    { label: '₹50L – ₹1Cr', min: 5000000, max: 10000000 },
+    { label: '₹1Cr – ₹2Cr', min: 10000000, max: 20000000 },
+    { label: '₹2Cr – ₹5Cr', min: 20000000, max: 50000000 },
+    { label: '₹5Cr – ₹10Cr', min: 50000000, max: 100000000 },
+    { label: '₹10Cr & above', min: 100000000, max: Infinity, openMax: true },
+  ]
+
+  const budgetCountsMap = useMemo(() => {
+    if (projects.length === 0) return null
+    const state: OnboardingState = {
+      city: form.city, subLocations: form.subLocations,
+      purpose: form.purpose, propertyType: form.propertyType,
+      bhkType: form.bhkType, budgetMin: 0, budgetMax: 0, isOpenMax: false,
+      timeline: '', preferences: [],
     }
-    // Apply property type filter if selected
-    if (form.propertyType.length > 0) {
-      base = base.filter(p => {
-        const types = (p.unitConfigs || []).map((u: any) => (u.type || '').toLowerCase());
-        return form.propertyType.some(sel => {
-          switch (sel.toLowerCase()) {
-            case 'apartment': return types.some((t: string) =>
-              /^\d/.test(t) || t.includes('bhk') || t.includes('studio') || t.includes('rk') || t.includes('duplex')
-            );
-            case 'villa': return types.some((t: string) => t.includes('villa') || t.includes('row house'));
-            case 'plot': return types.some((t: string) => t.includes('plot'));
-            default: return false;
-          }
-        });
-      });
+    return countsByBudget(projects, state, BUDGET_OPTIONS)
+  }, [projects, form.city, form.subLocations, form.propertyType, form.bhkType])
+
+  const TIMELINE_OPTIONS = [
+    { id: 'under_1_year', label: 'Under 1 Year' },
+    { id: '1_to_2_years', label: '1 to 2 Years' },
+    { id: '3_to_5_years', label: '3 to 5 Years' },
+    { id: '5_plus', label: '5+ Years' },
+  ]
+
+  const timelineCountsMap = useMemo(() => {
+    if (projects.length === 0) return null
+    const state: OnboardingState = {
+      city: form.city, subLocations: form.subLocations,
+      purpose: form.purpose, propertyType: form.propertyType,
+      bhkType: form.bhkType,
+      budgetMin: form.budgetMin, budgetMax: form.budgetMax, isOpenMax: form.isOpenMax,
+      timeline: '', preferences: [],
     }
-    const s = bhk.toLowerCase().trim();
-    const numMatch = s.match(/^(\d+\.?\d*)/);
-    const num = numMatch ? numMatch[1] : null;
-    return base.filter(p =>
-      (p.unitConfigs || []).some((u: any) => {
-        const t = (u.type || '').toLowerCase();
-        if (t === s || t.includes(s) || s.includes(t)) return true;
-        if (num) {
-          const tNum = t.match(/^(\d+\.?\d*)/);
-          if (tNum && tNum[1] === num) return true;
-        }
-        return false;
-      })
-    ).length;
-  };
+    return countsByTimeline(projects, state, TIMELINE_OPTIONS)
+  }, [projects, form.city, form.subLocations, form.propertyType, form.bhkType,
+      form.budgetMin, form.budgetMax, form.isOpenMax])
 
   return (
     <div className="min-h-screen bg-[var(--background)] flex flex-col">
@@ -399,13 +277,12 @@ export default function UserIntentForm() {
                       ? "bg-[var(--success-light)] text-[var(--success)]"
                       : "bg-[var(--danger-light)] text-[var(--danger)]"
                 )}>
-                {matchingCount === null ? (
-                  "LOADING PROJECTS..."
-                ) : matchingCount > 0 ? (
-                  `${matchingCount} PROJECT${matchingCount === 1 ? '' : 'S'} FOUND`
-                ) : (
-                  "NO PROJECTS MATCHED"
-                )}
+                {matchingCount === null
+                  ? 'LOADING...'
+                  : matchingCount > 0
+                    ? `${matchingCount} PROJECT${matchingCount === 1 ? '' : 'S'} FOUND`
+                    : 'NO PROJECTS MATCHED'
+                }
               </motion.div>
             </div>
           )}
@@ -740,14 +617,7 @@ export default function UserIntentForm() {
                     Choose a range
                   </p>
                   <div className="grid grid-cols-2 gap-2">
-                    {[
-                      { label: 'Under ₹50L', min: 0, max: 5000000 },
-                      { label: '₹50L – ₹1Cr', min: 5000000, max: 10000000 },
-                      { label: '₹1Cr – ₹2Cr', min: 10000000, max: 20000000 },
-                      { label: '₹2Cr – ₹5Cr', min: 20000000, max: 50000000 },
-                      { label: '₹5Cr – ₹10Cr', min: 50000000, max: 100000000 },
-                      { label: '₹10Cr & above', min: 100000000, max: 200000000, openMax: true },
-                    ].map(range => {
+                    {BUDGET_OPTIONS.map(range => {
                       const isActive = form.budgetMin === range.min && form.budgetMax === range.max;
                       return (
                         <button key={range.label}
@@ -762,6 +632,11 @@ export default function UserIntentForm() {
                               : 'bg-[var(--surface-raised)] border-[var(--border)] text-[var(--text-secondary)] hover:border-[var(--primary)]/50'
                           }`}>
                           {range.label}
+                          {budgetCountsMap && (
+                            <span className="block text-[9px] font-bold mt-0.5 opacity-70">
+                              {budgetCountsMap[range.label] || 0} projects
+                            </span>
+                          )}
                         </button>
                       );
                     })}
@@ -848,12 +723,7 @@ export default function UserIntentForm() {
                   </p>
                 </div>
                 <div className="space-y-2">
-                  {[
-                    { id: 'under_1_year', label: 'Under 1 Year', sub: 'Ready to move or near possession' },
-                    { id: '1_to_2_years', label: '1 to 2 Years', sub: 'Planning stage, some flexibility' },
-                    { id: '3_to_5_years', label: '3 to 5 Years', sub: 'Long term, open to under-construction' },
-                    { id: '5_plus', label: '5+ Years', sub: 'Investment horizon, early stage projects' },
-                  ].map(opt => (
+                  {TIMELINE_OPTIONS.map(opt => (
                     <button key={opt.id}
                       onClick={() => set('timeline', opt.id)}
                       className={cn(
@@ -864,8 +734,12 @@ export default function UserIntentForm() {
                       )}>
                       <div className="flex-1">
                         <p className="font-bold text-[var(--text-primary)]">{opt.label}</p>
-                        <p className="text-xs text-[var(--text-secondary)]">{opt.sub}</p>
                       </div>
+                      {timelineCountsMap && (
+                        <span className="text-[10px] font-bold opacity-60 ml-auto">
+                          {timelineCountsMap[opt.id] || 0}
+                        </span>
+                      )}
                       {form.timeline === opt.id && (
                         <div className="w-5 h-5 bg-[var(--primary)] rounded-full flex items-center justify-center">
                           <Check className="w-3 h-3 text-white" />
