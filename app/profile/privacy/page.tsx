@@ -68,13 +68,15 @@ export default function PrivacyPage() {
               <button
                 onClick={() => setNotifications(prev => ({ ...prev, [item.key]: !prev[item.key as keyof typeof prev] }))}
                 className={`relative w-12 h-6 rounded-full transition-colors flex-shrink-0 ${
-                  notifications[item.key as keyof typeof notifications]
-                    ? 'bg-[var(--primary)]'
-                    : 'bg-[var(--border-strong)]'
+                  notifications[item.key as keyof typeof notifications] ? 'bg-[var(--primary)]' : 'bg-[var(--border-strong)]'
                 }`}>
-                <span className={`absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${
-                  notifications[item.key as keyof typeof notifications] ? 'translate-x-6' : 'translate-x-0.5'
-                }`} />
+                <span className={`
+                  absolute top-[3px] left-[3px]
+                  w-[18px] h-[18px]
+                  bg-white rounded-full shadow-sm
+                  transition-transform duration-200
+                  ${notifications[item.key as keyof typeof notifications] ? 'translate-x-6' : 'translate-x-0'}
+                `} />
               </button>
             </div>
           ))}

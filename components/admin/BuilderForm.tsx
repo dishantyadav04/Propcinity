@@ -22,7 +22,10 @@ export default function BuilderForm({ initial, mode }: BuilderFormProps) {
     description: initial?.description || '',
     rera_registered: initial?.rera_registered ?? false,
     rera_id: initial?.rera_id || '',
-    years_in_business: initial?.years_in_business || 0,
+    years_in_business: initial?.years_in_business ||
+      (initial?.established_year
+        ? Math.max(0, new Date().getFullYear() - parseInt(initial.established_year))
+        : 0),
     total_projects_delivered: initial?.total_projects_delivered || 0,
     on_time_delivery_percent: initial?.on_time_delivery_percent ?? 100,
     avg_delay_months: initial?.avg_delay_months || 0,
@@ -31,10 +34,15 @@ export default function BuilderForm({ initial, mode }: BuilderFormProps) {
     refund_disputes: initial?.refund_disputes || 0,
   });
 
+  // Auto-compute years_in_business whenever established_year changes
+  const computedYearsInBusiness = form.established_year
+    ? Math.max(0, new Date().getFullYear() - Number(form.established_year))
+    : form.years_in_business;
+
   // Live score preview
   const liveScore = calculateBuilderScore({
     reraRegistered: form.rera_registered,
-    yearsInBusiness: Number(form.years_in_business),
+    yearsInBusiness: computedYearsInBusiness,
     totalProjectsDelivered: Number(form.total_projects_delivered),
     onTimeDeliveryPercent: Number(form.on_time_delivery_percent),
     avgDelayMonths: Number(form.avg_delay_months),
@@ -59,7 +67,7 @@ export default function BuilderForm({ initial, mode }: BuilderFormProps) {
       credentials: 'include',
       body: JSON.stringify({
         ...form,
-        years_in_business: Number(form.years_in_business),
+        years_in_business: computedYearsInBusiness,
         total_projects_delivered: Number(form.total_projects_delivered),
         on_time_delivery_percent: Number(form.on_time_delivery_percent),
         avg_delay_months: Number(form.avg_delay_months),
@@ -120,10 +128,25 @@ export default function BuilderForm({ initial, mode }: BuilderFormProps) {
                 </div>
                 <div>
                   <label className="text-xs font-bold text-[var(--text-muted)]">Est. Year</label>
-                  <input type="number" value={form.established_year} onChange={e => set('established_year', e.target.value)}
+                  <input type="number" value={form.established_year}
+                    onChange={e => {
+                      const yr = e.target.value;
+                      set('established_year', yr);
+                      if (yr) {
+                        const currentYear = new Date().getFullYear();
+                        const yib = Math.max(0, currentYear - parseInt(yr));
+                        set('years_in_business', yib);
+                      }
+                    }}
                     placeholder="2000"
                     className="mt-1 w-full px-3 py-2.5 bg-[var(--surface-raised)] border border-[var(--border)]
                       rounded-[var(--radius-xs)] text-sm focus:outline-none focus:border-[var(--primary)]" />
+                  {form.established_year && (
+                    <p className="text-xs text-[var(--text-muted)] mt-1">
+                      ↳ {Math.max(0, new Date().getFullYear() - parseInt(form.established_year || '0'))} years in business
+                      (auto-calculated)
+                    </p>
+                  )}
                 </div>
               </div>
               <div>
@@ -165,9 +188,21 @@ export default function BuilderForm({ initial, mode }: BuilderFormProps) {
                   rounded-[var(--radius-xs)] text-sm focus:outline-none focus:border-[var(--primary)]" />
             )}
 
-            {/* Sliders */}
+            {/* Auto-calculated years in business — no slider needed */}
+            <div className="p-3 bg-[var(--primary-light)] border border-[var(--primary)]/20 rounded-[var(--radius-xs)]">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-bold text-[var(--text-primary)]">Years in Business</p>
+                  <p className="text-[10px] text-[var(--text-muted)]">Auto-calculated from Est. Year above</p>
+                </div>
+                <span className="text-2xl font-black text-[var(--primary)]">
+                  {computedYearsInBusiness > 0 ? `${computedYearsInBusiness} yrs` : '—'}
+                </span>
+              </div>
+            </div>
+
+            {/* Remaining sliders */}
             {[
-              { key: 'years_in_business', label: 'Years in Business', min: 0, max: 50, suffix: 'yrs', info: 'Older = higher score' },
               { key: 'total_projects_delivered', label: 'Projects Delivered', min: 0, max: 200, suffix: '', info: 'Each project = +1pt (max 10)' },
               { key: 'on_time_delivery_percent', label: 'On-Time Delivery %', min: 0, max: 100, suffix: '%', info: '100% = max delivery score' },
               { key: 'avg_delay_months', label: 'Avg Delay (months)', min: 0, max: 36, suffix: 'mo', info: 'Each month = -2pt penalty' },

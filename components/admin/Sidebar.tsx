@@ -24,7 +24,7 @@ export default function Sidebar() {
     href === '/admin' ? pathname === href : pathname.startsWith(href);
 
   return (
-    <aside className="w-60 h-screen sticky top-0 bg-[#0E0E14] flex flex-col hidden md:flex">
+    <aside className="w-60 h-screen flex-shrink-0 bg-[#0E0E14] flex flex-col hidden md:flex">
       {/* Logo */}
       <div className="px-6 py-6 border-b border-white/5">
         <Link href="/admin" className="flex items-center gap-3">

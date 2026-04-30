@@ -229,21 +229,25 @@ export default function UserIntentForm() {
       });
     }
 
-    // Step 7+: timeline filter (soft)
+    // Step 7+: timeline filter (soft — never drops to 0)
     if (step >= 7 && form.timeline) {
       const now = new Date();
       const timelineFiltered = filtered.filter(p => {
         if (!p.possessionDate) return true;
+        const possDate = new Date(p.possessionDate);
         const months = Math.round(
-          (new Date(p.possessionDate).getTime() - now.getTime()) /
+          (possDate.getTime() - now.getTime()) /
           (1000 * 60 * 60 * 24 * 30)
         );
-        if (form.timeline === 'under_1_year') return months <= 12;
-        if (form.timeline === '1_to_2_years') return months <= 24;
-        if (form.timeline === '3_to_5_years') return months <= 60;
-        if (form.timeline === '5_plus') return months > 36;
+        // For past dates (already delivered), always include — ready to move
+        if (months <= 0) return true;
+        if (form.timeline === 'under_1_year') return months <= 14;
+        if (form.timeline === '1_to_2_years') return months <= 30;
+        if (form.timeline === '3_to_5_years') return months <= 66;
+        if (form.timeline === '5_plus') return true; // 5+ includes everything
         return true;
       });
+      // Only apply if at least 1 result — never wipe everything
       if (timelineFiltered.length > 0) filtered = timelineFiltered;
     }
 
@@ -348,14 +352,14 @@ export default function UserIntentForm() {
                     ? "bg-[var(--surface-raised)] text-[var(--text-muted)]"
                     : (matchingCount || 0) > 0
                       ? "bg-[var(--success-light)] text-[var(--success)]"
-                      : "bg-[var(--warning-light)] text-[var(--warning)]"
+                      : "bg-[var(--danger-light)] text-[var(--danger)]"
                 )}>
                 {matchingCount === null ? (
                   "LOADING..."
                 ) : (matchingCount || 0) > 0 ? (
                   `${matchingCount} MATCHING PROPERT${matchingCount === 1 ? 'Y' : 'IES'}`
                 ) : (
-                  "EXPANDING SEARCH..."
+                  "No projects matched"
                 )}
               </motion.div>
             </div>
@@ -770,22 +774,6 @@ export default function UserIntentForm() {
                     </div>
                   </div>
 
-                  {/* No upper limit toggle */}
-                  <button
-                    onClick={() => set('isOpenMax', !form.isOpenMax)}
-                    className={`flex items-center gap-2.5 text-sm font-semibold transition-colors ${
-                      form.isOpenMax ? 'text-[var(--primary)]' : 'text-[var(--text-secondary)]'
-                    }`}>
-                    <div className={`w-12 h-6 rounded-full transition-colors relative flex-shrink-0 ${
-                      form.isOpenMax ? 'bg-[var(--primary)]' : 'bg-[var(--border-strong)]'
-                    }`}>
-                      <span className={`absolute top-[3px] left-[3px] w-[18px] h-[18px] bg-white rounded-full
-                        shadow-sm transition-transform duration-200 ${
-                        form.isOpenMax ? 'translate-x-6' : 'translate-x-0'
-                      }`} />
-                    </div>
-                    ₹10Cr and above (no upper limit)
-                  </button>
                 </div>
 
                 {/* Summary */}

@@ -128,12 +128,42 @@ export default function ProjectDetailPage() {
 
             {/* Inventory */}
             <div className="space-y-4">
-              <h3 className="text-sm font-bold text-[var(--text-primary)] uppercase tracking-widest">Available Configurations</h3>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {(project.unitConfigs || []).map(unit => (
-                  <UnitConfigCard key={unit.id} unit={unit} project={project} />
-                ))}
-              </div>
+              <h3 className="text-sm font-bold text-[var(--text-primary)] uppercase tracking-widest">Configurations</h3>
+            <div className="space-y-6">
+              {(() => {
+                const configs = project.unitConfigs || [];
+                // Group by type prefix (e.g. "2BHK" groups "2BHK - Type A" and "2BHK")
+                const groups = new Map<string, typeof configs>();
+                configs.forEach(unit => {
+                  // Extract base type — first word(s) until a dash or parenthesis
+                  const base = unit.type.split(/[-–(]/)[0].trim();
+                  if (!groups.has(base)) groups.set(base, []);
+                  groups.get(base)!.push(unit);
+                });
+
+                return Array.from(groups.entries()).map(([baseType, units]) => (
+                  <div key={baseType} className="space-y-3">
+                    {units.length > 1 && (
+                      <div className="flex items-center gap-3">
+                        <p className="text-sm font-black text-[var(--text-primary)] uppercase tracking-wider">
+                          {baseType}
+                        </p>
+                        <span className="text-[10px] font-bold text-[var(--text-muted)] bg-[var(--surface-raised)]
+                          px-2 py-0.5 rounded-full">
+                          {units.length} variants
+                        </span>
+                        <div className="flex-1 h-px bg-[var(--border)]" />
+                      </div>
+                    )}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      {units.map(unit => (
+                        <UnitConfigCard key={unit.id} unit={unit} project={project} />
+                      ))}
+                    </div>
+                  </div>
+                ));
+              })()}
+            </div>
             </div>
 
             <div className="h-px bg-[var(--border)]" />

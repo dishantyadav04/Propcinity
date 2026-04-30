@@ -10,6 +10,7 @@ export interface UnitConfig {
   floor: string
   facing: string[]
   images: string[]
+  floorPlan?: string   // URL to floor plan image for this config
   highlights: string[]
 }
 

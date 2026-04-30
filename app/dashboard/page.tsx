@@ -61,12 +61,18 @@ export default function DashboardPage() {
 
   const displayResults = useMemo(() => {
     if (curatedIds.length > 0) {
-      // User has manually curated — show those first
-      const curated = prismResults.filter(r => curatedIds.includes(r.project.id))
-      const others = prismResults.filter(r => !curatedIds.includes(r.project.id))
+      const curated = prismResults
+        .filter(r => curatedIds.includes(r.project.id))
+        .sort((a, b) => b.totalScore - a.totalScore)
+      const others = prismResults
+        .filter(r => !curatedIds.includes(r.project.id))
+        .sort((a, b) => b.totalScore - a.totalScore)
       return [...curated, ...others].slice(0, 12)
     }
-    return prismResults.slice(0, 12)
+    // Always sort by totalScore descending
+    return [...prismResults]
+      .sort((a, b) => b.totalScore - a.totalScore)
+      .slice(0, 12)
   }, [prismResults, curatedIds])
 
   const removeFromCurated = (id: string) => {
@@ -122,34 +128,13 @@ export default function DashboardPage() {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
           {displayResults.map((result, i) => (
             <div key={result.project.id} className="relative group">
-              {/* Card wrapper — fixed aspect enforced by ProjectCard itself */}
-              <ProjectCard project={result.project} index={i} />
+              <ProjectCard project={result.project} index={i} prismResult={result} />
 
-              {/* Remove button — perfectly round, hover popup style */}
-              <button
-                onClick={() => removeFromCurated(result.project.id)}
-                title="Remove from list"
-                className="
-                  absolute top-2.5 left-2.5 z-30
-                  w-7 h-7 rounded-full
-                  bg-black/50 backdrop-blur-sm text-white
-                  flex items-center justify-center
-                  opacity-0 group-hover:opacity-100
-                  transition-all duration-200
-                  hover:bg-[var(--danger)] hover:scale-110 hover:shadow-lg
-                  focus:opacity-100 focus:ring-2 focus:ring-white
-                "
-              >
-                <X className="w-3.5 h-3.5" />
-              </button>
-
-              {/* PRISM match badge — top right, BELOW trust score */}
-              {result.totalScore >= 30 && (
-                <div className="absolute top-14 right-3 z-20">
+              {/* Match % badge — top right of image, above trust score */}
+              {result.totalScore >= 25 && (
+                <div className="absolute top-3 right-3 z-20 pointer-events-none">
                   <div className={`
-                    flex items-center gap-1 px-2 py-0.5
-                    rounded-full text-[10px] font-black text-white
-                    shadow-sm
+                    px-2 py-0.5 rounded-full text-[10px] font-black text-white shadow-sm
                     ${result.tier === 'precision'
                       ? 'bg-[var(--success)]'
                       : result.tier === 'value'
@@ -157,10 +142,33 @@ export default function DashboardPage() {
                         : 'bg-[var(--warning)]'
                     }
                   `}>
-                    {result.totalScore}%
+                    {result.totalScore}% match
                   </div>
                 </div>
               )}
+
+              {/* Remove button — appears where risk badge is (top-left),
+                  visible on hover, matches risk badge pill styling */}
+              <button
+                onClick={() => removeFromCurated(result.project.id)}
+                title="Remove from dashboard"
+                className="
+                  absolute top-3 left-3 z-30
+                  opacity-0 group-hover:opacity-100
+                  transition-all duration-200
+                "
+              >
+                <div className="
+                  flex items-center gap-1 px-2 py-1
+                  bg-[var(--danger)] text-white
+                  text-[10px] font-bold rounded-full
+                  shadow-sm hover:scale-105 hover:shadow-md
+                  transition-all duration-150
+                ">
+                  <X className="w-3 h-3" />
+                  Remove
+                </div>
+              </button>
             </div>
           ))}
 
