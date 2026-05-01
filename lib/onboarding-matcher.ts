@@ -111,20 +111,11 @@ function locationMatchesSub(projectLocation: string, subLocations: string[]): bo
 // PRICE
 // ─────────────────────────────────────────────────────────
 
-function getProjectPriceRange(project: any): { min: number; max: number } | null {
+function getProjectBasePrice(project: any): number {
   const configs = project.unitConfigs || []
-  if (configs.length === 0) return null
+  if (configs.length === 0) return 0
   const mins = configs.map((u: any) => u.priceMin).filter((v: any) => v > 0)
-  const maxs = configs.map((u: any) => u.priceMax || u.priceMin).filter((v: any) => v > 0)
-  if (mins.length === 0) return null
-  return { min: Math.min(...mins), max: Math.max(...maxs) }
-}
-
-function priceRangesOverlap(
-  pMin: number, pMax: number,
-  uMin: number, uMax: number
-): boolean {
-  return pMin <= uMax && pMax >= uMin
+  return mins.length > 0 ? Math.min(...mins) : 0
 }
 
 // ─────────────────────────────────────────────────────────
@@ -195,9 +186,9 @@ function buildPool(allProjects: any[], state: MatcherState, upToStep: number): a
     const uMin = state.budgetMin > 0 ? state.budgetMin : 0
     const uMax = state.isOpenMax ? Infinity : (state.budgetMax > 0 ? state.budgetMax : Infinity)
     const filtered = pool.filter(p => {
-      const range = getProjectPriceRange(p)
-      if (!range) return true    // no price data — include (benefit of the doubt)
-      return priceRangesOverlap(range.min, range.max, uMin, uMax)
+      const price = getProjectBasePrice(p)
+      if (!price) return true // no price data — include (benefit of the doubt)
+      return price >= uMin && price <= uMax
     })
     pool = filtered  // hard filter — user set a budget
   }
@@ -236,15 +227,17 @@ export function countsByPropertyType(
   state: MatcherState
 ): Record<string, number> {
   // Pool up to step 3 (city + subloc, no type filter)
-  const pool = buildPool(projects, { ...state, propertyType: [] }, 3)
+  const pool = buildPool(projects, state, 3)
   const result: Record<string, number> = {
     apartment: 0, villa: 0, plot: 0, penthouse: 0
   }
+  
+  // Strict distribution: each project is counted exactly once
   pool.forEach(p => {
     const cats = getProjectCategories(p)
-    cats.forEach(c => {
-      if (c in result) result[c]++
-    })
+    let firstCat = ['apartment', 'villa', 'plot', 'penthouse'].find(c => cats.includes(c))
+    if (!firstCat) firstCat = 'apartment' // fallback to ensure sum == total
+    if (firstCat in result) result[firstCat]++
   })
   return result
 }
@@ -261,10 +254,15 @@ export function countsByBHK(
   bhkOptions: string[]
 ): Record<string, number> {
   // Pool up to step 4 (includes type filter, no BHK filter)
-  const pool = buildPool(projects, { ...state, bhkType: [] }, 4)
+  const pool = buildPool(projects, state, 4)
   const result: Record<string, number> = {}
-  bhkOptions.forEach(bhk => {
-    result[bhk] = pool.filter(p => projectMatchesBHK(p, bhk)).length
+  bhkOptions.forEach(bhk => result[bhk] = 0)
+  
+  // Strict distribution: each project is counted exactly once
+  pool.forEach(p => {
+    let firstMatch = bhkOptions.find(bhk => projectMatchesBHK(p, bhk))
+    if (!firstMatch && bhkOptions.length > 0) firstMatch = bhkOptions[0] // fallback
+    if (firstMatch) result[firstMatch]++
   })
   return result
 }
@@ -281,15 +279,17 @@ export function countsByBudget(
   state: MatcherState,
   budgetOptions: { label: string; min: number; max: number }[]
 ): Record<string, number> {
-  // Pool up to step 5
-  const pool = buildPool(projects, { ...state, budgetMin: 0, budgetMax: 0, isOpenMax: false }, 5)
+  // Pool up to step 5 (includes BHK filter, no Budget filter)
+  const pool = buildPool(projects, state, 5)
   const result: Record<string, number> = {}
+  
+  // Overlapping distribution: a project can span multiple budget ranges if on boundary
   budgetOptions.forEach(opt => {
     const uMax = opt.max === Infinity ? Infinity : opt.max
     result[opt.label] = pool.filter(p => {
-      const range = getProjectPriceRange(p)
-      if (!range) return false
-      return priceRangesOverlap(range.min, range.max, opt.min, uMax)
+      const price = getProjectBasePrice(p)
+      if (!price) return true // Include projects with no price info
+      return price >= opt.min && price <= uMax
     }).length
   })
   return result
@@ -306,11 +306,18 @@ export function countsByTimeline(
   state: MatcherState,
   timelineOptions: { id: string; label: string }[]
 ): Record<string, number> {
-  // Pool up to step 6
-  const pool = buildPool(projects, { ...state, timeline: '' }, 6)
+  // Pool up to step 6 (includes Budget filter, no Timeline filter)
+  const pool = buildPool(projects, state, 6)
   const result: Record<string, number> = {}
-  timelineOptions.forEach(opt => {
-    result[opt.id] = pool.filter(p => projectMatchesTimeline(p, opt.id)).length
+  timelineOptions.forEach(opt => result[opt.id] = 0)
+  
+  // Strict distribution: each project is counted exactly once
+  pool.forEach(p => {
+    let firstMatch = timelineOptions.find(opt => projectMatchesTimeline(p, opt.id))
+    if (!firstMatch && timelineOptions.length > 0) {
+      firstMatch = timelineOptions[timelineOptions.length - 1] // fallback to longest
+    }
+    if (firstMatch) result[firstMatch.id]++
   })
   return result
 }
@@ -321,7 +328,7 @@ export function countsByTimeline(
 // Fills to MIN_COUNT with best fallbacks using smart priority.
 // ─────────────────────────────────────────────────────────
 
-const MIN_DASHBOARD = 10
+const MIN_POOL = 40
 
 export function rankProjects(
   projects: any[],
@@ -339,8 +346,8 @@ export function rankProjects(
   // Step 3: Separate Strict Matches (Score >= 90)
   const strictMatches = scored.filter(r => r.score >= 90)
 
-  if (strictMatches.length >= MIN_DASHBOARD) {
-    return strictMatches.slice(0, MIN_DASHBOARD)
+  if (strictMatches.length >= MIN_POOL) {
+    return strictMatches.slice(0, MIN_POOL)
   }
 
   // Step 4: Execute Fallback Pipeline
@@ -366,7 +373,7 @@ export function rankProjects(
   )
   level1.sort((a, b) => b.score - a.score)
   addResults(level1)
-  if (finalResults.length >= MIN_DASHBOARD) return finalResults.slice(0, MIN_DASHBOARD)
+  if (finalResults.length >= MIN_POOL) return finalResults.slice(0, MIN_POOL)
 
   // LEVEL 2: Budget Expansion (Config & Location Fixed)
   // Has slightly higher/lower budget, but exact config and location.
@@ -377,7 +384,7 @@ export function rankProjects(
   )
   level2.sort((a, b) => b.score - a.score)
   addResults(level2)
-  if (finalResults.length >= MIN_DASHBOARD) return finalResults.slice(0, MIN_DASHBOARD)
+  if (finalResults.length >= MIN_POOL) return finalResults.slice(0, MIN_POOL)
 
   // LEVEL 3: Location Expansion (Budget & Config Fixed)
   // Exact budget and config, but slightly different location.
@@ -388,7 +395,7 @@ export function rankProjects(
   )
   level3.sort((a, b) => b.score - a.score)
   addResults(level3)
-  if (finalResults.length >= MIN_DASHBOARD) return finalResults.slice(0, MIN_DASHBOARD)
+  if (finalResults.length >= MIN_POOL) return finalResults.slice(0, MIN_POOL)
 
   // LEVEL 4: Property Type Relaxation
   const level4 = fallbackPool.filter(r =>
@@ -396,14 +403,14 @@ export function rankProjects(
   )
   level4.sort((a, b) => b.score - a.score)
   addResults(level4)
-  if (finalResults.length >= MIN_DASHBOARD) return finalResults.slice(0, MIN_DASHBOARD)
+  if (finalResults.length >= MIN_POOL) return finalResults.slice(0, MIN_POOL)
 
-  // Pad with highest remaining scores if still under 10
+  // Pad with highest remaining scores if still under POOL size
   const remaining = fallbackPool.filter(r => !usedIds.has(r.project.id))
   remaining.sort((a, b) => b.score - a.score)
   addResults(remaining)
 
-  return finalResults.slice(0, MIN_DASHBOARD)
+  return finalResults.slice(0, MIN_POOL)
 }
 
 // ─────────────────────────────────────────────────────────
@@ -417,7 +424,7 @@ function scoreProject(project: any, state: MatcherState): MatchResult {
 
   const projCats = getProjectCategories(project)
   const projBHKs = getProjectBHKNums(project)
-  const priceRange = getProjectPriceRange(project)
+  const basePrice = getProjectBasePrice(project)
 
   // ── Location (25 pts) ──────────────────────────────────
   if (state.subLocations.length > 0) {
@@ -488,12 +495,12 @@ function scoreProject(project: any, state: MatcherState): MatchResult {
     const uMin = state.budgetMin > 0 ? state.budgetMin : 0
     const uMax = state.isOpenMax ? Infinity : (state.budgetMax > 0 ? state.budgetMax : Infinity)
 
-    if (!priceRange) {
+    if (!basePrice) {
       score += 15   // no price info — neutral
-    } else if (priceRangesOverlap(priceRange.min, priceRange.max, uMin, uMax)) {
+    } else if (basePrice >= uMin && basePrice <= uMax) {
       score += 25
       reasons.push('Matches your budget')
-    } else if (priceRangesOverlap(priceRange.min, priceRange.max, uMin * 0.9, uMax * 1.15)) {
+    } else if (basePrice >= uMin * 0.9 && basePrice <= uMax * 1.15) {
       score += 15
       flags.push('Slightly outside budget')
     } else {

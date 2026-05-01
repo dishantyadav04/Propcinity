@@ -17,17 +17,12 @@ export default function DashboardPage() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [userIntent, setUserIntent] = useState<UserIntent | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [curatedIds, setCuratedIds] = useState<string[]>([]);
-  const [rejectedIds, setRejectedIds] = useState<string[]>([]);
+  const [rankedProjects, setRankedProjects] = useState<MatchResult[]>([]);
+  const [backupProjects, setBackupProjects] = useState<MatchResult[]>([]);
 
   useEffect(() => {
     const savedIntent = localStorage.getItem('userIntent');
     if (savedIntent) setUserIntent(JSON.parse(savedIntent));
-
-    const saved = JSON.parse(localStorage.getItem('curatedIds') || '[]');
-    setCuratedIds(saved);
-    const rejected = JSON.parse(localStorage.getItem('rejectedProjectIds') || '[]');
-    setRejectedIds(rejected);
 
     fetch('/api/projects')
       .then(r => r.json())
@@ -36,99 +31,118 @@ export default function DashboardPage() {
       .finally(() => setIsLoading(false));
   }, []);
 
+  // STATE 1 & 2: INITIAL LOAD & PREFERENCE UPDATE
+  useEffect(() => {
+    if (projects.length === 0) return;
+
+    let allMatches: MatchResult[] = [];
+    if (!userIntent) {
+      allMatches = [...projects]
+        .sort((a, b) => (b.trustScore || 0) - (a.trustScore || 0))
+        .map(p => ({
+          project: p, score: p.trustScore || 50, matchPct: p.trustScore || 50,
+          tier: 'fallback' as const, reasons: ['Highly trusted project'], flags: [],
+        }));
+    } else {
+      const state: MatcherState = {
+        city: (userIntent as any).city || userIntent.location || 'Pune',
+        subLocations: (userIntent as any).subLocations || [],
+        purpose: userIntent.purpose || '',
+        propertyType: userIntent.propertyType || [],
+        bhkType: (userIntent as any).bhkType || [],
+        budgetMin: userIntent.budget?.min || 0,
+        budgetMax: userIntent.budget?.max || 0,
+        isOpenMax: userIntent.budget?.isOpenMax || false,
+        timeline: userIntent.timeline || '',
+        preferences: (userIntent as any).preferences || [],
+      };
+      allMatches = rankProjects(projects, state);
+    }
+
+    const rejectedSet = new Set(JSON.parse(localStorage.getItem('rejectedProjectIds') || '[]'));
+    const curatedIds = JSON.parse(localStorage.getItem('curatedIds') || '[]');
+
+    const validMatches = allMatches.filter(r => !rejectedSet.has(r.project.id));
+
+    const curatedNotRanked = curatedIds
+      .filter((id: string) => !rejectedSet.has(id) && !validMatches.some(r => r.project.id === id))
+      .map((id: string) => {
+        const p = projects.find(proj => proj.id === id);
+        return p ? {
+          project: p, score: 100, matchPct: 100, tier: 'exact' as const, reasons: ['Shortlisted by you'], flags: []
+        } : null;
+      }).filter(Boolean) as MatchResult[];
+
+    const curatedMatches = validMatches.filter(r => curatedIds.includes(r.project.id));
+    const otherMatches = validMatches.filter(r => !curatedIds.includes(r.project.id));
+
+    const finalPool = [...curatedNotRanked, ...curatedMatches, ...otherMatches];
+
+    setRankedProjects(finalPool.slice(0, 10));
+    setBackupProjects(finalPool.slice(10));
+  }, [projects, userIntent]);
+
+  // Handle Explorer additions
   useEffect(() => {
     const handler = () => {
-      const ids = JSON.parse(localStorage.getItem('curatedIds') || '[]');
-      setCuratedIds(ids);
+      const curated = JSON.parse(localStorage.getItem('curatedIds') || '[]');
       const rejected = JSON.parse(localStorage.getItem('rejectedProjectIds') || '[]');
-      setRejectedIds(rejected);
+
+      setRankedProjects(prev => {
+        let updated = [...prev];
+        let changed = false;
+
+        curated.forEach((id: string) => {
+          if (!rejected.includes(id) && !updated.some(r => r.project.id === id)) {
+            const proj = projects.find(p => p.id === id);
+            if (proj) {
+              updated.unshift({
+                project: proj, score: 100, matchPct: 100, tier: 'exact' as const, reasons: ['Shortlisted by you'], flags: []
+              });
+              changed = true;
+            }
+          }
+        });
+
+        return changed ? updated : prev;
+      });
     };
     window.addEventListener('curatedUpdated', handler);
     return () => window.removeEventListener('curatedUpdated', handler);
-  }, []);
+  }, [projects]);
 
-  const matchResults = useMemo((): MatchResult[] => {
-    if (projects.length === 0) return []
-    if (!userIntent) {
-      return [...projects]
-        .sort((a, b) => (b.trustScore || 0) - (a.trustScore || 0))
-        .slice(0, 10)
-        .map(p => ({
-          project: p,
-          score: p.trustScore || 50,
-          matchPct: p.trustScore || 50,
-          tier: 'fallback' as const,
-          reasons: ['Highly trusted project'],
-          flags: [],
-        }))
+  // STATE 3: PROPERTY REMOVAL
+  const handleRemove = (id: string) => {
+    // 1. Update localStorage
+    const rejected = JSON.parse(localStorage.getItem('rejectedProjectIds') || '[]');
+    if (!rejected.includes(id)) {
+      rejected.push(id);
+      localStorage.setItem('rejectedProjectIds', JSON.stringify(rejected));
     }
 
-    const state: MatcherState = {
-      city: (userIntent as any).city || userIntent.location || 'Pune',
-      subLocations: (userIntent as any).subLocations || [],
-      purpose: userIntent.purpose || '',
-      propertyType: userIntent.propertyType || [],
-      bhkType: (userIntent as any).bhkType || [],
-      budgetMin: userIntent.budget?.min || 0,
-      budgetMax: userIntent.budget?.max || 0,
-      isOpenMax: userIntent.budget?.isOpenMax || false,
-      timeline: userIntent.timeline || '',
-      preferences: (userIntent as any).preferences || [],
+    const curated = JSON.parse(localStorage.getItem('curatedIds') || '[]');
+    const nextCurated = curated.filter((c: string) => c !== id);
+    if (nextCurated.length !== curated.length) {
+      localStorage.setItem('curatedIds', JSON.stringify(nextCurated));
+      window.dispatchEvent(new Event('curatedUpdated'));
     }
 
-    return rankProjects(projects, state)
-  }, [projects, userIntent])
-
-  const displayResults = useMemo((): MatchResult[] => {
-    // 1. Always exclude rejected projects
-    const rejectedSet = new Set(rejectedIds);
+    // 2. Shift from backup pool without re-running matching
+    const idx = rankedProjects.findIndex(r => r.project.id === id);
+    if (idx > -1) {
+      const nextRanked = [...rankedProjects];
+      nextRanked.splice(idx, 1);
+      
+      const nextBackup = [...backupProjects];
+      if (nextBackup.length > 0) {
+        const nextProject = nextBackup.shift()!;
+        nextRanked.push(nextProject);
+      }
+      
+      setRankedProjects(nextRanked);
+      setBackupProjects(nextBackup);
+    }
     
-    // 2. Start with the match engine results (city-matched, sorted)
-    const ranked = matchResults.filter(r => !rejectedSet.has(r.project.id));
-    
-    // 3. Ensure curated projects are in the list, even if match engine skipped them
-    // (e.g. they were from a different city added in Explorer)
-    const curatedPool = curatedIds
-      .filter(id => !rejectedSet.has(id))
-      .map(id => {
-        // Find if already in ranked
-        const existing = ranked.find(r => r.project.id === id);
-        if (existing) return existing;
-        
-        // If not in ranked, find in projects and add as "curated" match
-        const project = projects.find(p => p.id === id);
-        if (project) {
-          return {
-            project,
-            score: 100, // High score for explicit user selection
-            matchPct: 100,
-            tier: 'exact' as const,
-            reasons: ['Shortlisted by you'],
-            flags: []
-          };
-        }
-        return null;
-      })
-      .filter(Boolean) as MatchResult[];
-
-    // 4. Build final pool: [Curated Items] + [Other Top Matches]
-    const otherMatches = ranked.filter(r => !curatedIds.includes(r.project.id));
-    
-    return [...curatedPool, ...otherMatches].slice(0, 12);
-  }, [matchResults, curatedIds, rejectedIds, projects])
-
-  const removeFromCurated = (id: string) => {
-    // 1. Remove from curatedIds (if it was there)
-    const nextCurated = curatedIds.filter(cid => cid !== id);
-    setCuratedIds(nextCurated);
-    localStorage.setItem('curatedIds', JSON.stringify(nextCurated));
-
-    // 2. Add to rejectedIds so it never shows again this session
-    const nextRejected = [...rejectedIds, id];
-    setRejectedIds(nextRejected);
-    localStorage.setItem('rejectedProjectIds', JSON.stringify(nextRejected));
-
-    window.dispatchEvent(new Event('curatedUpdated'));
     toast('Removed');
   };
 
@@ -175,7 +189,7 @@ export default function DashboardPage() {
 
       <SectionContainer wide className="py-12 space-y-16">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-          {displayResults.map((result, i) => (
+          {rankedProjects.map((result, i) => (
             <div key={result.project.id} className="relative group">
 
               {/* ProjectCard with internal risk badge suppressed */}
@@ -215,7 +229,7 @@ export default function DashboardPage() {
 
                 {/* Remove pill — appears on card hover */}
                 <button
-                  onClick={() => removeFromCurated(result.project.id)}
+                  onClick={() => handleRemove(result.project.id)}
                   className="absolute inset-0 inline-flex items-center justify-center gap-1
                     px-2.5 text-[10px] font-bold rounded-full whitespace-nowrap
                     bg-[var(--danger)] text-white
