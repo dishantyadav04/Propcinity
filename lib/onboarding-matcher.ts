@@ -327,61 +327,87 @@ export function rankProjects(
   projects: any[],
   state: MatcherState
 ): MatchResult[] {
-  // Step 1: score every Pune (city-matched) project
+  // Step 1: Base City Filter
   const cityPool = projects.filter(p =>
     (p.city || '').toLowerCase() === state.city.toLowerCase()
   )
 
+  // Step 2: Score All Projects in City
   const scored: MatchResult[] = cityPool.map(p => scoreProject(p, state))
   scored.sort((a, b) => b.score - a.score)
 
-  // Step 2: split into exact/close vs fallback
-  const primary = scored.filter(r => r.tier !== 'fallback')
-  const fallbacks = scored.filter(r => r.tier === 'fallback')
+  // Step 3: Separate Strict Matches (Score >= 90)
+  const strictMatches = scored.filter(r => r.score >= 90)
 
-  if (primary.length >= MIN_DASHBOARD) {
-    return primary.slice(0, MIN_DASHBOARD)
+  if (strictMatches.length >= MIN_DASHBOARD) {
+    return strictMatches.slice(0, MIN_DASHBOARD)
   }
 
-  // Step 3: fill with smartly-sorted fallbacks
-  const preferredBHKNums = state.bhkType.map(b => parseBHKSelection(b)).filter(n => n > 0)
-  const maxPreferred = preferredBHKNums.length > 0 ? Math.max(...preferredBHKNums) : 2
+  // Step 4: Execute Fallback Pipeline
+  let finalResults = [...strictMatches]
+  const fallbackPool = scored.filter(r => r.score < 90)
+  const usedIds = new Set(finalResults.map(r => r.project.id))
 
-  const uMin = state.budgetMin > 0 ? state.budgetMin : 0
-  const uMax = state.isOpenMax ? Infinity : (state.budgetMax > 0 ? state.budgetMax : Infinity)
+  const addResults = (results: MatchResult[]) => {
+    for (const r of results) {
+      if (!usedIds.has(r.project.id)) {
+        finalResults.push(r)
+        usedIds.add(r.project.id)
+      }
+    }
+  }
 
-  fallbacks.sort((a, b) => {
-    // Priority: larger BHK (but not outrageously bigger) at similar budget first
-    // then smaller BHK at lower budget
-    // then anything by trust score
-    const aNums = getProjectBHKNums(a.project)
-    const bNums = getProjectBHKNums(b.project)
-    const aRange = getProjectPriceRange(a.project)
-    const bRange = getProjectPriceRange(b.project)
+  // LEVEL 1: Configuration Relaxation (Budget & Location Fixed)
+  // Has slightly different config, but fits budget and location perfectly.
+  const level1 = fallbackPool.filter(r => 
+    r.reasons.includes('Matches your budget') && 
+    (r.reasons.includes('In your preferred area') || r.reasons.includes('In your city')) &&
+    r.reasons.includes('Matches your property type')
+  )
+  level1.sort((a, b) => b.score - a.score)
+  addResults(level1)
+  if (finalResults.length >= MIN_DASHBOARD) return finalResults.slice(0, MIN_DASHBOARD)
 
-    let aP = 0, bP = 0
+  // LEVEL 2: Budget Expansion (Config & Location Fixed)
+  // Has slightly higher/lower budget, but exact config and location.
+  const level2 = fallbackPool.filter(r =>
+    r.flags.includes('Slightly outside budget') &&
+    r.reasons.includes('Matches your configuration') &&
+    (r.reasons.includes('In your preferred area') || r.reasons.includes('In your city'))
+  )
+  level2.sort((a, b) => b.score - a.score)
+  addResults(level2)
+  if (finalResults.length >= MIN_DASHBOARD) return finalResults.slice(0, MIN_DASHBOARD)
 
-    // Upward BHK suggestion (e.g. want 2BHK, suggest 3BHK first)
-    if (aNums.some(n => n > maxPreferred && n <= maxPreferred + 2)) aP += 40
-    if (bNums.some(n => n > maxPreferred && n <= maxPreferred + 2)) bP += 40
+  // LEVEL 3: Location Expansion (Budget & Config Fixed)
+  // Exact budget and config, but slightly different location.
+  const level3 = fallbackPool.filter(r =>
+    r.flags.includes('Outside preferred area') &&
+    r.reasons.includes('Matches your configuration') &&
+    r.reasons.includes('Matches your budget')
+  )
+  level3.sort((a, b) => b.score - a.score)
+  addResults(level3)
+  if (finalResults.length >= MIN_DASHBOARD) return finalResults.slice(0, MIN_DASHBOARD)
 
-    // Budget proximity bonus
-    if (aRange && priceRangesOverlap(aRange.min, aRange.max, uMin * 0.8, uMax * 1.2)) aP += 20
-    if (bRange && priceRangesOverlap(bRange.min, bRange.max, uMin * 0.8, uMax * 1.2)) bP += 20
+  // LEVEL 4: Property Type Relaxation
+  const level4 = fallbackPool.filter(r =>
+    r.flags.includes('Different property type')
+  )
+  level4.sort((a, b) => b.score - a.score)
+  addResults(level4)
+  if (finalResults.length >= MIN_DASHBOARD) return finalResults.slice(0, MIN_DASHBOARD)
 
-    // Trust score tiebreaker
-    aP += Math.round((a.project.trustScore || 0) / 10)
-    bP += Math.round((b.project.trustScore || 0) / 10)
+  // Pad with highest remaining scores if still under 10
+  const remaining = fallbackPool.filter(r => !usedIds.has(r.project.id))
+  remaining.sort((a, b) => b.score - a.score)
+  addResults(remaining)
 
-    return bP - aP
-  })
-
-  const needed = MIN_DASHBOARD - primary.length
-  return [...primary, ...fallbacks.slice(0, needed)]
+  return finalResults.slice(0, MIN_DASHBOARD)
 }
 
 // ─────────────────────────────────────────────────────────
-// INTERNAL: scoreProject
+// INTERNAL: scoreProject (100-Point Formula)
 // ─────────────────────────────────────────────────────────
 
 function scoreProject(project: any, state: MatcherState): MatchResult {
@@ -393,37 +419,33 @@ function scoreProject(project: any, state: MatcherState): MatchResult {
   const projBHKs = getProjectBHKNums(project)
   const priceRange = getProjectPriceRange(project)
 
-  // ── Location (30 pts) ──────────────────────────────────
-  const cityMatch = (project.city || '').toLowerCase() === state.city.toLowerCase()
-  if (!cityMatch) {
-    // Not in user's city — add to fallback only
-    score += 0
-  } else if (state.subLocations.length > 0) {
+  // ── Location (25 pts) ──────────────────────────────────
+  if (state.subLocations.length > 0) {
     if (locationMatchesSub(project.location || '', state.subLocations)) {
-      score += 30
-      reasons.push(`In ${project.location}`)
+      score += 25
+      reasons.push('In your preferred area')
     } else {
-      score += 10   // city match but different area
+      score += 0   
       flags.push('Outside preferred area')
     }
   } else {
-    score += 20     // city match, no sub-location set
+    score += 25     // city match, no sub-location set
     reasons.push('In your city')
   }
 
-  // ── Property type (20 pts) ─────────────────────────────
-  const hasBudget = state.budgetMin > 0 || state.budgetMax > 0
+  // ── Property type (15 pts) ─────────────────────────────
   if (state.propertyType.length > 0) {
     const typeMatch = state.propertyType.some(sel => projCats.includes(sel.toLowerCase()))
     if (typeMatch) {
-      score += 20
+      score += 15
       reasons.push('Matches your property type')
     } else {
-      score += 4
+      score += 0
       flags.push('Different property type')
     }
   } else {
-    score += 14   // no preference set
+    score += 15   // no preference set
+    reasons.push('Matches your property type')
   }
 
   // ── BHK (20 pts) ───────────────────────────────────────
@@ -433,87 +455,88 @@ function scoreProject(project: any, state: MatcherState): MatchResult {
       score += 20
       reasons.push('Matches your configuration')
     } else {
-      // Adjacent BHK — partial credit
+      // Fallback +1 or -1 BHK
       const preferredNums = state.bhkType.map(b => parseBHKSelection(b)).filter(n => n > 0)
-      const closestDiff = preferredNums.reduce((best, pref) => {
-        const diffs = projBHKs.map(b => Math.abs(b - pref))
-        return Math.min(best, diffs.length > 0 ? Math.min(...diffs) : Infinity)
-      }, Infinity)
+      
+      let isPlusOne = false
+      let isMinusOne = false
+      
+      projBHKs.forEach(b => {
+        if (preferredNums.some(pref => b > pref && b <= pref + 1.5)) isPlusOne = true
+        if (preferredNums.some(pref => b < pref && b >= pref - 1.5)) isMinusOne = true
+      })
 
-      if (closestDiff <= 1) {
+      if (isPlusOne) {
         score += 10
-        flags.push('Similar configuration available')
+        flags.push('Slightly larger configuration')
+      } else if (isMinusOne) {
+        score += 5
+        flags.push('Slightly smaller configuration')
       } else {
-        score += 3
+        score += 0
         flags.push('Different configuration')
       }
     }
   } else {
-    score += 14
+    score += 20
+    reasons.push('Matches your configuration')
   }
 
-  // ── Budget (20 pts) ────────────────────────────────────
+  // ── Budget (25 pts) ────────────────────────────────────
+  const hasBudget = state.budgetMin > 0 || state.budgetMax > 0
   if (hasBudget) {
     const uMin = state.budgetMin > 0 ? state.budgetMin : 0
     const uMax = state.isOpenMax ? Infinity : (state.budgetMax > 0 ? state.budgetMax : Infinity)
 
     if (!priceRange) {
-      score += 10   // no price info — neutral
+      score += 15   // no price info — neutral
     } else if (priceRangesOverlap(priceRange.min, priceRange.max, uMin, uMax)) {
-      score += 20
-      reasons.push('Within your budget')
+      score += 25
+      reasons.push('Matches your budget')
+    } else if (priceRangesOverlap(priceRange.min, priceRange.max, uMin * 0.9, uMax * 1.15)) {
+      score += 15
+      flags.push('Slightly outside budget')
     } else {
-      // How far outside?
-      const gap = priceRange.min > uMax
-        ? (priceRange.min - uMax) / Math.max(uMax, 1)
-        : (uMin - priceRange.max) / Math.max(uMin, 1)
-
-      if (gap <= 0.2) {
-        score += 8    // within 20% — close
-        flags.push('Slightly outside budget')
-      } else if (gap <= 0.5) {
-        score += 3
-        flags.push('Outside budget range')
-      } else {
-        score += 0
-        flags.push('Significantly outside budget')
-      }
+      score += 0
+      flags.push('Significantly outside budget')
     }
   } else {
-    score += 14   // no budget set — neutral
+    score += 25   // no budget set
+    reasons.push('Matches your budget')
   }
 
-  // ── Timeline (5 pts) ───────────────────────────────────
+  // ── Timeline (10 pts) ───────────────────────────────────
   if (state.timeline) {
     if (projectMatchesTimeline(project, state.timeline)) {
-      score += 5
+      score += 10
       reasons.push('Within your timeline')
     } else {
+      score += 0
       flags.push('Possession beyond your timeline')
     }
   } else {
-    score += 4
+    score += 10
   }
 
-  // ── Trust score bonus (5 pts) ──────────────────────────
+  // ── Soft Preferences / Trust (5 pts) ──────────────────────────
   const trust = project.trustScore || 0
   if (trust >= 80) { score += 5; reasons.push('Highly trusted builder') }
   else if (trust >= 65) score += 3
   else if (trust >= 50) score += 1
   else flags.push('Lower trust score')
 
-  // Cap at 100
-  score = Math.min(100, score)
+  // fractional tiebreaker for sorting
+  const finalScore = Math.min(100, score + (trust / 1000))
 
   const tier: MatchResult['tier'] =
-    score >= 75 ? 'exact' :
-    score >= 45 ? 'close' :
+    score >= 90 ? 'exact' :
+    score >= 60 ? 'close' :
     'fallback'
 
   return {
     project,
-    score,
-    matchPct: score,
+    score: finalScore,
+    matchPct: Math.floor(score), // display purely based on integer score
     tier,
     reasons,
     flags,
