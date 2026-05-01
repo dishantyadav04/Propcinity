@@ -1,58 +1,104 @@
-// ── Propcinity Onboarding Matcher ─────────────────────────
-// Clean progressive filtering system + smart fallback ranking
+// ─────────────────────────────────────────────────────────
+// Propcinity Onboarding Matcher — Clean Rewrite
+// ─────────────────────────────────────────────────────────
 
-export type PropertyType = 'apartment' | 'villa' | 'plot' | 'penthouse'
-
-export interface OnboardingState {
+export interface MatcherState {
   city: string
-  subLocations: string[]
-  purpose: string
-  propertyType: string[]
-  bhkType: string[]
-  budgetMin: number
-  budgetMax: number
-  isOpenMax: boolean
-  timeline: string
-  preferences: string[]
+  subLocations: string[]          // e.g. ["Wakad", "Baner"]
+  purpose: string                 // "self-use" | "investment" | "both"
+  propertyType: string[]          // ["apartment"] | ["villa"] | etc.
+  bhkType: string[]               // ["2BHK"] | ["3BHK", "2BHK"] etc.
+  budgetMin: number               // in rupees, 0 = not set
+  budgetMax: number               // in rupees, 0 = not set
+  isOpenMax: boolean              // true = 10Cr+
+  timeline: string                // "under_1_year" | "1_to_2_years" etc.
+  preferences: string[]           // soft, never blocks
 }
 
-// ── Type classification helpers ────────────────────────────
+export interface MatchResult {
+  project: any
+  score: number       // 0–100 raw
+  matchPct: number    // 0–100 displayed
+  tier: 'exact' | 'close' | 'fallback'
+  reasons: string[]
+  flags: string[]
+}
 
-export function classifyUnitType(unitType: string): PropertyType {
-  const t = unitType.toLowerCase()
+// ─────────────────────────────────────────────────────────
+// CLASSIFIERS
+// Every unit type in mock data maps to one of these.
+// Handles: "2BHK", "3BHK Villa", "4.5BHK", "Duplex 3BHK",
+//          "Plot", "Studio", "1RK", "3BHK Row House" etc.
+// ─────────────────────────────────────────────────────────
+
+function getPropertyCategory(unitType: string): string {
+  const t = unitType.toLowerCase().trim()
   if (t.includes('plot')) return 'plot'
   if (t.includes('villa') || t.includes('row house') || t.includes('bungalow')) return 'villa'
   if (t.includes('penthouse')) return 'penthouse'
-  // Anything with a number + BHK, studio, RK, duplex = apartment
+  // Everything else: apartment (BHK, Studio, RK, Duplex, etc.)
   return 'apartment'
 }
 
-export function getProjectTypes(project: any): Set<PropertyType> {
-  const types = new Set<PropertyType>()
+// Returns all categories a project has (a project can have both apartment + villa configs)
+function getProjectCategories(project: any): string[] {
+  const cats = new Set<string>()
   ;(project.unitConfigs || []).forEach((u: any) => {
-    types.add(classifyUnitType(u.type || ''))
+    cats.add(getPropertyCategory(u.type || ''))
   })
-  return types
+  return Array.from(cats)
 }
 
-export function getBHKNumbers(project: any): number[] {
+// Extract numeric BHK value from a unit type string
+// "2BHK" → 2, "2.5BHK" → 2.5, "Duplex 3BHK" → 3,
+// "3BHK Villa" → 3, "4BHK+" → 4, "Studio" → 0.5, "1RK" → 0.5
+function extractBHKNum(unitType: string): number | null {
+  const t = unitType.toLowerCase().trim()
+  // Match leading number: "2bhk", "2.5bhk", "duplex 3bhk", "3bhk villa"
+  const leadingNum = t.match(/(\d+(?:\.\d+)?)/)
+  if (leadingNum) return parseFloat(leadingNum[1])
+  if (t.includes('studio') || t.includes('rk')) return 0.5
+  return null
+}
+
+// Get all BHK numbers a project has across all its unit configs
+function getProjectBHKNums(project: any): number[] {
   const nums: number[] = []
   ;(project.unitConfigs || []).forEach((u: any) => {
-    const t = (u.type || '').toLowerCase()
-    const match = t.match(/^(\d+(?:\.\d+)?)/)
-    if (match) nums.push(parseFloat(match[1]))
+    const n = extractBHKNum(u.type || '')
+    if (n !== null) nums.push(n)
   })
-  return nums
+  return [...new Set(nums)]
 }
 
-export function getBHKLabel(bhkType: string): number | null {
-  const match = bhkType.toLowerCase().match(/^(\d+(?:\.\d+)?)/)
-  return match ? parseFloat(match[1]) : null
+// Parse the user's BHK selection into a number
+// "2BHK" → 2, "4BHK+" → 4.5 (means >=4), "Studio" → 0.5
+function parseBHKSelection(bhkType: string): number {
+  const t = bhkType.toLowerCase().trim()
+  if (t === '4bhk+') return 4.5       // 4+ means 4, 4.5, 5, etc.
+  if (t.includes('studio') || t.includes('rk')) return 0.5
+  const m = t.match(/^(\d+(?:\.\d+)?)/)
+  return m ? parseFloat(m[1]) : -1
 }
 
-// ── Location matching ──────────────────────────────────────
+// Check if a project has a unit matching user's BHK selection
+function projectMatchesBHK(project: any, bhkType: string): boolean {
+  const selNum = parseBHKSelection(bhkType)
+  const projNums = getProjectBHKNums(project)
+  if (selNum < 0) return false
+  if (bhkType === '4BHK+') {
+    // 4BHK+ means anything >= 4
+    return projNums.some(n => n >= 4)
+  }
+  // Direct numeric match
+  return projNums.some(n => n === selNum)
+}
 
-export function locationMatches(projectLocation: string, subLocations: string[]): boolean {
+// ─────────────────────────────────────────────────────────
+// LOCATION
+// ─────────────────────────────────────────────────────────
+
+function locationMatchesSub(projectLocation: string, subLocations: string[]): boolean {
   if (subLocations.length === 0) return true
   const pLoc = projectLocation.toLowerCase()
   return subLocations.some(sl => {
@@ -61,521 +107,415 @@ export function locationMatches(projectLocation: string, subLocations: string[])
   })
 }
 
-// ── Budget helpers ─────────────────────────────────────────
+// ─────────────────────────────────────────────────────────
+// PRICE
+// ─────────────────────────────────────────────────────────
 
-export function projectPriceRange(project: any): { min: number; max: number } | null {
+function getProjectPriceRange(project: any): { min: number; max: number } | null {
   const configs = project.unitConfigs || []
   if (configs.length === 0) return null
-  const mins = configs.map((u: any) => u.priceMin).filter(Boolean)
-  const maxs = configs.map((u: any) => u.priceMax || u.priceMin).filter(Boolean)
+  const mins = configs.map((u: any) => u.priceMin).filter((v: any) => v > 0)
+  const maxs = configs.map((u: any) => u.priceMax || u.priceMin).filter((v: any) => v > 0)
   if (mins.length === 0) return null
   return { min: Math.min(...mins), max: Math.max(...maxs) }
 }
 
-export function budgetOverlaps(
-  projMin: number, projMax: number,
-  userMin: number, userMax: number
+function priceRangesOverlap(
+  pMin: number, pMax: number,
+  uMin: number, uMax: number
 ): boolean {
-  // Range [projMin, projMax] overlaps [userMin, userMax]
-  return projMin <= userMax && projMax >= userMin
+  return pMin <= uMax && pMax >= uMin
 }
 
-// ── Timeline helpers ───────────────────────────────────────
+// ─────────────────────────────────────────────────────────
+// TIMELINE
+// ─────────────────────────────────────────────────────────
 
-export function getMonthsTopossession(possessionDate: string): number {
+function getMonthsToDate(dateStr: string): number {
   const now = new Date()
-  const poss = new Date(possessionDate)
-  return Math.round((poss.getTime() - now.getTime()) / (1000 * 60 * 60 * 24 * 30))
+  const d = new Date(dateStr)
+  return Math.round((d.getTime() - now.getTime()) / (1000 * 60 * 60 * 24 * 30))
 }
 
-export function timelineMatches(project: any, timeline: string): boolean {
+function projectMatchesTimeline(project: any, timeline: string): boolean {
   if (!timeline || !project.possessionDate) return true
-  const months = getMonthsToPosition(project.possessionDate)
-  if (months <= 0) return true // already delivered — matches everything
+  const months = getMonthsToDate(project.possessionDate)
+  if (months <= 0) return true  // already delivered — matches everything
   switch (timeline) {
     case 'under_1_year':  return months <= 14
     case '1_to_2_years':  return months <= 30
     case '3_to_5_years':  return months <= 66
-    case '5_plus':        return true
+    case '5_plus':        return true   // long-term = anything qualifies
     default:              return true
   }
 }
 
-// Fix typo — use this everywhere
-function getMonthsToPosition(possessionDate: string): number {
-  return getMonthsTopossession(possessionDate)
-}
+// ─────────────────────────────────────────────────────────
+// PROGRESSIVE POOL BUILDER
+// Builds the filtered pool step by step.
+// Each step only narrows the pool further (never widens).
+// Exception: timeline is soft (never drops to 0).
+// ─────────────────────────────────────────────────────────
 
-// ── MAIN PROGRESSIVE FILTER ────────────────────────────────
-// Returns the count at the current step, following the exact
-// logic described:
-// Step 2: city → sublocation filter
-// Step 3: purpose = no filter change (display step only)
-// Step 4: property type filter (sum of all types = pool before)
-// Step 5: BHK filter (sum of all BHK options = pool before)
-// Step 6: budget filter (union across ranges, count once)
-// Step 7: timeline filter (sum of all options = pool before)
+function buildPool(allProjects: any[], state: MatcherState, upToStep: number): any[] {
+  let pool = [...allProjects]
 
-export function getMatchingCount(
-  projects: any[],
-  state: OnboardingState,
-  currentStep: number
-): number {
-  let pool = [...projects]
-
-  // Step 2+ — city
+  // Always: city filter
   pool = pool.filter(p =>
     (p.city || '').toLowerCase() === state.city.toLowerCase()
   )
 
-  // Step 2+ — sub-locations (only if selected)
+  // Step 2+: sub-location (only if user selected any)
   if (state.subLocations.length > 0) {
-    pool = pool.filter(p => locationMatches(p.location || '', state.subLocations))
+    pool = pool.filter(p => locationMatchesSub(p.location || '', state.subLocations))
   }
 
-  // Step 3 — purpose: NO filter, count stays same
-  // (Purpose affects scoring, not filtering)
+  // Step 3: purpose — NO filtering (purpose only affects scoring)
 
-  // Step 4+ — property type
-  if (currentStep >= 4 && state.propertyType.length > 0) {
-    const typeFiltered = pool.filter(p => {
-      const projTypes = getProjectTypes(p)
-      return state.propertyType.some(sel =>
-        projTypes.has(sel.toLowerCase() as PropertyType)
-      )
+  // Step 4+: property type (only if selected)
+  if (upToStep >= 4 && state.propertyType.length > 0) {
+    const filtered = pool.filter(p => {
+      const cats = getProjectCategories(p)
+      return state.propertyType.some(sel => cats.includes(sel.toLowerCase()))
     })
-    // Always apply — if user selected something, filter by it
-    pool = typeFiltered
+    pool = filtered  // hard filter — user explicitly chose a type
   }
 
-  // Step 5+ — BHK type
-  if (currentStep >= 5 && state.bhkType.length > 0) {
-    const bhkFiltered = pool.filter(p => {
-      const projBHKs = getBHKNumbers(p)
-      const projTypes = (p.unitConfigs || []).map((u: any) => (u.type || '').toLowerCase())
-      return state.bhkType.some(sel => {
-        const selNum = getBHKLabel(sel)
-        const selLow = sel.toLowerCase()
-        // Exact string match first
-        if (projTypes.some((t: string) => t === selLow || t.includes(selLow))) return true
-        // Numeric match
-        if (selNum !== null && projBHKs.includes(selNum)) return true
-        return false
-      })
+  // Step 5+: BHK type (only if selected)
+  if (upToStep >= 5 && state.bhkType.length > 0) {
+    const filtered = pool.filter(p =>
+      state.bhkType.some(bhk => projectMatchesBHK(p, bhk))
+    )
+    pool = filtered  // hard filter — user explicitly chose BHK
+  }
+
+  // Step 6+: budget (only if user set a non-zero budget)
+  const hasBudget = state.budgetMin > 0 || state.budgetMax > 0
+  if (upToStep >= 6 && hasBudget) {
+    const uMin = state.budgetMin > 0 ? state.budgetMin : 0
+    const uMax = state.isOpenMax ? Infinity : (state.budgetMax > 0 ? state.budgetMax : Infinity)
+    const filtered = pool.filter(p => {
+      const range = getProjectPriceRange(p)
+      if (!range) return true    // no price data — include (benefit of the doubt)
+      return priceRangesOverlap(range.min, range.max, uMin, uMax)
     })
-    pool = bhkFiltered
+    pool = filtered  // hard filter — user set a budget
   }
 
-  // Step 6+ — budget (union logic: each project counted once even if it
-  // falls in multiple ranges)
-  const userHasBudget = state.budgetMin > 0 || state.budgetMax > 0
-  if (currentStep >= 6 && userHasBudget) {
-    const userMin = state.budgetMin || 0
-    const userMax = state.isOpenMax ? Infinity : (state.budgetMax > 0 ? state.budgetMax : Infinity)
-    const budgetFiltered = pool.filter(p => {
-      const range = projectPriceRange(p)
-      if (!range) return true // no price data — include
-      return budgetOverlaps(range.min, range.max, userMin, userMax)
-    })
-    // Budget is a hard filter — if user set a budget, apply it
-    pool = budgetFiltered
+  // Step 7+: timeline (SOFT — never drops to 0)
+  if (upToStep >= 7 && state.timeline) {
+    const filtered = pool.filter(p => projectMatchesTimeline(p, state.timeline))
+    if (filtered.length > 0) pool = filtered
+    // If filtered is empty, keep the pool as-is (soft filter)
   }
 
-  // Step 7+ — timeline (soft: never drops to 0)
-  if (currentStep >= 7 && state.timeline) {
-    const tlFiltered = pool.filter(p => timelineMatches(p, state.timeline))
-    // Only apply if result > 0
-    if (tlFiltered.length > 0) pool = tlFiltered
-  }
-
-  return pool.length
+  return pool
 }
 
-// ── COUNT PER OPTION (for showing counts on buttons) ──────
+// ─────────────────────────────────────────────────────────
+// PUBLIC: getMatchingCount
+// Returns the count for the current step.
+// ─────────────────────────────────────────────────────────
 
-// Count for each property type option (step 4)
-// Input: pool BEFORE type filter (after city+subloc)
+export function getMatchingCount(
+  projects: any[],
+  state: MatcherState,
+  currentStep: number
+): number {
+  return buildPool(projects, state, currentStep).length
+}
+
+// ─────────────────────────────────────────────────────────
+// PUBLIC: countsByPropertyType
+// For step 4 buttons — how many projects match each type
+// from the pool AFTER city+sublocation (before type filter).
+// ─────────────────────────────────────────────────────────
+
 export function countsByPropertyType(
   projects: any[],
-  state: OnboardingState
-): Record<PropertyType, number> {
-  // Build pool up to step 3 (city + subloc, no type filter)
-  let pool = projects.filter(p =>
-    (p.city || '').toLowerCase() === state.city.toLowerCase()
-  )
-  if (state.subLocations.length > 0) {
-    pool = pool.filter(p => locationMatches(p.location || '', state.subLocations))
-  }
-
-  const counts: Record<PropertyType, number> = {
+  state: MatcherState
+): Record<string, number> {
+  // Pool up to step 3 (city + subloc, no type filter)
+  const pool = buildPool(projects, { ...state, propertyType: [] }, 3)
+  const result: Record<string, number> = {
     apartment: 0, villa: 0, plot: 0, penthouse: 0
   }
   pool.forEach(p => {
-    const seen = new Set<PropertyType>()
-    ;(p.unitConfigs || []).forEach((u: any) => {
-      const t = classifyUnitType(u.type || '')
-      if (!seen.has(t)) {
-        counts[t]++
-        seen.add(t)
-      }
+    const cats = getProjectCategories(p)
+    cats.forEach(c => {
+      if (c in result) result[c]++
     })
   })
-  // VERIFY: sum of all counts should equal pool.length
-  // (some projects may appear in multiple categories if they have mixed configs)
-  return counts
-}
-
-// Count for each BHK option (step 5)
-// Input: pool AFTER type filter
-export function countsByBHK(
-  projects: any[],
-  state: OnboardingState,
-  bhkOptions: string[]
-): Record<string, number> {
-  // Build pool up to step 4 (city + subloc + type filter)
-  let pool = projects.filter(p =>
-    (p.city || '').toLowerCase() === state.city.toLowerCase()
-  )
-  if (state.subLocations.length > 0) {
-    pool = pool.filter(p => locationMatches(p.location || '', state.subLocations))
-  }
-  if (state.propertyType.length > 0) {
-    pool = pool.filter(p => {
-      const projTypes = getProjectTypes(p)
-      return state.propertyType.some(sel =>
-        projTypes.has(sel.toLowerCase() as PropertyType)
-      )
-    })
-  }
-
-  const counts: Record<string, number> = {}
-  bhkOptions.forEach(bhk => {
-    const selNum = getBHKLabel(bhk)
-    const selLow = bhk.toLowerCase()
-    counts[bhk] = pool.filter(p => {
-      const projBHKs = getBHKNumbers(p)
-      const projTypes = (p.unitConfigs || []).map((u: any) => (u.type || '').toLowerCase())
-      if (projTypes.some((t: string) => t === selLow || t.includes(selLow))) return true
-      if (selNum !== null && projBHKs.includes(selNum)) return true
-      return false
-    }).length
-  })
-  return counts
-}
-
-// Count for each budget option (step 6)
-// Note: uses UNION — project counted once per option it falls in
-export function countsByBudget(
-  projects: any[],
-  state: OnboardingState,
-  budgetOptions: { min: number; max: number; label: string }[]
-): Record<string, number> {
-  // Build pool up to step 5
-  let pool = projects.filter(p =>
-    (p.city || '').toLowerCase() === state.city.toLowerCase()
-  )
-  if (state.subLocations.length > 0) {
-    pool = pool.filter(p => locationMatches(p.location || '', state.subLocations))
-  }
-  if (state.propertyType.length > 0) {
-    pool = pool.filter(p => {
-      const projTypes = getProjectTypes(p)
-      return state.propertyType.some(sel =>
-        projTypes.has(sel.toLowerCase() as PropertyType)
-      )
-    })
-  }
-  if (state.bhkType.length > 0) {
-    pool = pool.filter(p => {
-      const projBHKs = getBHKNumbers(p)
-      const projTypes = (p.unitConfigs || []).map((u: any) => (u.type || '').toLowerCase())
-      return state.bhkType.some(sel => {
-        const selNum = getBHKLabel(sel)
-        const selLow = sel.toLowerCase()
-        if (projTypes.some((t: string) => t === selLow || t.includes(selLow))) return true
-        if (selNum !== null && projBHKs.includes(selNum)) return true
-        return false
-      })
-    })
-  }
-
-  const counts: Record<string, number> = {}
-  budgetOptions.forEach(opt => {
-    const uMax = opt.max === Infinity ? Infinity : opt.max
-    counts[opt.label] = pool.filter(p => {
-      const range = projectPriceRange(p)
-      if (!range) return false
-      return budgetOverlaps(range.min, range.max, opt.min, uMax)
-    }).length
-  })
-  return counts
-}
-
-// Count for each timeline option (step 7)
-export function countsByTimeline(
-  projects: any[],
-  state: OnboardingState,
-  timelineOptions: { id: string; label: string }[]
-): Record<string, number> {
-  // Build pool up to step 6
-  let pool = projects.filter(p =>
-    (p.city || '').toLowerCase() === state.city.toLowerCase()
-  )
-  if (state.subLocations.length > 0) {
-    pool = pool.filter(p => locationMatches(p.location || '', state.subLocations))
-  }
-  if (state.propertyType.length > 0) {
-    pool = pool.filter(p => {
-      const projTypes = getProjectTypes(p)
-      return state.propertyType.some(sel =>
-        projTypes.has(sel.toLowerCase() as PropertyType)
-      )
-    })
-  }
-  if (state.bhkType.length > 0) {
-    pool = pool.filter(p => {
-      const projBHKs = getBHKNumbers(p)
-      const projTypes = (p.unitConfigs || []).map((u: any) => (u.type || '').toLowerCase())
-      return state.bhkType.some(sel => {
-        const selNum = getBHKLabel(sel)
-        const selLow = sel.toLowerCase()
-        if (projTypes.some((t: string) => t === selLow || t.includes(selLow))) return true
-        if (selNum !== null && projBHKs.includes(selNum)) return true
-        return false
-      })
-    })
-  }
-  const userMin = state.budgetMin || 0
-  const userMax = state.isOpenMax ? Infinity : (state.budgetMax > 0 ? state.budgetMax : Infinity)
-  if (state.budgetMin > 0 || state.budgetMax > 0) {
-    pool = pool.filter(p => {
-      const range = projectPriceRange(p)
-      if (!range) return true
-      return budgetOverlaps(range.min, range.max, userMin, userMax)
-    })
-  }
-
-  const counts: Record<string, number> = {}
-  timelineOptions.forEach(opt => {
-    counts[opt.id] = pool.filter(p => timelineMatches(p, opt.id)).length
-  })
-  return counts
-}
-
-// ── DASHBOARD RANKING ──────────────────────────────────────
-// Scores each project 0-100 based on how well it matches
-// all criteria, then fills to MIN_RESULTS with best fallbacks
-
-export interface MatchResult {
-  project: any
-  score: number          // 0-100
-  matchPct: number       // displayed as "X% match"
-  tier: 'exact' | 'close' | 'fallback'
-  reasons: string[]
-  flags: string[]
-}
-
-const MIN_DASHBOARD = 10 // always show at least 10 on dashboard
-
-export function rankProjects(
-  projects: any[],
-  state: OnboardingState
-): MatchResult[] {
-
-  const scored: MatchResult[] = []
-
-  for (const p of projects) {
-    let score = 0
-    const reasons: string[] = []
-    const flags: string[] = []
-
-    // ── Location (0-25) ────────────────────────────────────
-    const cityMatch = (p.city || '').toLowerCase() === state.city.toLowerCase()
-    if (!cityMatch) {
-      score += 0
-    } else if (state.subLocations.length > 0) {
-      if (locationMatches(p.location || '', state.subLocations)) {
-        score += 25
-        reasons.push(`In ${p.location}`)
-      } else {
-        score += 10 // city match but not sub-location
-        flags.push('Outside your preferred area')
-      }
-    } else {
-      score += 20 // city match, no sub-location preference
-      reasons.push('In your city')
-    }
-
-    // ── Property type (0-20) ───────────────────────────────
-    if (state.propertyType.length > 0) {
-      const projTypes = getProjectTypes(p)
-      const typeMatch = state.propertyType.some(sel =>
-        projTypes.has(sel.toLowerCase() as PropertyType)
-      )
-      if (typeMatch) {
-        score += 20
-        reasons.push('Matches your property type')
-      } else {
-        score += 5
-        flags.push('Different property type')
-      }
-    } else {
-      score += 15 // no preference
-    }
-
-    // ── BHK (0-20) ─────────────────────────────────────────
-    if (state.bhkType.length > 0) {
-      const projBHKs = getBHKNumbers(p)
-      const projTypes = (p.unitConfigs || []).map((u: any) => (u.type || '').toLowerCase())
-      const exactBHK = state.bhkType.some(sel => {
-        const selNum = getBHKLabel(sel)
-        const selLow = sel.toLowerCase()
-        if (projTypes.some((t: string) => t === selLow || t.includes(selLow))) return true
-        if (selNum !== null && projBHKs.includes(selNum)) return true
-        return false
-      })
-
-      if (exactBHK) {
-        score += 20
-        reasons.push('Has your preferred configuration')
-      } else {
-        // Partial credit for close BHK (adjacent sizes)
-        const preferredNums = state.bhkType.map(b => getBHKLabel(b)).filter(n => n !== null) as number[]
-        const closest = preferredNums.reduce((best, pref) => {
-          const diff = Math.min(...projBHKs.map(b => Math.abs(b - pref)))
-          return Math.min(best, diff)
-        }, Infinity)
-
-        if (closest <= 1) {
-          score += 10  // adjacent BHK (e.g. want 2BHK, has 3BHK)
-          flags.push('Similar configuration available')
-        } else {
-          score += 3
-          flags.push('Different configuration')
-        }
-      }
-    } else {
-      score += 15
-    }
-
-    // ── Budget (0-20) ──────────────────────────────────────
-    const userHasBudget = state.budgetMin > 0 || state.budgetMax > 0
-    if (userHasBudget) {
-      const userMin = state.budgetMin || 0
-      const userMax = state.isOpenMax ? Infinity : (state.budgetMax > 0 ? state.budgetMax : Infinity)
-      const range = projectPriceRange(p)
-
-      if (!range) {
-        score += 10 // no price info
-      } else if (budgetOverlaps(range.min, range.max, userMin, userMax)) {
-        score += 20
-        reasons.push('Within your budget')
-      } else {
-        // How far is it?
-        const gap = range.min > userMax
-          ? range.min - userMax   // project is more expensive
-          : userMin - range.max   // project is cheaper
-        const gapPct = gap / Math.max(userMax, 1)
-        if (gapPct <= 0.2) {
-          score += 8  // within 20% of budget
-          flags.push('Slightly outside budget')
-        } else if (gapPct <= 0.5) {
-          score += 3
-          flags.push('Outside budget range')
-        } else {
-          score += 0
-          flags.push('Significantly outside budget')
-        }
-      }
-    } else {
-      score += 15
-    }
-
-    // ── Timeline (0-10) ────────────────────────────────────
-    if (state.timeline) {
-      if (timelineMatches(p, state.timeline)) {
-        score += 10
-        reasons.push('Available in your timeline')
-      } else {
-        score += 3
-        flags.push('Possession beyond your timeline')
-      }
-    } else {
-      score += 8
-    }
-
-    // ── Trust bonus (0-5) ──────────────────────────────────
-    if ((p.trustScore || 0) >= 80) score += 5
-    else if ((p.trustScore || 0) >= 65) score += 3
-    else if ((p.trustScore || 0) >= 50) score += 1
-
-    // Calculate match percentage (0-100)
-    const maxPossible = 100
-    const matchPct = Math.min(100, Math.round(score))
-
-    // Tier: exact = all primary criteria match, close = most match, fallback = partial
-    const primaryScore = score - (score >= 90 ? 5 : 0) // exclude trust bonus for tier
-    const tier: MatchResult['tier'] =
-      primaryScore >= 80 ? 'exact' :
-      primaryScore >= 50 ? 'close' :
-      'fallback'
-
-    scored.push({ project: p, score, matchPct, tier, reasons, flags })
-  }
-
-  // Sort: highest match first
-  scored.sort((a, b) => b.score - a.score)
-
-  // ── Smart fallback to fill MIN_DASHBOARD slots ─────────
-  // Strategy: if fewer than MIN_DASHBOARD exact/close matches,
-  // fill with best fallbacks in this priority order:
-  // 1. Same city, bigger BHK (e.g. want 2BHK → suggest 3BHK first)
-  // 2. Same city, smaller BHK but lower budget
-  // 3. Same city, any type
-
-  const exactClose = scored.filter(r => r.tier !== 'fallback')
-  const fallbacks = scored.filter(r => r.tier === 'fallback')
-
-  if (exactClose.length >= MIN_DASHBOARD) {
-    return exactClose.slice(0, MIN_DASHBOARD)
-  }
-
-  // Need fallbacks — sort them smartly
-  const preferredBHKNums = state.bhkType.map(b => getBHKLabel(b)).filter(n => n !== null) as number[]
-  const maxPreferredBHK = preferredBHKNums.length > 0 ? Math.max(...preferredBHKNums) : 2
-
-  fallbacks.sort((a, b) => {
-    const aScore = fallbackPriority(a.project, maxPreferredBHK, state)
-    const bScore = fallbackPriority(b.project, maxPreferredBHK, state)
-    return bScore - aScore
-  })
-
-  const needed = MIN_DASHBOARD - exactClose.length
-  const result = [...exactClose, ...fallbacks.slice(0, needed)]
   return result
 }
 
-function fallbackPriority(project: any, maxPreferredBHK: number, state: OnboardingState): number {
-  let p = 0
-  const projBHKs = getBHKNumbers(project)
-  const userMax = state.isOpenMax ? Infinity : (state.budgetMax > 0 ? state.budgetMax : Infinity)
-  const range = projectPriceRange(project)
+// ─────────────────────────────────────────────────────────
+// PUBLIC: countsByBHK
+// For step 5 buttons — how many projects match each BHK
+// from the pool AFTER type filter.
+// ─────────────────────────────────────────────────────────
 
-  // Priority 1: larger BHK in same budget (more value for money)
-  if (projBHKs.some(b => b > maxPreferredBHK)) {
-    p += 30
-    // But only if budget is close
-    if (range && range.min <= userMax * 1.15) p += 20
+export function countsByBHK(
+  projects: any[],
+  state: MatcherState,
+  bhkOptions: string[]
+): Record<string, number> {
+  // Pool up to step 4 (includes type filter, no BHK filter)
+  const pool = buildPool(projects, { ...state, bhkType: [] }, 4)
+  const result: Record<string, number> = {}
+  bhkOptions.forEach(bhk => {
+    result[bhk] = pool.filter(p => projectMatchesBHK(p, bhk)).length
+  })
+  return result
+}
+
+// ─────────────────────────────────────────────────────────
+// PUBLIC: countsByBudget
+// For step 6 — how many projects match each budget range
+// from the pool AFTER BHK filter (union logic — project
+// counted once per range even if it spans multiple).
+// ─────────────────────────────────────────────────────────
+
+export function countsByBudget(
+  projects: any[],
+  state: MatcherState,
+  budgetOptions: { label: string; min: number; max: number }[]
+): Record<string, number> {
+  // Pool up to step 5
+  const pool = buildPool(projects, { ...state, budgetMin: 0, budgetMax: 0, isOpenMax: false }, 5)
+  const result: Record<string, number> = {}
+  budgetOptions.forEach(opt => {
+    const uMax = opt.max === Infinity ? Infinity : opt.max
+    result[opt.label] = pool.filter(p => {
+      const range = getProjectPriceRange(p)
+      if (!range) return false
+      return priceRangesOverlap(range.min, range.max, opt.min, uMax)
+    }).length
+  })
+  return result
+}
+
+// ─────────────────────────────────────────────────────────
+// PUBLIC: countsByTimeline
+// For step 7 — how many projects match each timeline
+// from the pool AFTER budget filter.
+// ─────────────────────────────────────────────────────────
+
+export function countsByTimeline(
+  projects: any[],
+  state: MatcherState,
+  timelineOptions: { id: string; label: string }[]
+): Record<string, number> {
+  // Pool up to step 6
+  const pool = buildPool(projects, { ...state, timeline: '' }, 6)
+  const result: Record<string, number> = {}
+  timelineOptions.forEach(opt => {
+    result[opt.id] = pool.filter(p => projectMatchesTimeline(p, opt.id)).length
+  })
+  return result
+}
+
+// ─────────────────────────────────────────────────────────
+// PUBLIC: rankProjects
+// Scores every project 0-100 and returns sorted list.
+// Fills to MIN_COUNT with best fallbacks using smart priority.
+// ─────────────────────────────────────────────────────────
+
+const MIN_DASHBOARD = 10
+
+export function rankProjects(
+  projects: any[],
+  state: MatcherState
+): MatchResult[] {
+  // Step 1: score every Pune (city-matched) project
+  const cityPool = projects.filter(p =>
+    (p.city || '').toLowerCase() === state.city.toLowerCase()
+  )
+
+  const scored: MatchResult[] = cityPool.map(p => scoreProject(p, state))
+  scored.sort((a, b) => b.score - a.score)
+
+  // Step 2: split into exact/close vs fallback
+  const primary = scored.filter(r => r.tier !== 'fallback')
+  const fallbacks = scored.filter(r => r.tier === 'fallback')
+
+  if (primary.length >= MIN_DASHBOARD) {
+    return primary.slice(0, MIN_DASHBOARD)
   }
 
-  // Priority 2: smaller BHK but cheaper (budget alternative)
-  if (projBHKs.some(b => b < maxPreferredBHK)) {
-    p += 15
-    if (range && range.min < (state.budgetMin || 0) * 0.9) p += 10 // meaningfully cheaper
+  // Step 3: fill with smartly-sorted fallbacks
+  const preferredBHKNums = state.bhkType.map(b => parseBHKSelection(b)).filter(n => n > 0)
+  const maxPreferred = preferredBHKNums.length > 0 ? Math.max(...preferredBHKNums) : 2
+
+  const uMin = state.budgetMin > 0 ? state.budgetMin : 0
+  const uMax = state.isOpenMax ? Infinity : (state.budgetMax > 0 ? state.budgetMax : Infinity)
+
+  fallbacks.sort((a, b) => {
+    // Priority: larger BHK (but not outrageously bigger) at similar budget first
+    // then smaller BHK at lower budget
+    // then anything by trust score
+    const aNums = getProjectBHKNums(a.project)
+    const bNums = getProjectBHKNums(b.project)
+    const aRange = getProjectPriceRange(a.project)
+    const bRange = getProjectPriceRange(b.project)
+
+    let aP = 0, bP = 0
+
+    // Upward BHK suggestion (e.g. want 2BHK, suggest 3BHK first)
+    if (aNums.some(n => n > maxPreferred && n <= maxPreferred + 2)) aP += 40
+    if (bNums.some(n => n > maxPreferred && n <= maxPreferred + 2)) bP += 40
+
+    // Budget proximity bonus
+    if (aRange && priceRangesOverlap(aRange.min, aRange.max, uMin * 0.8, uMax * 1.2)) aP += 20
+    if (bRange && priceRangesOverlap(bRange.min, bRange.max, uMin * 0.8, uMax * 1.2)) bP += 20
+
+    // Trust score tiebreaker
+    aP += Math.round((a.project.trustScore || 0) / 10)
+    bP += Math.round((b.project.trustScore || 0) / 10)
+
+    return bP - aP
+  })
+
+  const needed = MIN_DASHBOARD - primary.length
+  return [...primary, ...fallbacks.slice(0, needed)]
+}
+
+// ─────────────────────────────────────────────────────────
+// INTERNAL: scoreProject
+// ─────────────────────────────────────────────────────────
+
+function scoreProject(project: any, state: MatcherState): MatchResult {
+  let score = 0
+  const reasons: string[] = []
+  const flags: string[] = []
+
+  const projCats = getProjectCategories(project)
+  const projBHKs = getProjectBHKNums(project)
+  const priceRange = getProjectPriceRange(project)
+
+  // ── Location (30 pts) ──────────────────────────────────
+  const cityMatch = (project.city || '').toLowerCase() === state.city.toLowerCase()
+  if (!cityMatch) {
+    // Not in user's city — add to fallback only
+    score += 0
+  } else if (state.subLocations.length > 0) {
+    if (locationMatchesSub(project.location || '', state.subLocations)) {
+      score += 30
+      reasons.push(`In ${project.location}`)
+    } else {
+      score += 10   // city match but different area
+      flags.push('Outside preferred area')
+    }
+  } else {
+    score += 20     // city match, no sub-location set
+    reasons.push('In your city')
   }
 
-  // Trust score bonus
-  p += Math.round((project.trustScore || 0) / 10)
+  // ── Property type (20 pts) ─────────────────────────────
+  const hasBudget = state.budgetMin > 0 || state.budgetMax > 0
+  if (state.propertyType.length > 0) {
+    const typeMatch = state.propertyType.some(sel => projCats.includes(sel.toLowerCase()))
+    if (typeMatch) {
+      score += 20
+      reasons.push('Matches your property type')
+    } else {
+      score += 4
+      flags.push('Different property type')
+    }
+  } else {
+    score += 14   // no preference set
+  }
 
-  return p
+  // ── BHK (20 pts) ───────────────────────────────────────
+  if (state.bhkType.length > 0) {
+    const exactBHK = state.bhkType.some(bhk => projectMatchesBHK(project, bhk))
+    if (exactBHK) {
+      score += 20
+      reasons.push('Matches your configuration')
+    } else {
+      // Adjacent BHK — partial credit
+      const preferredNums = state.bhkType.map(b => parseBHKSelection(b)).filter(n => n > 0)
+      const closestDiff = preferredNums.reduce((best, pref) => {
+        const diffs = projBHKs.map(b => Math.abs(b - pref))
+        return Math.min(best, diffs.length > 0 ? Math.min(...diffs) : Infinity)
+      }, Infinity)
+
+      if (closestDiff <= 1) {
+        score += 10
+        flags.push('Similar configuration available')
+      } else {
+        score += 3
+        flags.push('Different configuration')
+      }
+    }
+  } else {
+    score += 14
+  }
+
+  // ── Budget (20 pts) ────────────────────────────────────
+  if (hasBudget) {
+    const uMin = state.budgetMin > 0 ? state.budgetMin : 0
+    const uMax = state.isOpenMax ? Infinity : (state.budgetMax > 0 ? state.budgetMax : Infinity)
+
+    if (!priceRange) {
+      score += 10   // no price info — neutral
+    } else if (priceRangesOverlap(priceRange.min, priceRange.max, uMin, uMax)) {
+      score += 20
+      reasons.push('Within your budget')
+    } else {
+      // How far outside?
+      const gap = priceRange.min > uMax
+        ? (priceRange.min - uMax) / Math.max(uMax, 1)
+        : (uMin - priceRange.max) / Math.max(uMin, 1)
+
+      if (gap <= 0.2) {
+        score += 8    // within 20% — close
+        flags.push('Slightly outside budget')
+      } else if (gap <= 0.5) {
+        score += 3
+        flags.push('Outside budget range')
+      } else {
+        score += 0
+        flags.push('Significantly outside budget')
+      }
+    }
+  } else {
+    score += 14   // no budget set — neutral
+  }
+
+  // ── Timeline (5 pts) ───────────────────────────────────
+  if (state.timeline) {
+    if (projectMatchesTimeline(project, state.timeline)) {
+      score += 5
+      reasons.push('Within your timeline')
+    } else {
+      flags.push('Possession beyond your timeline')
+    }
+  } else {
+    score += 4
+  }
+
+  // ── Trust score bonus (5 pts) ──────────────────────────
+  const trust = project.trustScore || 0
+  if (trust >= 80) { score += 5; reasons.push('Highly trusted builder') }
+  else if (trust >= 65) score += 3
+  else if (trust >= 50) score += 1
+  else flags.push('Lower trust score')
+
+  // Cap at 100
+  score = Math.min(100, score)
+
+  const tier: MatchResult['tier'] =
+    score >= 75 ? 'exact' :
+    score >= 45 ? 'close' :
+    'fallback'
+
+  return {
+    project,
+    score,
+    matchPct: score,
+    tier,
+    reasons,
+    flags,
+  }
 }

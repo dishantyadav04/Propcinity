@@ -10,7 +10,8 @@ import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import Skeleton from "@/components/ui/Skeleton";
 import { toast } from "sonner";
-import { rankProjects, MatchResult } from '@/lib/onboarding-matcher'
+import { rankProjects } from '@/lib/onboarding-matcher'
+import type { MatchResult, MatcherState } from '@/lib/onboarding-matcher'
 
 export default function DashboardPage() {
   const [projects, setProjects] = useState<Project[]>([]);
@@ -44,9 +45,9 @@ export default function DashboardPage() {
   const matchResults = useMemo((): MatchResult[] => {
     if (projects.length === 0) return []
     if (!userIntent) {
-      // No preferences: sort by trust score
-      return projects
+      return [...projects]
         .sort((a, b) => (b.trustScore || 0) - (a.trustScore || 0))
+        .slice(0, 10)
         .map(p => ({
           project: p,
           score: p.trustScore || 50,
@@ -57,7 +58,7 @@ export default function DashboardPage() {
         }))
     }
 
-    const state = {
+    const state: MatcherState = {
       city: (userIntent as any).city || userIntent.location || 'Pune',
       subLocations: (userIntent as any).subLocations || [],
       purpose: userIntent.purpose || '',
@@ -136,78 +137,81 @@ export default function DashboardPage() {
       <SectionContainer wide className="py-12 space-y-16">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
           {displayResults.map((result, i) => (
-            <div key={result.project.id} className="relative group cursor-default">
-              <ProjectCard project={result.project} index={i} />
+            <div key={result.project.id} className="relative group">
 
-              {/* Risk + Remove — same height, same position, toggle on hover */}
-              <div className="absolute top-3 left-3 z-30 h-[22px]">
-                {/* Risk pill — shown normally, fades on hover */}
+              {/* ProjectCard with internal risk badge suppressed */}
+              <ProjectCard
+                project={result.project}
+                index={i}
+                hideRiskBadge={true}
+              />
+
+              {/*
+                TOP-LEFT: Risk pill normally, Remove on hover.
+                Both are h-6 (24px) so they match exactly.
+                Both use absolute inset-0 so they occupy same space.
+                No layout shift. No duplicate badges.
+              */}
+              <div className="absolute top-3 left-3 z-30" style={{ height: '24px', minWidth: '64px' }}>
+                {/* Risk — always visible, fades on card hover */}
                 <span
-                  className={`
-                    absolute inset-0
-                    inline-flex items-center justify-center
-                    px-2 text-[10px] font-bold rounded-full
-                    h-[22px] whitespace-nowrap
+                  className="absolute inset-0 inline-flex items-center justify-center
+                    px-2.5 text-[10px] font-bold rounded-full whitespace-nowrap
                     transition-all duration-150
-                    group-hover:opacity-0 group-hover:pointer-events-none
-                  `}
+                    group-hover:opacity-0 group-hover:pointer-events-none"
                   style={{
-                    background: result.project.riskLabel === 'low'
-                      ? 'var(--success-light)'
-                      : result.project.riskLabel === 'medium'
-                        ? 'var(--warning-light)'
-                        : 'var(--danger-light)',
-                    color: result.project.riskLabel === 'low'
-                      ? 'var(--success)'
-                      : result.project.riskLabel === 'medium'
-                        ? 'var(--warning)'
-                        : 'var(--danger)',
+                    background:
+                      result.project.riskLabel === 'low' ? 'var(--success-light)' :
+                      result.project.riskLabel === 'medium' ? 'var(--warning-light)' :
+                      'var(--danger-light)',
+                    color:
+                      result.project.riskLabel === 'low' ? 'var(--success)' :
+                      result.project.riskLabel === 'medium' ? 'var(--warning)' :
+                      'var(--danger)',
                   }}
                 >
-                  {result.project.riskLabel === 'low' ? 'Low Risk'
-                    : result.project.riskLabel === 'medium' ? 'Med Risk'
-                    : 'High Risk'}
+                  {result.project.riskLabel === 'low' ? 'Low Risk' :
+                   result.project.riskLabel === 'medium' ? 'Med Risk' : 'High Risk'}
                 </span>
 
-                {/* Remove pill — shown on hover, exact same size container */}
+                {/* Remove pill — appears on card hover */}
                 <button
                   onClick={() => removeFromCurated(result.project.id)}
-                  className="
-                    absolute inset-0
-                    inline-flex items-center justify-center gap-1
-                    px-2 text-[10px] font-bold rounded-full
-                    h-[22px] whitespace-nowrap
+                  className="absolute inset-0 inline-flex items-center justify-center gap-1
+                    px-2.5 text-[10px] font-bold rounded-full whitespace-nowrap
                     bg-[var(--danger)] text-white
                     opacity-0 pointer-events-none
                     group-hover:opacity-100 group-hover:pointer-events-auto
-                    transition-all duration-150
-                    hover:brightness-90
-                  "
+                    transition-all duration-150 hover:brightness-90"
                 >
-                  <X className="w-3 h-3 flex-shrink-0" />
+                  <X className="w-3 h-3" />
                   Remove
                 </button>
               </div>
 
-              {/* Match % — top right, fixed height, properly sized */}
+              {/*
+                TOP-RIGHT: Match % — same height as risk pill (h-6 = 24px).
+                Only shown if score is meaningful (>= 20%).
+              */}
               {result.matchPct >= 20 && (
                 <div className="absolute top-3 right-3 z-20 pointer-events-none">
-                  <span className={`
-                    inline-flex items-center justify-center
-                    h-[22px] px-2.5
-                    rounded-full text-[10px] font-black text-white
-                    whitespace-nowrap shadow-sm
-                    ${result.tier === 'exact'
-                      ? 'bg-[var(--success)]'
-                      : result.tier === 'close'
-                        ? 'bg-[var(--primary)]'
-                        : 'bg-[var(--warning)] text-[var(--text-primary)]'
-                    }
-                  `}>
+                  <span
+                    className="inline-flex items-center justify-center
+                      px-2.5 text-[10px] font-black text-white
+                      rounded-full whitespace-nowrap shadow-sm"
+                    style={{
+                      height: '24px',
+                      background:
+                        result.tier === 'exact' ? 'var(--success)' :
+                        result.tier === 'close' ? 'var(--primary)' :
+                        'rgba(0,0,0,0.45)',
+                    }}
+                  >
                     {result.matchPct}% match
                   </span>
                 </div>
               )}
+
             </div>
           ))}
 

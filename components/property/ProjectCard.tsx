@@ -19,9 +19,13 @@ interface ProjectCardProps {
   fitScore?: number;
   index?: number;
   prismResult?: { totalScore: number; tier: string };
+  hideRiskBadge?: boolean;
 }
 
-export default function ProjectCard({ project, matchedUnit, fitScore, index = 0, prismResult }: ProjectCardProps) {
+export default function ProjectCard({
+  project, matchedUnit, fitScore, index = 0, prismResult,
+  hideRiskBadge = false
+}: ProjectCardProps) {
   const displayUnit = matchedUnit || project.unitConfigs[0];
   const minPrice = project.unitConfigs.length > 0
     ? Math.min(...project.unitConfigs.map(u => u.priceMin))
@@ -81,11 +85,13 @@ export default function ProjectCard({ project, matchedUnit, fitScore, index = 0,
           )}
           <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
 
-          {/* Top badges */}
-          <div className="absolute top-3 left-3 flex gap-2">
-            <span style={{ background: risk.bg, color: risk.text }}
-              className="px-2 py-1 text-[10px] font-bold rounded-full">{risk.label}</span>
-          </div>
+          {/* Top badges — hidden on dashboard (dashboard renders its own) */}
+          {!hideRiskBadge && (
+            <div className="absolute top-3 left-3 flex gap-2">
+              <span style={{ background: risk.bg, color: risk.text }}
+                className="px-2 py-1 text-[10px] font-bold rounded-full">{risk.label}</span>
+            </div>
+          )}
           <div className="absolute bottom-3 right-3">
             <TrustScoreBadge score={project.trustScore} size="sm" />
           </div>

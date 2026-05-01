@@ -15,8 +15,8 @@ import {
   countsByBHK,
   countsByBudget,
   countsByTimeline,
-  OnboardingState,
-} from '@/lib/onboarding-matcher';
+} from '@/lib/onboarding-matcher'
+import type { MatcherState } from '@/lib/onboarding-matcher'
 
 const CITY_SUBLOCATIONS: Record<string, string[]> = {
   Pune: [
@@ -54,6 +54,24 @@ interface FormData {
   budgetMin: number; budgetMax: number; isOpenMax: boolean;
   timeline: string; preferences: string[];
 }
+
+const BHK_OPTIONS_LIST = ['1BHK', '2BHK', '3BHK', '4BHK', '4BHK+', 'Studio']
+
+const BUDGET_OPTIONS_LIST = [
+  { label: 'Under ₹50L',      min: 0,         max: 5000000 },
+  { label: '₹50L – ₹1Cr',    min: 5000000,   max: 10000000 },
+  { label: '₹1Cr – ₹2Cr',    min: 10000000,  max: 20000000 },
+  { label: '₹2Cr – ₹5Cr',    min: 20000000,  max: 50000000 },
+  { label: '₹5Cr – ₹10Cr',   min: 50000000,  max: 100000000 },
+  { label: '₹10Cr & above',   min: 100000000, max: Infinity },
+]
+
+const TIMELINE_OPTIONS_LIST = [
+  { id: 'under_1_year',  label: 'Under 1 Year' },
+  { id: '1_to_2_years',  label: '1 to 2 Years' },
+  { id: '3_to_5_years',  label: '3 to 5 Years' },
+  { id: '5_plus',        label: '5+ Years' },
+]
 
 const TOTAL_STEPS = 7;
 
@@ -155,7 +173,7 @@ export default function UserIntentForm() {
 
   const matchingCount = useMemo((): number | null => {
     if (projects.length === 0) return null
-    const state: OnboardingState = {
+    const state: MatcherState = {
       city: form.city,
       subLocations: form.subLocations,
       purpose: form.purpose,
@@ -172,9 +190,10 @@ export default function UserIntentForm() {
 
   const typeCountsMap = useMemo(() => {
     if (projects.length === 0) return null
-    const state: OnboardingState = {
-      city: form.city, subLocations: form.subLocations,
-      purpose: form.purpose, propertyType: [], bhkType: [],
+    const state: MatcherState = {
+      city: form.city,
+      subLocations: form.subLocations,
+      purpose: '', propertyType: [], bhkType: [],
       budgetMin: 0, budgetMax: 0, isOpenMax: false,
       timeline: '', preferences: [],
     }
@@ -183,64 +202,55 @@ export default function UserIntentForm() {
 
   const countForType = (typeId: string): number | null => {
     if (!typeCountsMap) return null
-    return typeCountsMap[typeId.toLowerCase() as keyof typeof typeCountsMap] ?? 0
+    return (typeCountsMap as any)[typeId.toLowerCase()] ?? 0
   }
-
-  const BHK_OPTIONS = ['Studio', '1RK', '1BHK', '2BHK', '3BHK', '4BHK', '4BHK+', 'Villa']
 
   const bhkCountsMap = useMemo(() => {
     if (projects.length === 0) return null
-    const state: OnboardingState = {
-      city: form.city, subLocations: form.subLocations,
-      purpose: form.purpose, propertyType: form.propertyType, bhkType: [],
+    const state: MatcherState = {
+      city: form.city,
+      subLocations: form.subLocations,
+      purpose: form.purpose,
+      propertyType: form.propertyType,
+      bhkType: [],   // count for each BHK individually
       budgetMin: 0, budgetMax: 0, isOpenMax: false,
       timeline: '', preferences: [],
     }
-    return countsByBHK(projects, state, BHK_OPTIONS)
+    return countsByBHK(projects, state, BHK_OPTIONS_LIST)
   }, [projects, form.city, form.subLocations, form.propertyType])
 
   const countForBHK = (bhk: string): number | null => {
     if (!bhkCountsMap) return null
-    return bhkCountsMap[bhk] ?? 0
+    return (bhkCountsMap as any)[bhk] ?? 0
   }
-
-  const BUDGET_OPTIONS: { label: string; min: number; max: number; openMax?: boolean }[] = [
-    { label: 'Under ₹50L', min: 0, max: 5000000 },
-    { label: '₹50L – ₹1Cr', min: 5000000, max: 10000000 },
-    { label: '₹1Cr – ₹2Cr', min: 10000000, max: 20000000 },
-    { label: '₹2Cr – ₹5Cr', min: 20000000, max: 50000000 },
-    { label: '₹5Cr – ₹10Cr', min: 50000000, max: 100000000 },
-    { label: '₹10Cr & above', min: 100000000, max: Infinity, openMax: true },
-  ]
 
   const budgetCountsMap = useMemo(() => {
     if (projects.length === 0) return null
-    const state: OnboardingState = {
-      city: form.city, subLocations: form.subLocations,
-      purpose: form.purpose, propertyType: form.propertyType,
-      bhkType: form.bhkType, budgetMin: 0, budgetMax: 0, isOpenMax: false,
+    const state: MatcherState = {
+      city: form.city,
+      subLocations: form.subLocations,
+      purpose: form.purpose,
+      propertyType: form.propertyType,
+      bhkType: form.bhkType,
+      budgetMin: 0, budgetMax: 0, isOpenMax: false,  // no budget filter for counts
       timeline: '', preferences: [],
     }
-    return countsByBudget(projects, state, BUDGET_OPTIONS)
+    return countsByBudget(projects, state, BUDGET_OPTIONS_LIST)
   }, [projects, form.city, form.subLocations, form.propertyType, form.bhkType])
-
-  const TIMELINE_OPTIONS = [
-    { id: 'under_1_year', label: 'Under 1 Year' },
-    { id: '1_to_2_years', label: '1 to 2 Years' },
-    { id: '3_to_5_years', label: '3 to 5 Years' },
-    { id: '5_plus', label: '5+ Years' },
-  ]
 
   const timelineCountsMap = useMemo(() => {
     if (projects.length === 0) return null
-    const state: OnboardingState = {
-      city: form.city, subLocations: form.subLocations,
-      purpose: form.purpose, propertyType: form.propertyType,
+    const state: MatcherState = {
+      city: form.city,
+      subLocations: form.subLocations,
+      purpose: form.purpose,
+      propertyType: form.propertyType,
       bhkType: form.bhkType,
       budgetMin: form.budgetMin, budgetMax: form.budgetMax, isOpenMax: form.isOpenMax,
-      timeline: '', preferences: [],
+      timeline: '',
+      preferences: [],
     }
-    return countsByTimeline(projects, state, TIMELINE_OPTIONS)
+    return countsByTimeline(projects, state, TIMELINE_OPTIONS_LIST)
   }, [projects, form.city, form.subLocations, form.propertyType, form.bhkType,
       form.budgetMin, form.budgetMax, form.isOpenMax])
 
@@ -548,7 +558,7 @@ export default function UserIntentForm() {
                       <p className="text-sm text-[var(--text-secondary)] mt-1">Select all configurations you'd consider.</p>
                     </div>
                     <div className="grid grid-cols-3 gap-3 mt-4">
-                      {['1BHK', '2BHK', '3BHK', '4BHK', '4BHK+', 'Studio'].map(bhk => (
+                      {BHK_OPTIONS_LIST.map(bhk => (
                         <button key={bhk}
                           onClick={() => toggleArr('bhkType', bhk)}
                           className={cn(
@@ -617,28 +627,30 @@ export default function UserIntentForm() {
                     Choose a range
                   </p>
                   <div className="grid grid-cols-2 gap-2">
-                    {BUDGET_OPTIONS.map(range => {
-                      const isActive = form.budgetMin === range.min && form.budgetMax === range.max;
+                    {BUDGET_OPTIONS_LIST.map(option => {
+                      const isActive = form.budgetMin === option.min && form.budgetMax === option.max
+                      const count = budgetCountsMap ? (budgetCountsMap as any)[option.label] ?? 0 : null
                       return (
-                        <button key={range.label}
+                        <button key={option.label}
                           onClick={() => {
-                            set('budgetMin', range.min);
-                            set('budgetMax', range.max);
-                            set('isOpenMax', !!range.openMax);
+                            set('budgetMin', option.min)
+                            set('budgetMax', option.max)
+                            set('isOpenMax', option.max === Infinity)
                           }}
-                          className={`py-3 px-4 rounded-[var(--radius)] border text-sm font-bold text-left transition-all ${
+                          className={cn(
+                            "py-3 px-4 rounded-[var(--radius)] border text-sm font-bold text-left transition-all",
                             isActive
-                              ? 'bg-[var(--primary)] text-white border-[var(--primary)] shadow-[var(--shadow-primary)]'
-                              : 'bg-[var(--surface-raised)] border-[var(--border)] text-[var(--text-secondary)] hover:border-[var(--primary)]/50'
-                          }`}>
-                          {range.label}
-                          {budgetCountsMap && (
-                            <span className="block text-[9px] font-bold mt-0.5 opacity-70">
-                              {budgetCountsMap[range.label] || 0} projects
+                              ? "bg-[var(--primary)] text-white border-[var(--primary)] shadow-[var(--shadow-primary)]"
+                              : "bg-[var(--surface-raised)] border-[var(--border)] text-[var(--text-secondary)] hover:border-[var(--primary)]/50"
+                          )}>
+                          <span>{option.label}</span>
+                          {count !== null && (
+                            <span className={`block text-[9px] font-bold mt-0.5 ${isActive ? 'opacity-70' : 'opacity-50'}`}>
+                              {count} {count === 1 ? 'project' : 'projects'}
                             </span>
                           )}
                         </button>
-                      );
+                      )
                     })}
                   </div>
                 </div>
@@ -723,30 +735,33 @@ export default function UserIntentForm() {
                   </p>
                 </div>
                 <div className="space-y-2">
-                  {TIMELINE_OPTIONS.map(opt => (
-                    <button key={opt.id}
-                      onClick={() => set('timeline', opt.id)}
-                      className={cn(
-                        "w-full flex items-center gap-4 p-4 rounded-[var(--radius)] border text-left transition-all",
-                        form.timeline === opt.id
-                          ? "bg-[var(--primary-light)] border-[var(--primary)]"
-                          : "bg-[var(--surface-raised)] border-[var(--border)]"
-                      )}>
-                      <div className="flex-1">
-                        <p className="font-bold text-[var(--text-primary)]">{opt.label}</p>
-                      </div>
-                      {timelineCountsMap && (
-                        <span className="text-[10px] font-bold opacity-60 ml-auto">
-                          {timelineCountsMap[opt.id] || 0}
-                        </span>
-                      )}
-                      {form.timeline === opt.id && (
-                        <div className="w-5 h-5 bg-[var(--primary)] rounded-full flex items-center justify-center">
-                          <Check className="w-3 h-3 text-white" />
+                  {TIMELINE_OPTIONS_LIST.map(opt => {
+                    const count = timelineCountsMap ? (timelineCountsMap as any)[opt.id] ?? 0 : null
+                    return (
+                      <button key={opt.id}
+                        onClick={() => set('timeline', opt.id)}
+                        className={cn(
+                          "w-full flex items-center gap-4 p-4 rounded-[var(--radius)] border text-left transition-all",
+                          form.timeline === opt.id
+                            ? "bg-[var(--primary-light)] border-[var(--primary)]"
+                            : "bg-[var(--surface-raised)] border-[var(--border)]"
+                        )}>
+                        <div className="flex-1">
+                          <p className="font-bold text-[var(--text-primary)]">{opt.label}</p>
                         </div>
-                      )}
-                    </button>
-                  ))}
+                        {count !== null && (
+                          <span className="text-[10px] font-black text-[var(--text-muted)] flex-shrink-0">
+                            {count}
+                          </span>
+                        )}
+                        {form.timeline === opt.id && (
+                          <div className="w-5 h-5 bg-[var(--primary)] rounded-full flex items-center justify-center flex-shrink-0">
+                            <Check className="w-3 h-3 text-white" />
+                          </div>
+                        )}
+                      </button>
+                    )
+                  })}
                 </div>
 
                 {/* Optional preferences */}
