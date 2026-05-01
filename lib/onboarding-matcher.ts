@@ -149,58 +149,52 @@ function projectMatchesTimeline(project: any, timeline: string): boolean {
 // ─────────────────────────────────────────────────────────
 
 function buildPool(allProjects: any[], state: MatcherState, upToStep: number): any[] {
-  let pool = [...allProjects]
+  let currentProjects = [...allProjects]
 
   // Always: city filter
-  pool = pool.filter(p =>
+  currentProjects = currentProjects.filter(p =>
     (p.city || '').toLowerCase() === state.city.toLowerCase()
   )
 
-  // Step 2+: sub-location (only if user selected any)
+  // Step 2+: sub-location
   if (state.subLocations.length > 0) {
-    pool = pool.filter(p => locationMatchesSub(p.location || '', state.subLocations))
+    currentProjects = currentProjects.filter(p => locationMatchesSub(p.location || '', state.subLocations))
   }
 
-  // Step 3: purpose — NO filtering (purpose only affects scoring)
-
-  // Step 4+: property type (only if selected)
+  // Step 4+: property type
   if (upToStep >= 4 && state.propertyType.length > 0) {
-    const filtered = pool.filter(p => {
+    currentProjects = currentProjects.filter(p => {
       const cats = getProjectCategories(p)
       return state.propertyType.some(sel => cats.includes(sel.toLowerCase()))
     })
-    pool = filtered  // hard filter — user explicitly chose a type
   }
 
-  // Step 5+: BHK type (only if selected)
+  // Step 5+: BHK type
   if (upToStep >= 5 && state.bhkType.length > 0) {
-    const filtered = pool.filter(p =>
+    currentProjects = currentProjects.filter(p =>
       state.bhkType.some(bhk => projectMatchesBHK(p, bhk))
     )
-    pool = filtered  // hard filter — user explicitly chose BHK
   }
 
-  // Step 6+: budget (only if user set a non-zero budget)
+  // Step 6+: budget
   const hasBudget = state.budgetMin > 0 || state.budgetMax > 0
   if (upToStep >= 6 && hasBudget) {
     const uMin = state.budgetMin > 0 ? state.budgetMin : 0
     const uMax = state.isOpenMax ? Infinity : (state.budgetMax > 0 ? state.budgetMax : Infinity)
-    const filtered = pool.filter(p => {
+    currentProjects = currentProjects.filter(p => {
       const price = getProjectBasePrice(p)
-      if (!price) return true // no price data — include (benefit of the doubt)
+      if (!price) return true // no price data — include
       return price >= uMin && price <= uMax
     })
-    pool = filtered  // hard filter — user set a budget
   }
 
-  // Step 7+: timeline (SOFT — never drops to 0)
+  // Step 7+: timeline (STRICT filter)
   if (upToStep >= 7 && state.timeline) {
-    const filtered = pool.filter(p => projectMatchesTimeline(p, state.timeline))
-    if (filtered.length > 0) pool = filtered
-    // If filtered is empty, keep the pool as-is (soft filter)
+    currentProjects = currentProjects.filter(p => projectMatchesTimeline(p, state.timeline))
   }
 
-  return pool
+  console.log(`[buildPool Step ${upToStep}] CURRENT PROJECTS COUNT:`, currentProjects.length)
+  return currentProjects
 }
 
 // ─────────────────────────────────────────────────────────
@@ -226,18 +220,17 @@ export function countsByPropertyType(
   projects: any[],
   state: MatcherState
 ): Record<string, number> {
-  // Pool up to step 3 (city + subloc, no type filter)
-  const pool = buildPool(projects, state, 3)
+  const currentProjects = buildPool(projects, state, 3)
   const result: Record<string, number> = {
     apartment: 0, villa: 0, plot: 0, penthouse: 0
   }
   
-  // Strict distribution: each project is counted exactly once
-  pool.forEach(p => {
-    const cats = getProjectCategories(p)
-    let firstCat = ['apartment', 'villa', 'plot', 'penthouse'].find(c => cats.includes(c))
-    if (!firstCat) firstCat = 'apartment' // fallback to ensure sum == total
-    if (firstCat in result) result[firstCat]++
+  // Direct filter equivalent to ensure match
+  Object.keys(result).forEach(type => {
+    result[type] = currentProjects.filter(p => {
+      const cats = getProjectCategories(p)
+      return cats.includes(type)
+    }).length
   })
   return result
 }
@@ -253,16 +246,11 @@ export function countsByBHK(
   state: MatcherState,
   bhkOptions: string[]
 ): Record<string, number> {
-  // Pool up to step 4 (includes type filter, no BHK filter)
-  const pool = buildPool(projects, state, 4)
+  const currentProjects = buildPool(projects, state, 4)
   const result: Record<string, number> = {}
-  bhkOptions.forEach(bhk => result[bhk] = 0)
   
-  // Strict distribution: each project is counted exactly once
-  pool.forEach(p => {
-    let firstMatch = bhkOptions.find(bhk => projectMatchesBHK(p, bhk))
-    if (!firstMatch && bhkOptions.length > 0) firstMatch = bhkOptions[0] // fallback
-    if (firstMatch) result[firstMatch]++
+  bhkOptions.forEach(bhk => {
+    result[bhk] = currentProjects.filter(p => projectMatchesBHK(p, bhk)).length
   })
   return result
 }
@@ -279,16 +267,14 @@ export function countsByBudget(
   state: MatcherState,
   budgetOptions: { label: string; min: number; max: number }[]
 ): Record<string, number> {
-  // Pool up to step 5 (includes BHK filter, no Budget filter)
-  const pool = buildPool(projects, state, 5)
+  const currentProjects = buildPool(projects, state, 5)
   const result: Record<string, number> = {}
   
-  // Overlapping distribution: a project can span multiple budget ranges if on boundary
   budgetOptions.forEach(opt => {
     const uMax = opt.max === Infinity ? Infinity : opt.max
-    result[opt.label] = pool.filter(p => {
+    result[opt.label] = currentProjects.filter(p => {
       const price = getProjectBasePrice(p)
-      if (!price) return true // Include projects with no price info
+      if (!price) return true 
       return price >= opt.min && price <= uMax
     }).length
   })
@@ -306,18 +292,11 @@ export function countsByTimeline(
   state: MatcherState,
   timelineOptions: { id: string; label: string }[]
 ): Record<string, number> {
-  // Pool up to step 6 (includes Budget filter, no Timeline filter)
-  const pool = buildPool(projects, state, 6)
+  const currentProjects = buildPool(projects, state, 6)
   const result: Record<string, number> = {}
-  timelineOptions.forEach(opt => result[opt.id] = 0)
   
-  // Strict distribution: each project is counted exactly once
-  pool.forEach(p => {
-    let firstMatch = timelineOptions.find(opt => projectMatchesTimeline(p, opt.id))
-    if (!firstMatch && timelineOptions.length > 0) {
-      firstMatch = timelineOptions[timelineOptions.length - 1] // fallback to longest
-    }
-    if (firstMatch) result[firstMatch.id]++
+  timelineOptions.forEach(opt => {
+    result[opt.id] = currentProjects.filter(p => projectMatchesTimeline(p, opt.id)).length
   })
   return result
 }
