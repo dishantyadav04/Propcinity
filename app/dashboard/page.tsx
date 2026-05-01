@@ -18,6 +18,7 @@ export default function DashboardPage() {
   const [userIntent, setUserIntent] = useState<UserIntent | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [curatedIds, setCuratedIds] = useState<string[]>([]);
+  const [rejectedIds, setRejectedIds] = useState<string[]>([]);
 
   useEffect(() => {
     const savedIntent = localStorage.getItem('userIntent');
@@ -25,6 +26,8 @@ export default function DashboardPage() {
 
     const saved = JSON.parse(localStorage.getItem('curatedIds') || '[]');
     setCuratedIds(saved);
+    const rejected = JSON.parse(localStorage.getItem('rejectedProjectIds') || '[]');
+    setRejectedIds(rejected);
 
     fetch('/api/projects')
       .then(r => r.json())
@@ -37,6 +40,8 @@ export default function DashboardPage() {
     const handler = () => {
       const ids = JSON.parse(localStorage.getItem('curatedIds') || '[]');
       setCuratedIds(ids);
+      const rejected = JSON.parse(localStorage.getItem('rejectedProjectIds') || '[]');
+      setRejectedIds(rejected);
     };
     window.addEventListener('curatedUpdated', handler);
     return () => window.removeEventListener('curatedUpdated', handler);
@@ -75,22 +80,56 @@ export default function DashboardPage() {
   }, [projects, userIntent])
 
   const displayResults = useMemo((): MatchResult[] => {
-    const sorted = [...matchResults].sort((a, b) => b.score - a.score)
+    // 1. Always exclude rejected projects
+    const rejectedSet = new Set(rejectedIds);
+    
+    // 2. Start with the match engine results (city-matched, sorted)
+    const ranked = matchResults.filter(r => !rejectedSet.has(r.project.id));
+    
+    // 3. Ensure curated projects are in the list, even if match engine skipped them
+    // (e.g. they were from a different city added in Explorer)
+    const curatedPool = curatedIds
+      .filter(id => !rejectedSet.has(id))
+      .map(id => {
+        // Find if already in ranked
+        const existing = ranked.find(r => r.project.id === id);
+        if (existing) return existing;
+        
+        // If not in ranked, find in projects and add as "curated" match
+        const project = projects.find(p => p.id === id);
+        if (project) {
+          return {
+            project,
+            score: 100, // High score for explicit user selection
+            matchPct: 100,
+            tier: 'exact' as const,
+            reasons: ['Shortlisted by you'],
+            flags: []
+          };
+        }
+        return null;
+      })
+      .filter(Boolean) as MatchResult[];
 
-    if (curatedIds.length > 0) {
-      const curated = sorted.filter(r => curatedIds.includes(r.project.id))
-      const rest = sorted.filter(r => !curatedIds.includes(r.project.id))
-      return [...curated, ...rest].slice(0, 12)
-    }
-    return sorted.slice(0, 12)
-  }, [matchResults, curatedIds])
+    // 4. Build final pool: [Curated Items] + [Other Top Matches]
+    const otherMatches = ranked.filter(r => !curatedIds.includes(r.project.id));
+    
+    return [...curatedPool, ...otherMatches].slice(0, 12);
+  }, [matchResults, curatedIds, rejectedIds, projects])
 
   const removeFromCurated = (id: string) => {
-    const next = curatedIds.filter(cid => cid !== id);
-    setCuratedIds(next);
-    localStorage.setItem('curatedIds', JSON.stringify(next));
+    // 1. Remove from curatedIds (if it was there)
+    const nextCurated = curatedIds.filter(cid => cid !== id);
+    setCuratedIds(nextCurated);
+    localStorage.setItem('curatedIds', JSON.stringify(nextCurated));
+
+    // 2. Add to rejectedIds so it never shows again this session
+    const nextRejected = [...rejectedIds, id];
+    setRejectedIds(nextRejected);
+    localStorage.setItem('rejectedProjectIds', JSON.stringify(nextRejected));
+
     window.dispatchEvent(new Event('curatedUpdated'));
-    toast('Removed from shortlist');
+    toast('Removed');
   };
 
   if (isLoading) {

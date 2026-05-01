@@ -136,13 +136,24 @@ export default function ExplorePage() {
 
   const toggleDashboard = (id: string, e: React.MouseEvent) => {
     e.preventDefault(); e.stopPropagation();
-    const next = curatedIds.includes(id)
-      ? curatedIds.filter(i => i !== id)
-      : [...curatedIds, id];
-    setCuratedIds(next);
-    localStorage.setItem('curatedIds', JSON.stringify(next));
+    const isAdding = !curatedIds.includes(id);
+    
+    // 1. Update curatedIds
+    const nextCurated = isAdding
+      ? [...curatedIds, id]
+      : curatedIds.filter(i => i !== id);
+    setCuratedIds(nextCurated);
+    localStorage.setItem('curatedIds', JSON.stringify(nextCurated));
+
+    // 2. If adding, remove from rejectedIds so it shows up on dashboard
+    if (isAdding) {
+      const rejected = JSON.parse(localStorage.getItem('rejectedProjectIds') || '[]');
+      const nextRejected = rejected.filter((rid: string) => rid !== id);
+      localStorage.setItem('rejectedProjectIds', JSON.stringify(nextRejected));
+    }
+
     window.dispatchEvent(new Event('curatedUpdated'));
-    toast(next.includes(id) ? 'Added to your matches' : 'Removed from matches');
+    toast(isAdding ? 'Added to your matches' : 'Removed from matches');
   };
 
   const handleCompare = (project: Project, e: React.MouseEvent) => {
@@ -434,15 +445,18 @@ export default function ExplorePage() {
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: Math.min(index * 0.03, 0.2) }}
-                  className="bg-white border border-[var(--border)] rounded-[var(--radius)]
+                  className="relative bg-white border border-[var(--border)] rounded-[var(--radius)]
                     shadow-[var(--shadow-sm)] hover:shadow-[var(--shadow)] transition-shadow"
                 >
-                  <Link href={`/projects/${project.slug}`} className="flex gap-4 p-4">
+                  {/* Clickable area — the full card link */}
+                  <Link href={`/projects/${project.slug}`} className="flex gap-4 p-4 pr-28">
                     {/* Image */}
                     <div className="w-24 h-24 sm:w-32 sm:h-24 flex-shrink-0 rounded-[var(--radius-xs)] overflow-hidden bg-[var(--surface-raised)]">
                       {project.images?.[0]
                         ? <img src={project.images[0]} alt={project.name} className="w-full h-full object-cover" />
-                        : <div className="w-full h-full flex items-center justify-center"><Building2 className="w-6 h-6 text-[var(--text-muted)]" /></div>
+                        : <div className="w-full h-full flex items-center justify-center">
+                            <Building2 className="w-6 h-6 text-[var(--text-muted)]" />
+                          </div>
                       }
                     </div>
 
@@ -490,22 +504,25 @@ export default function ExplorePage() {
                         )}
                       </div>
                     </div>
-
-                    {/* Actions — right side */}
-                    <div className="flex flex-col items-center gap-2 flex-shrink-0 justify-center">
-                      <button
-                        onClick={e => toggleDashboard(project.id, e)}
-                        className={`flex items-center gap-2 px-3 py-2 rounded-full font-bold text-[10px]
-                          transition-all ${
-                          curatedIds.includes(project.id)
-                            ? 'bg-[var(--primary)] text-white'
-                            : 'bg-[var(--surface-raised)] text-[var(--text-muted)] hover:bg-[var(--primary)] hover:text-white'
-                        }`}>
-                        <LayoutDashboard className="w-4 h-4" />
-                        <span className="hidden sm:inline">{curatedIds.includes(project.id) ? 'Shortlisted' : 'Dashboard'}</span>
-                      </button>
-                    </div>
                   </Link>
+
+                  {/* Dashboard button — OUTSIDE the Link, positioned absolutely on the right */}
+                  <div className="absolute right-4 top-1/2 -translate-y-1/2 flex flex-col items-center gap-2">
+                    <button
+                      onClick={e => { e.preventDefault(); e.stopPropagation(); toggleDashboard(project.id, e); }}
+                      className={`flex items-center gap-1.5 px-3 py-2 rounded-[var(--radius-xs)]
+                        font-bold text-[10px] transition-all border ${
+                        curatedIds.includes(project.id)
+                          ? 'bg-[var(--primary)] text-white border-[var(--primary)]'
+                          : 'bg-[var(--surface-raised)] border-[var(--border)] text-[var(--text-muted)] hover:bg-[var(--primary)] hover:text-white hover:border-[var(--primary)]'
+                      }`}
+                    >
+                      <LayoutDashboard className="w-3.5 h-3.5 flex-shrink-0" />
+                      <span className="hidden sm:inline whitespace-nowrap">
+                        {curatedIds.includes(project.id) ? 'Added ✓' : 'Add'}
+                      </span>
+                    </button>
+                  </div>
                 </motion.div>
               );
             })}
