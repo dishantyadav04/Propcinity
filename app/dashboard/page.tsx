@@ -11,7 +11,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import Skeleton from "@/components/ui/Skeleton";
 import { toast } from "sonner";
 import { rankProjects } from '@/lib/onboarding-matcher'
-import type { MatchResult, MatcherState } from '@/lib/onboarding-matcher'
+import type { MatchResult, MatcherState } from '@/types/matcher'
 
 export default function DashboardPage() {
   const [projects, setProjects] = useState<Project[]>([]);

@@ -16,7 +16,7 @@ import {
   countsByBudget,
   countsByTimeline,
 } from '@/lib/onboarding-matcher'
-import type { MatcherState } from '@/lib/onboarding-matcher'
+import type { MatcherState } from '@/types/matcher'
 
 const CITY_SUBLOCATIONS: Record<string, string[]> = {
   Pune: [
