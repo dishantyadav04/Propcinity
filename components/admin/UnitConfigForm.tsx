@@ -1,6 +1,6 @@
 'use client';
 
-import { Plus, Trash2, Maximize, Layout, IndianRupee, ImageIcon, X } from "lucide-react";
+import { Plus, Trash2, Maximize, IndianRupee, ImageIcon, X, Zap } from "lucide-react";
 import { UnitConfig } from "@/types/project";
 
 interface UnitConfigFormProps {
@@ -17,12 +17,10 @@ export default function UnitConfigForm({ units, onChange }: UnitConfigFormProps)
       priceMin: 8000000,
       priceMax: 8500000,
       pricePerSqFt: 8000,
-      available: 10,
-      total: 20,
       floor: 'Mid Floor',
       facing: ['East'],
-      images: [],
-      highlights: ['Spacious Balcony']
+      highlights: ['Spacious Balcony'],
+      maintenancePerMonth: 0
     }]);
   };
 
@@ -40,21 +38,13 @@ export default function UnitConfigForm({ units, onChange }: UnitConfigFormProps)
     const reader = new FileReader();
     reader.onload = (ev) => {
       const dataUrl = ev.target?.result as string;
-      const unit = units.find(u => u.id === id);
-      if (unit) {
-        // Floor plan is always images[0]; preserve any other images
-        const newImages = [dataUrl, ...(unit.images || []).filter((_, i) => i > 0)];
-        updateUnit(id, { images: newImages });
-      }
+      updateUnit(id, { floorPlan: dataUrl });
     };
     reader.readAsDataURL(file);
   };
 
   const removeFloorPlan = (id: string) => {
-    const unit = units.find(u => u.id === id);
-    if (unit) {
-      updateUnit(id, { images: (unit.images || []).slice(1) });
-    }
+    updateUnit(id, { floorPlan: undefined });
   };
 
   return (
@@ -99,10 +89,10 @@ export default function UnitConfigForm({ units, onChange }: UnitConfigFormProps)
               <label className="text-[10px] text-[var(--text-muted)] uppercase font-bold flex items-center gap-1.5">
                 <ImageIcon className="w-3 h-3" /> Floor Plan Image
               </label>
-              {unit.images?.[0] ? (
+              {unit.floorPlan ? (
                 <div className="relative w-full h-40 rounded-lg overflow-hidden border border-[var(--border)] bg-[var(--surface)]">
                   <img
-                    src={unit.images[0]}
+                    src={unit.floorPlan}
                     alt="Floor plan"
                     className="w-full h-full object-contain p-2"
                   />
@@ -181,12 +171,12 @@ export default function UnitConfigForm({ units, onChange }: UnitConfigFormProps)
               </div>
               <div className="space-y-1">
                 <label className="text-[10px] text-[var(--text-muted)] uppercase font-bold flex items-center gap-1">
-                  <Layout className="w-3 h-3" /> Total Units
+                  <Zap className="w-3 h-3" /> Maint. /mo (₹)
                 </label>
                 <input
                   type="number"
-                  value={unit.total}
-                  onChange={(e) => updateUnit(unit.id, { total: Number(e.target.value) })}
+                  value={unit.maintenancePerMonth || 0}
+                  onChange={(e) => updateUnit(unit.id, { maintenancePerMonth: Number(e.target.value) })}
                   className="w-full bg-[var(--surface)] border border-[var(--border)] rounded-lg px-3 py-1.5 text-xs text-[var(--text-primary)] focus:outline-none"
                 />
               </div>
@@ -218,22 +208,8 @@ export default function UnitConfigForm({ units, onChange }: UnitConfigFormProps)
                   rounded-[var(--radius-xs)] text-sm text-[var(--text-primary)]
                   placeholder:text-[var(--text-muted)] focus:outline-none focus:border-[var(--primary)]"
               />
-              {unit.floorPlan && (
-                <div className="mt-2 rounded-[var(--radius-xs)] overflow-hidden border border-[var(--border)] h-32">
-                  <img
-                    src={unit.floorPlan}
-                    alt="Floor plan preview"
-                    className="w-full h-full object-contain bg-[var(--surface-raised)]"
-                    onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
-                  />
-                </div>
-              )}
-              <p className="text-[10px] text-[var(--text-muted)]">
-                Each configuration can have its own floor plan (2BHK Type A, 2BHK Type B, etc.)
-              </p>
             </div>
 
-            {/* Multi-config BHK tip */}
             <p className="text-[10px] text-[var(--text-muted)] italic">
               💡 For multiple 2 BHK variants with different areas, add separate configurations (e.g. "2 BHK Classic 950sqft", "2 BHK Premium 1100sqft").
             </p>

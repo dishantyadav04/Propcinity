@@ -32,7 +32,6 @@ export function trackOnboardingStep(step: number, stepName: string): void {
 export function trackProjectViewed(data: {
   projectId: string
   projectName: string
-  trustScore: number
   source: string
 }): void {
   getPostHog()?.capture('project_viewed', data)
@@ -40,7 +39,6 @@ export function trackProjectViewed(data: {
 
 export function trackProjectSaved(data: {
   projectId: string
-  trustScore: number
 }): void {
   getPostHog()?.capture('project_saved', data)
 }

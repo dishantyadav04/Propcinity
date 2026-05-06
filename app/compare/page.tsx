@@ -3,11 +3,9 @@
 import { useEffect, useState, useMemo, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { Project } from "@/types/project";
-import TrustScoreBadge from "@/components/property/TrustScoreBadge";
 import { formatINR } from "@/lib/finance-calculations";
 import { CheckCircle2, XCircle, ArrowLeft, Plus, Loader2, Minus } from "lucide-react";
 import Link from "next/link";
-import Skeleton from "@/components/ui/Skeleton";
 
 function CompareContent() {
   const [projects, setProjects] = useState<Project[]>([]);
@@ -16,7 +14,6 @@ function CompareContent() {
   const idsParam = searchParams?.get('ids');
 
   useEffect(() => {
-    // First: try to get from localStorage (already full objects)
     const stored: Project[] = JSON.parse(
       localStorage.getItem('compareItems') || '[]'
     );
@@ -32,14 +29,12 @@ function CompareContent() {
       }
     }
 
-    // Fallback: fetch all projects and filter
     if (stored.length > 0) {
       setProjects(stored);
       setIsLoading(false);
       return;
     }
 
-    // Last resort: fetch from API
     if (idsParam) {
       const ids = idsParam.split(',').filter(Boolean);
       fetch('/api/projects')
@@ -81,13 +76,6 @@ function CompareContent() {
   );
 
   const rows: { label: string; render: (p: Project) => React.ReactNode }[] = [
-    { label: 'Trust Score', render: p => <TrustScoreBadge score={p.trustScore} size="sm" /> },
-    { label: 'Risk', render: p => (
-      <span className={`px-2 py-0.5 text-xs font-bold rounded-full capitalize ${
-        p.riskLabel === 'low' ? 'bg-[var(--success-light)] text-[var(--success)]' :
-        p.riskLabel === 'medium' ? 'bg-[var(--warning-light)] text-[var(--warning)]' :
-        'bg-[var(--danger-light)] text-[var(--danger)]'}`}>{p.riskLabel}</span>
-    )},
     { label: 'Price From', render: p => (
       <span className="font-black text-[var(--primary)]">
         {p.unitConfigs?.length ? formatINR(Math.min(...(p.unitConfigs || []).map(u => u.priceMin))) : '—'}

@@ -1,22 +1,13 @@
 'use client';
 
-import { useState, useMemo, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  ArrowRight, ArrowLeft, Home, Wallet, MapPin, Target,
-  Sparkles, Loader2, Plus, X, Check, User, Phone, Mail,
-  ChevronRight, Briefcase, Clock
+  ArrowRight, ArrowLeft, Sparkles, Loader2, Plus, X, Check, User, Phone, Mail,
+  ChevronRight
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
-import {
-  getMatchingCount,
-  countsByPropertyType,
-  countsByBHK,
-  countsByBudget,
-  countsByTimeline,
-} from '@/lib/onboarding-matcher'
-import type { MatcherState } from '@/types/matcher'
 
 const CITY_SUBLOCATIONS: Record<string, string[]> = {
   Pune: [
@@ -83,14 +74,6 @@ export default function UserIntentForm() {
   const [socialAuthUsed, setSocialAuthUsed] = useState(false);
   const [subInput, setSubInput] = useState('');
   const [showMoreSubLocs, setShowMoreSubLocs] = useState(false);
-  const [projects, setProjects] = useState<any[]>([]);
-
-  useEffect(() => {
-    fetch('/api/projects')
-      .then(r => r.json())
-      .then(data => setProjects(data))
-      .catch(console.error);
-  }, []);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -171,89 +154,6 @@ export default function UserIntentForm() {
     return `₹${(val / 100000).toFixed(0)} L`;
   };
 
-  const matchingCount = useMemo((): number | null => {
-    if (projects.length === 0) return null
-    const state: MatcherState = {
-      city: form.city,
-      subLocations: form.subLocations,
-      purpose: form.purpose,
-      propertyType: form.propertyType,
-      bhkType: form.bhkType,
-      budgetMin: form.budgetMin,
-      budgetMax: form.budgetMax,
-      isOpenMax: form.isOpenMax,
-      timeline: form.timeline,
-      preferences: form.preferences,
-    }
-    return getMatchingCount(projects, state, step)
-  }, [projects, form, step])
-
-  const typeCountsMap = useMemo(() => {
-    if (projects.length === 0) return null
-    const state: MatcherState = {
-      city: form.city,
-      subLocations: form.subLocations,
-      purpose: '', propertyType: [], bhkType: [],
-      budgetMin: 0, budgetMax: 0, isOpenMax: false,
-      timeline: '', preferences: [],
-    }
-    return countsByPropertyType(projects, state)
-  }, [projects, form.city, form.subLocations])
-
-  const countForType = (typeId: string): number | null => {
-    if (!typeCountsMap) return null
-    return (typeCountsMap as any)[typeId.toLowerCase()] ?? 0
-  }
-
-  const bhkCountsMap = useMemo(() => {
-    if (projects.length === 0) return null
-    const state: MatcherState = {
-      city: form.city,
-      subLocations: form.subLocations,
-      purpose: form.purpose,
-      propertyType: form.propertyType,
-      bhkType: [],   // count for each BHK individually
-      budgetMin: 0, budgetMax: 0, isOpenMax: false,
-      timeline: '', preferences: [],
-    }
-    return countsByBHK(projects, state, BHK_OPTIONS_LIST)
-  }, [projects, form.city, form.subLocations, form.propertyType])
-
-  const countForBHK = (bhk: string): number | null => {
-    if (!bhkCountsMap) return null
-    return (bhkCountsMap as any)[bhk] ?? 0
-  }
-
-  const budgetCountsMap = useMemo(() => {
-    if (projects.length === 0) return null
-    const state: MatcherState = {
-      city: form.city,
-      subLocations: form.subLocations,
-      purpose: form.purpose,
-      propertyType: form.propertyType,
-      bhkType: form.bhkType,
-      budgetMin: 0, budgetMax: 0, isOpenMax: false,  // no budget filter for counts
-      timeline: '', preferences: [],
-    }
-    return countsByBudget(projects, state, BUDGET_OPTIONS_LIST)
-  }, [projects, form.city, form.subLocations, form.propertyType, form.bhkType])
-
-  const timelineCountsMap = useMemo(() => {
-    if (projects.length === 0) return null
-    const state: MatcherState = {
-      city: form.city,
-      subLocations: form.subLocations,
-      purpose: form.purpose,
-      propertyType: form.propertyType,
-      bhkType: form.bhkType,
-      budgetMin: form.budgetMin, budgetMax: form.budgetMax, isOpenMax: form.isOpenMax,
-      timeline: '',
-      preferences: [],
-    }
-    return countsByTimeline(projects, state, TIMELINE_OPTIONS_LIST)
-  }, [projects, form.city, form.subLocations, form.propertyType, form.bhkType,
-      form.budgetMin, form.budgetMax, form.isOpenMax])
-
   return (
     <div className="min-h-screen bg-[var(--background)] flex flex-col">
       <div className="sticky top-0 z-10 bg-white/90 backdrop-blur border-b border-[var(--border)] px-4 sm:px-6 py-3">
@@ -273,29 +173,6 @@ export default function UserIntentForm() {
               className="h-full bg-gradient-to-r from-[var(--primary)] to-orange-400 rounded-full"
             />
           </div>
-          {step >= 2 && (
-            <div className="flex justify-center mt-2">
-              <motion.div
-                key={matchingCount}
-                initial={{ scale: 0.9, opacity: 0.6 }}
-                animate={{ scale: 1, opacity: 1 }}
-                className={cn(
-                  "flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black tracking-widest transition-all",
-                  matchingCount === null
-                    ? "bg-[var(--surface-raised)] text-[var(--text-muted)]"
-                    : (matchingCount || 0) > 0
-                      ? "bg-[var(--success-light)] text-[var(--success)]"
-                      : "bg-[var(--danger-light)] text-[var(--danger)]"
-                )}>
-                {matchingCount === null
-                  ? 'LOADING...'
-                  : matchingCount > 0
-                    ? `${matchingCount} PROJECT${matchingCount === 1 ? '' : 'S'} FOUND`
-                    : 'NO PROJECTS MATCHED'
-                }
-              </motion.div>
-            </div>
-          )}
         </div>
       </div>
 
@@ -469,12 +346,6 @@ export default function UserIntentForm() {
                   </h2>
                   <p className="text-sm text-[var(--text-secondary)] mt-1">We'll tailor recommendations to your goal.</p>
                 </div>
-                {matchingCount !== null && (
-                  <p className="text-sm text-[var(--text-muted)]">
-                    {matchingCount} projects available in your selected area.
-                    Tell us what you're looking for.
-                  </p>
-                )}
                 <div className="space-y-3">
                   {[
                     { id: 'self-use', label: 'Home for my family', sub: 'Focus on amenities & locality', emoji: '🏠' },
@@ -528,14 +399,6 @@ export default function UserIntentForm() {
                       )}>
                       <span className="text-2xl">{opt.emoji}</span>
                       <p className="font-bold text-sm text-[var(--text-primary)]">{opt.label}</p>
-                      {(() => {
-                        const c = countForType(opt.id);
-                        return c !== null && (
-                          <p className={`text-[10px] font-bold ${c > 0 ? 'text-[var(--success)]' : 'text-[var(--text-muted)]'}`}>
-                            {c > 0 ? `${c} projects` : 'None found'}
-                          </p>
-                        );
-                      })()}
                       {form.propertyType.includes(opt.id) && (
                         <Check className="absolute top-4 right-4 w-4 h-4 text-[var(--primary)]" />
                       )}
@@ -568,12 +431,6 @@ export default function UserIntentForm() {
                               : "bg-[var(--surface-raised)] border-[var(--border)] text-[var(--text-primary)]"
                           )}>
                           {bhk}
-                          {(() => {
-                            const c = countForBHK(bhk);
-                            return c !== null && c > 0 && (
-                              <span className="block text-[9px] font-bold opacity-70">{c}</span>
-                            );
-                          })()}
                         </button>
                       ))}
                     </div>
@@ -629,7 +486,6 @@ export default function UserIntentForm() {
                   <div className="grid grid-cols-2 gap-2">
                     {BUDGET_OPTIONS_LIST.map(option => {
                       const isActive = form.budgetMin === option.min && form.budgetMax === option.max
-                      const count = budgetCountsMap ? (budgetCountsMap as any)[option.label] ?? 0 : null
                       return (
                         <button key={option.label}
                           onClick={() => {
@@ -644,11 +500,6 @@ export default function UserIntentForm() {
                               : "bg-[var(--surface-raised)] border-[var(--border)] text-[var(--text-secondary)] hover:border-[var(--primary)]/50"
                           )}>
                           <span>{option.label}</span>
-                          {count !== null && (
-                            <span className={`block text-[9px] font-bold mt-0.5 ${isActive ? 'opacity-70' : 'opacity-50'}`}>
-                              {count} {count === 1 ? 'project' : 'projects'}
-                            </span>
-                          )}
                         </button>
                       )
                     })}
@@ -736,7 +587,6 @@ export default function UserIntentForm() {
                 </div>
                 <div className="space-y-2">
                   {TIMELINE_OPTIONS_LIST.map(opt => {
-                    const count = timelineCountsMap ? (timelineCountsMap as any)[opt.id] ?? 0 : null
                     return (
                       <button key={opt.id}
                         onClick={() => set('timeline', opt.id)}
@@ -749,11 +599,6 @@ export default function UserIntentForm() {
                         <div className="flex-1">
                           <p className="font-bold text-[var(--text-primary)]">{opt.label}</p>
                         </div>
-                        {count !== null && (
-                          <span className="text-[10px] font-black text-[var(--text-muted)] flex-shrink-0">
-                            {count}
-                          </span>
-                        )}
                         {form.timeline === opt.id && (
                           <div className="w-5 h-5 bg-[var(--primary)] rounded-full flex items-center justify-center flex-shrink-0">
                             <Check className="w-3 h-3 text-white" />
@@ -798,24 +643,20 @@ export default function UserIntentForm() {
         <div className="mt-8 space-y-3">
           {step === 7 ? (
             <button
-              disabled={!canNext() || isLoading}
               onClick={handleFinish}
-              className="w-full py-4 bg-[var(--primary)] disabled:opacity-50 text-white font-black
-                rounded-[var(--radius)] flex items-center justify-center gap-2
-                shadow-[var(--shadow-primary)] hover:opacity-90 transition-opacity">
-              {isLoading
-                ? <Loader2 className="w-5 h-5 animate-spin" />
-                : <><Sparkles className="w-5 h-5" /> See My Recommendations</>
-              }
+              disabled={!canNext() || isLoading}
+              className="w-full flex items-center justify-center gap-2 py-4 bg-[var(--primary)] text-white font-black rounded-[var(--radius)] shadow-[var(--shadow-primary)] hover:scale-[1.02] active:scale-100 transition-all disabled:opacity-50 disabled:hover:scale-100"
+            >
+              {isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Sparkles className="w-5 h-5" />}
+              Generate AI Recommendations
             </button>
-          ) : step !== 3 /* step 3 auto-advances */ && (
+          ) : (
             <button
-              disabled={!canNext()}
               onClick={next}
-              className="w-full py-4 bg-[var(--primary)] disabled:opacity-50 text-white font-black
-                rounded-[var(--radius)] flex items-center justify-center gap-2
-                shadow-[var(--shadow-primary)] hover:opacity-90 transition-opacity">
-              Continue
+              disabled={!canNext()}
+              className="w-full flex items-center justify-center gap-2 py-4 bg-[var(--primary)] text-white font-black rounded-[var(--radius)] shadow-[var(--shadow-primary)] hover:scale-[1.02] active:scale-100 transition-all disabled:opacity-50 disabled:hover:scale-100"
+            >
+              Next Step
               <ArrowRight className="w-5 h-5" />
             </button>
           )}
@@ -823,9 +664,8 @@ export default function UserIntentForm() {
           {step > 1 && (
             <button
               onClick={prev}
-              className="w-full py-3 text-[var(--text-secondary)] font-bold text-sm
-                hover:text-[var(--text-primary)] transition-colors flex items-center justify-center gap-2">
-              <ArrowLeft className="w-4 h-4" />
+              className="w-full py-3 text-sm font-bold text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
+            >
               Go Back
             </button>
           )}

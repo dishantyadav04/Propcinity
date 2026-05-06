@@ -133,7 +133,7 @@ export default function UnitConfigCard({ unit, project }: UnitConfigCardProps) {
           </div>
 
           {/* Facing chips */}
-          {unit.facing?.length > 0 && (
+          {unit.facing && unit.facing.length > 0 && (
             <div className="flex flex-wrap gap-1.5">
               {unit.facing.map(f => (
                 <span key={f}
@@ -146,7 +146,7 @@ export default function UnitConfigCard({ unit, project }: UnitConfigCardProps) {
           )}
 
           {/* Highlights */}
-          {unit.highlights?.length > 0 && (
+          {unit.highlights && unit.highlights.length > 0 && (
             <div className="space-y-1">
               {unit.highlights.slice(0, 3).map(h => (
                 <p key={h} className="text-xs text-[var(--text-secondary)] flex items-center gap-1.5">

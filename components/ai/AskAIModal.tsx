@@ -5,7 +5,6 @@ import { Drawer } from "vaul";
 import { Sparkles, X, ArrowRight, Loader2 } from "lucide-react";
 import QuickQuestions from "./QuickQuestions";
 import AIResponse from "./AIResponse";
-import TrustScoreBadge from "@/components/property/TrustScoreBadge";
 import { Project } from "@/types/project";
 import { trackAIQuestionAsked } from "@/lib/posthog-events";
 
@@ -78,7 +77,7 @@ export default function AskAIModal({ isOpen, onClose, project, compareProject }:
                 <p className="text-sm font-bold text-[var(--text-primary)] truncate">{project.name}</p>
                 <p className="text-[10px] text-[var(--text-muted)] uppercase tracking-wider">{project.builderName}</p>
               </div>
-              <TrustScoreBadge score={project.trustScore} size="sm" />
+
             </div>
 
             <div className="space-y-4">

@@ -5,142 +5,107 @@ import SectionContainer from "@/components/layout/SectionContainer";
 import ProjectCard from "@/components/property/ProjectCard";
 import { Project } from "@/types/project";
 import { UserIntent } from "@/types/user";
-import { Search, Sparkles, X, ArrowRight, Plus, Target, Info } from "lucide-react";
+import { Search, Sparkles, X, ArrowRight, Plus, Loader2 } from "lucide-react";
 import Link from "next/link";
-import { motion, AnimatePresence } from "framer-motion";
 import Skeleton from "@/components/ui/Skeleton";
 import { toast } from "sonner";
-import { rankProjects } from '@/lib/onboarding-matcher'
-import type { MatchResult, MatcherState } from '@/types/matcher'
 
 export default function DashboardPage() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [userIntent, setUserIntent] = useState<UserIntent | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [rankedProjects, setRankedProjects] = useState<MatchResult[]>([]);
-  const [backupProjects, setBackupProjects] = useState<MatchResult[]>([]);
+  
+  const [aiRecommended, setAiRecommended] = useState<string[]>([])
+  const [aiReasoning, setAiReasoning] = useState<Record<string, string>>({})
+  const [aiLoading, setAiLoading] = useState(false)
+  const [curatedIds, setCuratedIds] = useState<string[]>([])
+  const [rejectedIds, setRejectedIds] = useState<string[]>([])
 
   useEffect(() => {
+    if (typeof window === 'undefined') return;
+
     const savedIntent = localStorage.getItem('userIntent');
     if (savedIntent) setUserIntent(JSON.parse(savedIntent));
+
+    const savedCurated = JSON.parse(localStorage.getItem('curatedIds') || '[]');
+    setCuratedIds(savedCurated);
+
+    const savedRejected = JSON.parse(localStorage.getItem('rejectedProjectIds') || '[]');
+    setRejectedIds(savedRejected);
 
     fetch('/api/projects')
       .then(r => r.json())
       .then(data => setProjects(data))
       .catch(console.error)
       .finally(() => setIsLoading(false));
-  }, []);
 
-  // STATE 1 & 2: INITIAL LOAD & PREFERENCE UPDATE
-  useEffect(() => {
-    if (projects.length === 0) return;
-
-    let allMatches: MatchResult[] = [];
-    if (!userIntent) {
-      allMatches = [...projects]
-        .sort((a, b) => (b.trustScore || 0) - (a.trustScore || 0))
-        .map(p => ({
-          project: p, score: p.trustScore || 50, matchPct: p.trustScore || 50,
-          tier: 'fallback' as const, reasons: ['Highly trusted project'], flags: [],
-        }));
-    } else {
-      const state: MatcherState = {
-        city: (userIntent as any).city || userIntent.location || 'Pune',
-        subLocations: (userIntent as any).subLocations || [],
-        purpose: userIntent.purpose || '',
-        propertyType: userIntent.propertyType || [],
-        bhkType: (userIntent as any).bhkType || [],
-        budgetMin: userIntent.budget?.min || 0,
-        budgetMax: userIntent.budget?.max || 0,
-        isOpenMax: userIntent.budget?.isOpenMax || false,
-        timeline: userIntent.timeline || '',
-        preferences: (userIntent as any).preferences || [],
-      };
-      allMatches = rankProjects(projects, state);
-    }
-
-    const rejectedSet = new Set(JSON.parse(localStorage.getItem('rejectedProjectIds') || '[]'));
-    const curatedIds = JSON.parse(localStorage.getItem('curatedIds') || '[]');
-
-    const validMatches = allMatches.filter(r => !rejectedSet.has(r.project.id));
-
-    const curatedNotRanked = curatedIds
-      .filter((id: string) => !rejectedSet.has(id) && !validMatches.some(r => r.project.id === id))
-      .map((id: string) => {
-        const p = projects.find(proj => proj.id === id);
-        return p ? {
-          project: p, score: 100, matchPct: 100, tier: 'exact' as const, reasons: ['Shortlisted by you'], flags: []
-        } : null;
-      }).filter(Boolean) as MatchResult[];
-
-    const curatedMatches = validMatches.filter(r => curatedIds.includes(r.project.id));
-    const otherMatches = validMatches.filter(r => !curatedIds.includes(r.project.id));
-
-    const finalPool = [...curatedNotRanked, ...curatedMatches, ...otherMatches];
-
-    setRankedProjects(finalPool.slice(0, 10));
-    setBackupProjects(finalPool.slice(10));
-  }, [projects, userIntent]);
-
-  // Handle Explorer additions
-  useEffect(() => {
     const handler = () => {
-      const curated = JSON.parse(localStorage.getItem('curatedIds') || '[]');
-      const rejected = JSON.parse(localStorage.getItem('rejectedProjectIds') || '[]');
-
-      setRankedProjects(prev => {
-        let updated = [...prev];
-        let changed = false;
-
-        curated.forEach((id: string) => {
-          if (!rejected.includes(id) && !updated.some(r => r.project.id === id)) {
-            const proj = projects.find(p => p.id === id);
-            if (proj) {
-              updated.unshift({
-                project: proj, score: 100, matchPct: 100, tier: 'exact' as const, reasons: ['Shortlisted by you'], flags: []
-              });
-              changed = true;
-            }
-          }
-        });
-
-        return changed ? updated : prev;
-      });
+      setCuratedIds(JSON.parse(localStorage.getItem('curatedIds') || '[]'));
+      setRejectedIds(JSON.parse(localStorage.getItem('rejectedProjectIds') || '[]'));
     };
     window.addEventListener('curatedUpdated', handler);
     return () => window.removeEventListener('curatedUpdated', handler);
-  }, [projects]);
+  }, []);
 
-  // STATE 3: PROPERTY REMOVAL
+  useEffect(() => {
+    if (!userIntent || projects.length === 0) return
+    setAiLoading(true)
+
+    fetch('/api/ai/ask', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userIntent, projects }),
+    })
+      .then(r => r.json())
+      .then(data => {
+        setAiRecommended(data.recommended || [])
+        setAiReasoning(data.reasoning || {})
+      })
+      .catch(() => {
+        // Fallback: sort by construction percent
+        const sorted = [...projects].sort((a, b) =>
+          (b.constructionPercent || 0) - (a.constructionPercent || 0)
+        )
+        setAiRecommended(sorted.slice(0, 10).map(p => p.id))
+      })
+      .finally(() => setAiLoading(false))
+  }, [userIntent, projects])
+
+  const displayResults = useMemo(() => {
+    const rejectedSet = new Set(rejectedIds);
+    const filteredProjects = projects.filter(p => !rejectedSet.has(p.id));
+
+    if (curatedIds.length > 0) {
+      return filteredProjects.filter(p => curatedIds.includes(p.id))
+    }
+    if (aiRecommended.length > 0) {
+      const recommended = aiRecommended
+        .map(id => filteredProjects.find(p => p.id === id))
+        .filter(Boolean) as Project[]
+      const rest = filteredProjects
+        .filter(p => !aiRecommended.includes(p.id))
+        .sort((a, b) => (b.constructionPercent || 0) - (a.constructionPercent || 0))
+      return [...recommended, ...rest].slice(0, 12)
+    }
+    return [...filteredProjects]
+      .sort((a, b) => (b.constructionPercent || 0) - (a.constructionPercent || 0))
+      .slice(0, 12)
+  }, [projects, aiRecommended, curatedIds, rejectedIds])
+
   const handleRemove = (id: string) => {
-    // 1. Update localStorage
     const rejected = JSON.parse(localStorage.getItem('rejectedProjectIds') || '[]');
     if (!rejected.includes(id)) {
       rejected.push(id);
       localStorage.setItem('rejectedProjectIds', JSON.stringify(rejected));
+      setRejectedIds([...rejected]);
     }
 
     const curated = JSON.parse(localStorage.getItem('curatedIds') || '[]');
     const nextCurated = curated.filter((c: string) => c !== id);
     if (nextCurated.length !== curated.length) {
       localStorage.setItem('curatedIds', JSON.stringify(nextCurated));
+      setCuratedIds(nextCurated);
       window.dispatchEvent(new Event('curatedUpdated'));
-    }
-
-    // 2. Shift from backup pool without re-running matching
-    const idx = rankedProjects.findIndex(r => r.project.id === id);
-    if (idx > -1) {
-      const nextRanked = [...rankedProjects];
-      nextRanked.splice(idx, 1);
-      
-      const nextBackup = [...backupProjects];
-      if (nextBackup.length > 0) {
-        const nextProject = nextBackup.shift()!;
-        nextRanked.push(nextProject);
-      }
-      
-      setRankedProjects(nextRanked);
-      setBackupProjects(nextBackup);
     }
     
     toast('Removed');
@@ -164,8 +129,8 @@ export default function DashboardPage() {
           <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
             <div className="space-y-2">
               <div className="inline-flex items-center gap-2 px-2.5 py-1 bg-[var(--primary-light)] text-[var(--primary)] rounded-full text-[10px] font-black uppercase tracking-wider">
-                <Sparkles className="w-3 h-3" />
-                AI-Powered Analysis
+                {aiLoading ? <Loader2 className="w-3 h-3 animate-spin" /> : <Sparkles className="w-3 h-3" />}
+                {aiLoading ? 'AI Recommending...' : 'AI-Powered Recommendations'}
               </div>
               <h1 className="text-3xl md:text-4xl font-black text-[var(--text-primary)]" style={{ fontFamily: 'var(--font-display)' }}>
                 Welcome back, {userIntent?.name?.split(' ')[0] || 'Buyer'}
@@ -189,24 +154,12 @@ export default function DashboardPage() {
 
       <SectionContainer wide className="py-12 space-y-16">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-          {rankedProjects.map((result, i) => (
-            <div key={result.project.id} className="relative group">
-
-              {/* ProjectCard with internal risk badge suppressed */}
-              <ProjectCard
-                project={result.project}
-                index={i}
-                hideRiskBadge={true}
-              />
-
-              {/*
-                TOP-LEFT: Risk pill normally, Remove on hover.
-                Both are h-6 (24px) so they match exactly.
-                Both use absolute inset-0 so they occupy same space.
-                No layout shift. No duplicate badges.
-              */}
+          {displayResults.map((project, i) => (
+            <div key={project.id} className="relative group">
+              <ProjectCard project={project} index={i} hideRiskBadge={true} />
+              
+              {/* Risk/Remove overlay top-left */}
               <div className="absolute top-3 left-3 z-30" style={{ height: '24px', minWidth: '64px' }}>
-                {/* Risk — always visible, fades on card hover */}
                 <span
                   className="absolute inset-0 inline-flex items-center justify-center
                     px-2.5 text-[10px] font-bold rounded-full whitespace-nowrap
@@ -214,22 +167,20 @@ export default function DashboardPage() {
                     group-hover:opacity-0 group-hover:pointer-events-none"
                   style={{
                     background:
-                      result.project.riskLabel === 'low' ? 'var(--success-light)' :
-                      result.project.riskLabel === 'medium' ? 'var(--warning-light)' :
+                      project.constructionPercent >= 80 ? 'var(--success-light)' :
+                      project.constructionPercent >= 40 ? 'var(--warning-light)' :
                       'var(--danger-light)',
                     color:
-                      result.project.riskLabel === 'low' ? 'var(--success)' :
-                      result.project.riskLabel === 'medium' ? 'var(--warning)' :
+                      project.constructionPercent >= 80 ? 'var(--success)' :
+                      project.constructionPercent >= 40 ? 'var(--warning)' :
                       'var(--danger)',
                   }}
                 >
-                  {result.project.riskLabel === 'low' ? 'Low Risk' :
-                   result.project.riskLabel === 'medium' ? 'Med Risk' : 'High Risk'}
+                  {project.constructionStatus.replace('_', ' ')}
                 </span>
 
-                {/* Remove pill — appears on card hover */}
                 <button
-                  onClick={() => handleRemove(result.project.id)}
+                  onClick={() => handleRemove(project.id)}
                   className="absolute inset-0 inline-flex items-center justify-center gap-1
                     px-2.5 text-[10px] font-bold rounded-full whitespace-nowrap
                     bg-[var(--danger)] text-white
@@ -242,33 +193,19 @@ export default function DashboardPage() {
                 </button>
               </div>
 
-              {/*
-                TOP-RIGHT: Match % — same height as risk pill (h-6 = 24px).
-                Only shown if score is meaningful (>= 20%).
-              */}
-              {result.matchPct >= 20 && (
-                <div className="absolute top-3 right-3 z-20 pointer-events-none">
-                  <span
-                    className="inline-flex items-center justify-center
-                      px-2.5 text-[10px] font-black text-white
-                      rounded-full whitespace-nowrap shadow-sm"
-                    style={{
-                      height: '24px',
-                      background:
-                        result.tier === 'exact' ? 'var(--success)' :
-                        result.tier === 'close' ? 'var(--primary)' :
-                        'rgba(0,0,0,0.45)',
-                    }}
-                  >
-                    {result.matchPct}% match
-                  </span>
+              {/* AI reasoning tooltip — show on hover if available */}
+              {aiReasoning[project.id] && (
+                <div className="absolute bottom-full left-0 mb-1 z-40
+                  hidden group-hover:block w-64 p-2.5 bg-[var(--surface-dark)] text-white
+                  text-[10px] rounded-[var(--radius-xs)] shadow-lg leading-relaxed">
+                  <p className="font-bold text-[var(--primary)] mb-0.5">Why recommended</p>
+                  {aiReasoning[project.id]}
                 </div>
               )}
-
             </div>
           ))}
 
-          {/* Explore more card — same size as other cards */}
+          {/* Explore more card */}
           <Link href="/explore"
             className="
               group min-h-[360px] border-2 border-dashed border-[var(--border)]

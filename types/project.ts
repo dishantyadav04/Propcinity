@@ -1,17 +1,35 @@
 export interface UnitConfig {
   id: string
-  type: string
-  area: number
+  type: string            // "2BHK", "3BHK", "3.5BHK" etc.
+  area: number            // carpet area in sqft
   priceMin: number
   priceMax: number
   pricePerSqFt: number
-  available: number
-  total: number
-  floor: string
-  facing: string[]
-  images: string[]
-  floorPlan?: string   // URL to floor plan image for this config
-  highlights: string[]
+  floor?: string
+  facing?: string[]
+  floorPlan?: string      // URL to floor plan image
+  highlights?: string[]
+  maintenancePerMonth?: number
+}
+
+export interface BuilderProject {
+  name: string
+  location: string
+}
+
+export interface PaymentPlan {
+  name: string            // "CLP", "Flexi Plan", "Subvention"
+  description: string
+}
+
+export interface BankApproval {
+  bankName: string
+  logoUrl?: string
+}
+
+export interface ProjectVideo {
+  label: string           // "Teaser", "3.5BHK Sample Flat", "Overview"
+  youtubeUrl: string
 }
 
 export interface Project {
@@ -20,28 +38,67 @@ export interface Project {
   name: string
   builder_id?: string
   builderName: string
-  builderScore: number
   builderLogo?: string
+  builderYearsExperience?: number
+  builderCompletedProjects?: number
+  builderCities?: string[]
+  builderTopProjects?: BuilderProject[]
+  builderDescription?: string
   location: string
   city: string
   lat: number
   lng: number
   tagline: string
   description: string
-  trustScore: number
-  riskLabel: 'low' | 'medium' | 'high'
+
+  // Removed: trustScore, builderScore, riskLabel
+
+  // RERA
   reraId: string
-  reraExpiry: string
+  reraExpiry?: string
+  reraLink?: string
+
+  // Dates
   launchDate: string
-  possessionDate: string
+  possessionDate: string        // Target possession
+  reraPossessionDate?: string   // RERA possession
+
+  // Project specs
+  landParcelAcres?: number      // e.g. 7.5
+  totalTowers?: number          // e.g. 6
+  floorsPerTower?: string       // e.g. "G+33"
   totalUnits: number
-  availableUnits: number
+  availableUnits?: number
+
+  // Config summary (derived from unitConfigs)
   unitConfigs: UnitConfig[]
+
+  // Content
   pros: string[]
   cons: string[]
   amenities: string[]
+  internalAmenities?: string[]
+  externalAmenities?: string[]
   images: string[]
-  constructionStatus: 'pre_launch' | 'under_construction' | 'ready_to_move'
+
+  // Status
+  constructionStatus: 'pre_launch' | 'new_launch' | 'under_construction' | 'ready_to_move'
   constructionPercent: number
+
+  // Legal
+  litigation: boolean           // true = has litigation
+  litigationDetails?: string
+  commencementCertificate?: boolean
+  occupancyCertificate?: boolean
+  legalNotes?: string
+
+  // Financial
+  paymentPlans?: PaymentPlan[]
+  bankApprovals?: BankApproval[]
+
+  // Media
+  videos?: ProjectVideo[]
+  brochureUrl?: string
+
   isPublished: boolean
 }

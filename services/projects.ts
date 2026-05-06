@@ -55,44 +55,61 @@ function mapUnitConfig(row: SupabaseUnitConfigRow): UnitConfig {
     priceMin: Number(row.price_min),
     priceMax: Number(row.price_max),
     pricePerSqFt: Number(row.price_per_sqft),
-    available: row.available,
-    total: row.total,
     floor: row.floor_range,
     facing: row.facing || [],
-    images: row.images || [],
+    floorPlan: (row as any).floor_plan_url,
     highlights: row.highlights || [],
+    maintenancePerMonth: (row as any).maintenance_cost,
   }
 }
 
-function mapProject(row: SupabaseProjectRow, unitConfigs: SupabaseUnitConfigRow[]): Project {
+function mapProject(row: any, unitConfigs: SupabaseUnitConfigRow[]): Project {
   return {
     id: row.id,
     slug: row.slug,
     name: row.name,
     builderName: row.builder_name,
-    builderScore: row.builder_score,
     builderLogo: row.builder_logo,
+    builderYearsExperience: row.builder_years_experience,
+    builderCompletedProjects: row.builder_completed_projects,
+    builderCities: row.builder_cities || [],
+    builderTopProjects: row.builder_top_projects || [],
+    builderDescription: row.builder_description,
     location: row.location,
     city: row.city,
     lat: Number(row.lat),
     lng: Number(row.lng),
     tagline: row.tagline,
     description: row.description,
-    trustScore: row.trust_score,
-    riskLabel: row.risk_label,
     reraId: row.rera_id,
     reraExpiry: row.rera_expiry,
+    reraLink: row.rera_link,
     launchDate: row.launch_date,
     possessionDate: row.possession_date,
+    reraPossessionDate: row.rera_possession_date,
+    landParcelAcres: row.land_parcel_acres,
+    totalTowers: row.total_towers,
+    floorsPerTower: row.floors_per_tower,
     totalUnits: row.total_units,
     availableUnits: row.available_units,
     unitConfigs: unitConfigs.map(mapUnitConfig),
     pros: row.pros || [],
     cons: row.cons && row.cons.length > 0 ? row.cons : ['No major downside data available yet.'],
     amenities: row.amenities || [],
+    internalAmenities: row.internal_amenities || [],
+    externalAmenities: row.external_amenities || [],
     images: row.images || [],
     constructionStatus: row.construction_status,
     constructionPercent: row.construction_percent,
+    litigation: !!row.litigation,
+    litigationDetails: row.litigation_details,
+    commencementCertificate: !!row.commencement_certificate,
+    occupancyCertificate: !!row.occupancy_certificate,
+    legalNotes: row.legal_notes,
+    paymentPlans: row.payment_plans || [],
+    bankApprovals: row.bank_approvals || [],
+    videos: row.videos || [],
+    brochureUrl: row.brochure_url,
     isPublished: row.is_published,
   }
 }
@@ -135,7 +152,7 @@ export async function getPublishedProjects(filters?: {
   let query = supabase
     .from('projects_public')
     .select('*')
-    .order('trust_score', { ascending: false })
+    .order('construction_percent', { ascending: false })
 
   if (filters?.excludeIds?.length) {
     query = query.not('id', 'in', `(${filters.excludeIds.join(',')})`)

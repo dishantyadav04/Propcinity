@@ -1,14 +1,12 @@
 'use client';
 
 import { Project, UnitConfig } from "@/types/project";
-import TrustScoreBadge from "./TrustScoreBadge";
 import InsightsPanel from "./InsightsPanel";
 import WhyThisFitsYou from "./WhyThisFitsYou";
 import { formatINR } from "@/lib/finance-calculations";
 import { MapPin, ChevronRight, ShieldCheck } from "lucide-react";
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { UserIntent } from "@/types/user";
 import { useEffect, useState } from "react";
 import { addToCompare } from "@/lib/utils";
 import { toast } from "sonner";
@@ -16,27 +14,17 @@ import { toast } from "sonner";
 interface ProjectCardProps {
   project: Project;
   matchedUnit?: UnitConfig;
-  fitScore?: number;
   index?: number;
-  prismResult?: { totalScore: number; tier: string };
-  hideRiskBadge?: boolean;
+  hideRiskBadge?: boolean; // Kept for prop compatibility but logic removed
 }
 
 export default function ProjectCard({
-  project, matchedUnit, fitScore, index = 0, prismResult,
-  hideRiskBadge = false
+  project, matchedUnit, index = 0
 }: ProjectCardProps) {
   const displayUnit = matchedUnit || project.unitConfigs[0];
   const minPrice = project.unitConfigs.length > 0
     ? Math.min(...project.unitConfigs.map(u => u.priceMin))
     : 0;
-
-  const riskColors = {
-    low: { bg: 'var(--success-light)', text: 'var(--success)', label: 'Low Risk' },
-    medium: { bg: 'var(--warning-light)', text: 'var(--warning)', label: 'Med Risk' },
-    high: { bg: 'var(--danger-light)', text: 'var(--danger)', label: 'High Risk' },
-  };
-  const risk = riskColors[project.riskLabel] || riskColors.medium;
 
   const [isComparing, setIsComparing] = useState(false);
 
@@ -84,17 +72,6 @@ export default function ProjectCard({
             <div className="w-full h-full flex items-center justify-center text-[var(--text-muted)] text-sm">No image</div>
           )}
           <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
-
-          {/* Top badges — hidden on dashboard (dashboard renders its own) */}
-          {!hideRiskBadge && (
-            <div className="absolute top-3 left-3 flex gap-2">
-              <span style={{ background: risk.bg, color: risk.text }}
-                className="px-2 py-1 text-[10px] font-bold rounded-full">{risk.label}</span>
-            </div>
-          )}
-          <div className="absolute bottom-3 right-3">
-            <TrustScoreBadge score={project.trustScore} size="sm" />
-          </div>
 
           {/* Bottom name */}
           <div className="absolute bottom-3 left-4 right-4">

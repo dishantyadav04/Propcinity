@@ -34,24 +34,18 @@ export function generateFitReasons(
     reasons.push({ icon: 'MapPin', text: 'Located in your preferred city', strength: 'strong' })
   }
 
-  if (intent.purpose === 'investment' && project.trustScore >= 80) {
-    reasons.push({ icon: 'TrendingUp', text: 'High trust score - lower investment risk', strength: 'strong' })
-  }
-
-  if (intent.purpose === 'self-use' && project.riskLabel === 'low') {
-    reasons.push({ icon: 'Shield', text: 'Low delivery risk - reliable builder', strength: 'strong' })
-  }
-
-  if (project.builderScore >= 80) {
-    reasons.push({ icon: 'Star', text: 'Builder has excellent track record', strength: 'strong' })
+  if (project.constructionStatus === 'ready_to_move') {
+    reasons.push({ icon: 'Home', text: 'Ready to move - zero waiting time', strength: 'strong' })
+  } else if (project.constructionPercent > 70) {
+    reasons.push({ icon: 'Building', text: 'Advanced construction stage', strength: 'strong' })
   }
 
   if (project.reraId) {
     reasons.push({ icon: 'BadgeCheck', text: 'RERA registered - legally protected', strength: 'moderate' })
   }
 
-  if (matchedUnit && intent.propertyType.includes(matchedUnit.type)) {
-    reasons.push({ icon: 'Home', text: `Matches your ${matchedUnit.type} preference`, strength: 'strong' })
+  if (matchedUnit && intent.propertyType.some(t => matchedUnit.type.includes(t))) {
+    reasons.push({ icon: 'Home', text: `Matches your property type preference`, strength: 'strong' })
   }
 
   const scoreMap: Record<FitReason['strength'], number> = { strong: 25, moderate: 15, weak: 5 }

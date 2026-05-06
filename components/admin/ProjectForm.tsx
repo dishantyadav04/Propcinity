@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from "react";
-import { Project, UnitConfig } from "@/types/project";
+import { Project } from "@/types/project";
 import ImageUpload from "./ImageUpload";
 import UnitConfigForm from "./UnitConfigForm";
 import AdminMapPreview from "./AdminMapPreview";
@@ -17,7 +17,7 @@ export default function ProjectForm({ initialData }: ProjectFormProps) {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
   const [builders, setBuilders] = useState<any[]>([]);
-  const [selectedBuilderId, setSelectedBuilderId] = useState(initialData?.builder_id || '');
+  const [selectedBuilderId, setSelectedBuilderId] = useState((initialData as any)?.builder_id || '');
   
   const [project, setProject] = useState<Partial<Project>>(initialData || {
     name: '',
@@ -26,7 +26,6 @@ export default function ProjectForm({ initialData }: ProjectFormProps) {
     location: '',
     city: 'Pune',
     description: '',
-    trustScore: 80,
     images: [],
     pros: [],
     cons: [],
@@ -37,7 +36,10 @@ export default function ProjectForm({ initialData }: ProjectFormProps) {
     reraId: '',
     possessionDate: '',
     launchDate: '',
-    isPublished: true
+    isPublished: true,
+    litigation: false,
+    constructionStatus: 'under_construction',
+    constructionPercent: 0
   });
 
   useEffect(() => {
@@ -49,7 +51,6 @@ export default function ProjectForm({ initialData }: ProjectFormProps) {
 
   const [newPro, setNewPro] = useState("");
   const [newCon, setNewCon] = useState("");
-  const [newAmenity, setNewAmenity] = useState("");
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -110,30 +111,10 @@ export default function ProjectForm({ initialData }: ProjectFormProps) {
               <option value="">Select a builder...</option>
               {builders.map(b => (
                 <option key={b.id} value={b.id}>
-                  {b.name} (Score: {b.builder_score}/100)
+                  {b.name}
                 </option>
               ))}
             </select>
-            {!builders.length && (
-              <p className="text-xs text-[var(--warning)]">
-                No builders found. <a href="/admin/builders/new" className="underline text-[var(--primary)]">Create a builder first →</a>
-              </p>
-            )}
-            {selectedBuilderId && (() => {
-              const b = builders.find(x => x.id === selectedBuilderId);
-              if (!b) return null;
-              return (
-                <div className="p-3 bg-[var(--primary-light)] border border-[var(--primary)]/20 rounded-[var(--radius-xs)]">
-                  <p className="text-xs font-bold text-[var(--primary)]">{b.name}</p>
-                  <p className="text-[10px] text-[var(--text-muted)] mt-0.5">
-                    Builder Score: {b.builder_score}/100 · RERA: {b.rera_registered ? 'Yes' : 'No'}
-                  </p>
-                  <p className="text-[10px] text-[var(--text-muted)]">
-                    This builder's score will contribute to the project trust score automatically.
-                  </p>
-                </div>
-              );
-            })()}
           </div>
 
           <div className="grid grid-cols-2 gap-4">
@@ -148,12 +129,12 @@ export default function ProjectForm({ initialData }: ProjectFormProps) {
               />
             </div>
             <div className="space-y-2">
-              <label className="text-[10px] text-[var(--text-muted)] uppercase font-bold">Trust Score</label>
+              <label className="text-[10px] text-[var(--text-muted)] uppercase font-bold">Construction %</label>
               <input 
                 type="number" 
                 min="0" max="100"
-                value={project.trustScore}
-                onChange={(e) => setProject({...project, trustScore: Number(e.target.value)})}
+                value={project.constructionPercent || 0}
+                onChange={(e) => setProject({...project, constructionPercent: Number(e.target.value)})}
                 className="w-full bg-[var(--surface-raised)] border border-[var(--border)] rounded-xl px-4 py-2.5 text-sm"
               />
             </div>

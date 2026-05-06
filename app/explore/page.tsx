@@ -7,7 +7,7 @@ import Skeleton from "@/components/ui/Skeleton";
 import ProjectCard from "@/components/property/ProjectCard";
 import {
   Search, SlidersHorizontal, X, LayoutGrid, List,
-  Building2, MapPin, LayoutDashboard, ChevronDown, TrendingUp,
+  Building2, MapPin, LayoutDashboard, ChevronDown, 
   ShieldCheck, ArrowUpDown, Check
 } from "lucide-react";
 import Link from "next/link";
@@ -15,8 +15,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 import { addToCompare } from "@/lib/utils";
 
-type RiskFilter = 'all' | 'low' | 'medium' | 'high';
-type SortOption = 'trust' | 'price_asc' | 'price_desc' | 'newest';
+type SortOption = 'newest' | 'price_asc' | 'price_desc';
 type ViewMode = 'grid' | 'list';
 
 export default function ExplorePage() {
@@ -24,8 +23,7 @@ export default function ExplorePage() {
   const [filtered, setFiltered] = useState<Project[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
-  const [riskFilter, setRiskFilter] = useState<RiskFilter>('all');
-  const [sortBy, setSortBy] = useState<SortOption>('trust');
+  const [sortBy, setSortBy] = useState<SortOption>('newest');
   const [showFilters, setShowFilters] = useState(false);
   const [viewMode, setViewMode] = useState<ViewMode>('grid');
   const [curatedIds, setCuratedIds] = useState<string[]>([]);
@@ -37,10 +35,9 @@ export default function ExplorePage() {
   const sortRef = useRef<HTMLDivElement>(null)
 
   const SORT_OPTIONS: { value: SortOption; label: string; icon: string }[] = [
-    { value: 'trust', label: 'Trust Score', icon: '⭐' },
+    { value: 'newest', label: 'Newest First', icon: '🆕' },
     { value: 'price_asc', label: 'Price: Low → High', icon: '↑' },
     { value: 'price_desc', label: 'Price: High → Low', icon: '↓' },
-    { value: 'newest', label: 'Newest First', icon: '🆕' },
   ]
 
   const currentSort = SORT_OPTIONS.find(o => o.value === sortBy)!
@@ -92,8 +89,6 @@ export default function ExplorePage() {
       );
     }
 
-    if (riskFilter !== 'all') result = result.filter(p => p.riskLabel === riskFilter);
-
     if (typeFilter !== 'all') {
       result = result.filter(p =>
         (p.unitConfigs || []).some(u => u.type === typeFilter)
@@ -116,7 +111,6 @@ export default function ExplorePage() {
       });
     }
 
-    if (sortBy === 'trust') result.sort((a, b) => b.trustScore - a.trustScore);
     if (sortBy === 'price_asc') result.sort((a, b) =>
       (a.unitConfigs?.length ? Math.min(...a.unitConfigs.map(u => u.priceMin)) : 0) -
       (b.unitConfigs?.length ? Math.min(...b.unitConfigs.map(u => u.priceMin)) : 0)
@@ -130,7 +124,7 @@ export default function ExplorePage() {
     );
 
     setFiltered(result);
-  }, [projects, searchQuery, riskFilter, sortBy, typeFilter, budgetFilter]);
+  }, [projects, searchQuery, sortBy, typeFilter, budgetFilter]);
 
   useEffect(() => { applyFilters(); }, [applyFilters]);
 
@@ -138,14 +132,12 @@ export default function ExplorePage() {
     e.preventDefault(); e.stopPropagation();
     const isAdding = !curatedIds.includes(id);
     
-    // 1. Update curatedIds
     const nextCurated = isAdding
       ? [...curatedIds, id]
       : curatedIds.filter(i => i !== id);
     setCuratedIds(nextCurated);
     localStorage.setItem('curatedIds', JSON.stringify(nextCurated));
 
-    // 2. If adding, remove from rejectedIds so it shows up on dashboard
     if (isAdding) {
       const rejected = JSON.parse(localStorage.getItem('rejectedProjectIds') || '[]');
       const nextRejected = rejected.filter((rid: string) => rid !== id);
@@ -156,20 +148,8 @@ export default function ExplorePage() {
     toast(isAdding ? 'Added to your matches' : 'Removed from matches');
   };
 
-  const handleCompare = (project: Project, e: React.MouseEvent) => {
-    e.preventDefault(); e.stopPropagation();
-    const added = addToCompare(project);
-    if (added) {
-      toast('Added to compare ⚖️');
-    } else if (compareIds.includes(project.id)) {
-      toast('Removed from compare');
-    } else {
-      toast.error('Max 5 projects for comparison');
-    }
-  };
-
   const activeFilterCount = [
-    riskFilter !== 'all', typeFilter !== 'all', budgetFilter !== 'all'
+    typeFilter !== 'all', budgetFilter !== 'all'
   ].filter(Boolean).length;
 
   return (
@@ -199,7 +179,6 @@ export default function ExplorePage() {
               )}
             </div>
 
-            {/* Filter toggle */}
             <button
               onClick={() => setShowFilters(!showFilters)}
               className={`relative flex items-center gap-1.5 px-3 py-2.5 rounded-[var(--radius-xs)]
@@ -218,9 +197,7 @@ export default function ExplorePage() {
               )}
             </button>
 
-            {/* Sort */}
             <div ref={sortRef} className="relative flex-shrink-0">
-              {/* Trigger button */}
               <button
                 onClick={() => setSortOpen(!sortOpen)}
                 className={`
@@ -237,7 +214,6 @@ export default function ExplorePage() {
                 <ChevronDown className={`w-3.5 h-3.5 transition-transform ${sortOpen ? 'rotate-180' : ''}`} />
               </button>
 
-              {/* Dropdown panel */}
               <AnimatePresence>
                 {sortOpen && (
                   <motion.div
@@ -284,7 +260,6 @@ export default function ExplorePage() {
               </AnimatePresence>
             </div>
 
-            {/* View mode — desktop only */}
             <div className="hidden sm:flex items-center bg-[var(--surface-raised)] rounded-[var(--radius-xs)] p-0.5">
               <button
                 onClick={() => setViewMode('grid')}
@@ -299,7 +274,6 @@ export default function ExplorePage() {
             </div>
           </div>
 
-          {/* Expandable filter row */}
           <AnimatePresence>
             {showFilters && (
               <motion.div
@@ -309,20 +283,6 @@ export default function ExplorePage() {
                 className="overflow-hidden"
               >
                 <div className="pb-2 flex flex-wrap gap-4">
-                  {/* Risk filter */}
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-wider">Risk</span>
-                    {(['all', 'low', 'medium', 'high'] as const).map(r => (
-                      <button key={r} onClick={() => setRiskFilter(r)}
-                        className={`px-3 py-1 rounded-full text-xs font-bold capitalize transition-all border ${
-                          riskFilter === r
-                            ? 'bg-[var(--primary)] text-white border-[var(--primary)]'
-                            : 'bg-[var(--surface-raised)] text-[var(--text-secondary)] border-[var(--border)]'
-                        }`}>{r === 'all' ? 'All' : `${r.charAt(0).toUpperCase() + r.slice(1)} Risk`}</button>
-                    ))}
-                  </div>
-
-                  {/* Type filter */}
                   <div className="flex items-center gap-2 flex-wrap">
                     <span className="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-wider">Type</span>
                     {['all', '1BHK', '2BHK', '3BHK', '4BHK', 'Villa', 'Plot'].map(t => (
@@ -335,7 +295,6 @@ export default function ExplorePage() {
                     ))}
                   </div>
 
-                  {/* Budget filter */}
                   <div className="flex items-center gap-2 flex-wrap">
                     <span className="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-wider">Budget</span>
                     {[
@@ -354,10 +313,9 @@ export default function ExplorePage() {
                     ))}
                   </div>
 
-                  {/* Clear all */}
                   {activeFilterCount > 0 && (
                     <button
-                      onClick={() => { setRiskFilter('all'); setTypeFilter('all'); setBudgetFilter('all'); }}
+                      onClick={() => { setTypeFilter('all'); setBudgetFilter('all'); }}
                       className="text-xs font-bold text-[var(--danger)] hover:underline ml-auto">
                       Clear all filters
                     </button>
@@ -367,7 +325,6 @@ export default function ExplorePage() {
             )}
           </AnimatePresence>
 
-          {/* Result count */}
           <div className="flex items-center justify-between">
             <p className="text-xs text-[var(--text-muted)] font-medium">
               {isLoading ? 'Loading...' : `${filtered.length} project${filtered.length !== 1 ? 's' : ''}`}
@@ -375,7 +332,7 @@ export default function ExplorePage() {
             </p>
             {activeFilterCount > 0 && (
               <button
-                onClick={() => { setRiskFilter('all'); setTypeFilter('all'); setBudgetFilter('all'); setSearchQuery(''); }}
+                onClick={() => { setTypeFilter('all'); setBudgetFilter('all'); setSearchQuery(''); }}
                 className="text-xs font-bold text-[var(--primary)]">
                 Show all
               </button>
@@ -400,13 +357,12 @@ export default function ExplorePage() {
             <h3 className="text-xl font-bold text-[var(--text-primary)]">No projects match</h3>
             <p className="text-sm text-[var(--text-secondary)]">Try adjusting your filters</p>
             <button
-              onClick={() => { setSearchQuery(''); setRiskFilter('all'); setTypeFilter('all'); setBudgetFilter('all'); }}
+              onClick={() => { setSearchQuery(''); setTypeFilter('all'); setBudgetFilter('all'); }}
               className="px-5 py-2 bg-[var(--primary)] text-white text-sm font-bold rounded-[var(--radius)]">
               Clear Filters
             </button>
           </div>
         ) : viewMode === 'grid' ? (
-          /* ── GRID VIEW ─────────────────────────────────── */
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {filtered.map((project, index) => (
               <motion.div key={project.id} layout
@@ -416,7 +372,6 @@ export default function ExplorePage() {
                 className="relative group"
               >
                 <ProjectCard project={project} index={index} />
-                {/* Unified Dashboard Action Overlay */}
                 <div className="absolute top-2 left-2 z-20">
                   <button
                     onClick={e => toggleDashboard(project.id, e)}
@@ -434,7 +389,6 @@ export default function ExplorePage() {
             ))}
           </div>
         ) : (
-          /* ── LIST VIEW ─────────────────────────────────── */
           <div className="space-y-3">
             {filtered.map((project, index) => {
               const minPrice = project.unitConfigs?.length
@@ -448,9 +402,7 @@ export default function ExplorePage() {
                   className="relative bg-white border border-[var(--border)] rounded-[var(--radius)]
                     shadow-[var(--shadow-sm)] hover:shadow-[var(--shadow)] transition-shadow"
                 >
-                  {/* Clickable area — the full card link */}
                   <Link href={`/projects/${project.slug}`} className="flex gap-4 p-4 pr-28">
-                    {/* Image */}
                     <div className="w-24 h-24 sm:w-32 sm:h-24 flex-shrink-0 rounded-[var(--radius-xs)] overflow-hidden bg-[var(--surface-raised)]">
                       {project.images?.[0]
                         ? <img src={project.images[0]} alt={project.name} className="w-full h-full object-cover" />
@@ -460,7 +412,6 @@ export default function ExplorePage() {
                       }
                     </div>
 
-                    {/* Info */}
                     <div className="flex-1 min-w-0 space-y-2">
                       <div className="flex items-start justify-between gap-2">
                         <div className="min-w-0">
@@ -470,11 +421,6 @@ export default function ExplorePage() {
                             <MapPin className="w-3 h-3 flex-shrink-0" /> {project.location}, {project.city}
                           </p>
                         </div>
-                        <span className={`flex-shrink-0 text-[10px] font-bold px-2 py-0.5 rounded-full capitalize ${
-                          project.riskLabel === 'low' ? 'bg-[var(--success-light)] text-[var(--success)]' :
-                          project.riskLabel === 'medium' ? 'bg-[var(--warning-light)] text-[var(--warning)]' :
-                          'bg-[var(--danger-light)] text-[var(--danger)]'
-                        }`}>{project.riskLabel}</span>
                       </div>
 
                       <div className="flex items-center gap-3 flex-wrap">
@@ -490,23 +436,19 @@ export default function ExplorePage() {
                       </div>
 
                       <div className="flex items-center gap-3">
-                        <div className="flex items-center gap-1">
-                          <TrendingUp className="w-3.5 h-3.5 text-[var(--primary)]" />
-                          <span className="text-xs font-bold text-[var(--text-secondary)]">
-                            {project.trustScore}/100
-                          </span>
-                        </div>
                         {project.reraId && (
                           <div className="flex items-center gap-1">
                             <ShieldCheck className="w-3.5 h-3.5 text-[var(--success)]" />
-                            <span className="text-xs font-semibold text-[var(--success)]">RERA</span>
+                            <span className="text-xs font-semibold text-[var(--success)]">RERA Verified</span>
                           </div>
                         )}
+                        <span className="text-[10px] font-bold text-[var(--text-secondary)] bg-[var(--surface-raised)] px-2 py-0.5 rounded">
+                          {project.constructionStatus.replace('_', ' ')}
+                        </span>
                       </div>
                     </div>
                   </Link>
 
-                  {/* Dashboard button — OUTSIDE the Link, positioned absolutely on the right */}
                   <div className="absolute right-4 top-1/2 -translate-y-1/2 flex flex-col items-center gap-2">
                     <button
                       onClick={e => { e.preventDefault(); e.stopPropagation(); toggleDashboard(project.id, e); }}

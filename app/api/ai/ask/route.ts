@@ -57,3 +57,45 @@ export async function POST(request: NextRequest) {
 
   return NextResponse.json({ answer, provider })
 }
+export async function PUT(request: NextRequest) {
+  // AI-powered project recommendations endpoint
+  try {
+    const { userIntent, projects } = await request.json()
+
+    // Build a concise prompt with user preferences + project list
+    const projectList = (projects || []).slice(0, 50).map((p: any) => ({
+      id: p.id,
+      name: p.name,
+      location: p.location,
+      unitTypes: (p.unitConfigs || []).map((u: any) => u.type).join(', '),
+      priceMin: p.unitConfigs?.[0]?.priceMin || 0,
+      possession: p.possessionDate,
+      pros: (p.pros || []).slice(0, 2).join('; '),
+      cons: (p.cons || []).slice(0, 1).join('; '),
+    }))
+
+    const systemPrompt = `You are a real estate recommendation engine for Propcinity, a zero-brokerage platform.
+Given a buyer's preferences and a list of projects, return a JSON array of recommended project IDs sorted by best match.
+Return ONLY valid JSON in this format: { "recommended": ["id1", "id2", ...], "reasoning": {"id1": "reason", ...} }
+Do not return more than 10 IDs. Base recommendations on: location, budget, BHK preference, timeline.
+Always be honest - if a project doesn't match, don't include it.`
+
+    const userPrompt = `Buyer preferences: ${JSON.stringify(userIntent)}
+    
+Available projects: ${JSON.stringify(projectList)}
+
+Return JSON with recommended project IDs and a brief reason for each.`
+
+    const result = await askAI(userPrompt, systemPrompt)
+    const parsed = JSON.parse(result.answer.replace(/```json|```/g, '').trim())
+
+    return NextResponse.json({
+      recommended: parsed.recommended || [],
+      reasoning: parsed.reasoning || {},
+      provider: result.provider,
+    })
+  } catch (err) {
+    console.error('Recommendation failed:', err)
+    return NextResponse.json({ error: 'Recommendation failed' }, { status: 500 })
+  }
+}
