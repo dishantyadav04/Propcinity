@@ -21,7 +21,7 @@ export async function sendBuyerConfirmation(data: {
   if (!data.email) return
 
   await getResendClient().emails.send({
-    from: 'PropIQ <hello@propiq.in>',
+    from: 'Propcinity <hello@propcinity.com>',
     to: data.email,
     subject: `Consultation Confirmed - ${data.projectName}`,
     html: `
@@ -36,7 +36,7 @@ export async function sendBuyerConfirmation(data: {
         </table>
         <p>Our advisor will call you within 2 hours to confirm.</p>
         <p style="color:#666;font-size:13px;">No builder contact. No spam. 100% free for buyers.</p>
-        <p>- PropIQ Team</p>
+        <p>- Propcinity Team</p>
       </div>
     `,
   })
@@ -64,7 +64,7 @@ export async function sendOpsAlert(data: {
     : ''
 
   await getResendClient().emails.send({
-    from: 'PropIQ Leads <leads@propiq.in>',
+    from: 'Propcinity Leads <leads@propcinity.com>',
     to: process.env.OPS_EMAIL!,
     subject: `[${data.intentLabel.toUpperCase()}] New Lead - ${data.name} - ${data.projectName}`,
     html: `

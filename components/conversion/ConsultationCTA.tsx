@@ -15,20 +15,20 @@ interface ConsultationCTAProps {
 
 export default function ConsultationCTA({ project, unitConfig, variant, triggerSource }: ConsultationCTAProps) {
   const handleClick = () => {
-    trackConsultationStarted({ 
-      projectId: project.id, 
-      triggerSource 
+    trackConsultationStarted({
+      projectId: project.id,
+      triggerSource
     });
     // This will be handled by the parent or a global state to open the LeadQualificationSheet
-    window.dispatchEvent(new CustomEvent('open-qualification-sheet', { 
-      detail: { project, unitConfig } 
+    window.dispatchEvent(new CustomEvent('open-qualification-sheet', {
+      detail: { project, unitConfig }
     }));
   };
 
   if (variant === 'primary') {
     return (
       <div className="space-y-3">
-        <button 
+        <button
           onClick={handleClick}
           className="w-full flex items-center justify-center gap-2 bg-[var(--primary)] hover:bg-[var(--primary)]/90 text-white font-bold py-4 rounded-[var(--radius)] transition-all shadow-lg shadow-[var(--primary)]/20"
         >
@@ -44,7 +44,7 @@ export default function ConsultationCTA({ project, unitConfig, variant, triggerS
 
   if (variant === 'outline') {
     return (
-      <button 
+      <button
         onClick={handleClick}
         className="w-full border border-[var(--primary)] text-[var(--primary)] hover:bg-[var(--primary)]/5 font-bold py-4 rounded-[var(--radius)] transition-all"
       >
@@ -60,14 +60,14 @@ export default function ConsultationCTA({ project, unitConfig, variant, triggerS
           <FreeBuyerBadge variant="inline" />
         </div>
         <div className="grid grid-cols-2 gap-3">
-          <button 
+          <button
             onClick={handleClick}
             className="flex items-center justify-center gap-2 bg-[var(--surface-raised)] border border-[var(--border)] text-[var(--text-primary)] font-bold py-3.5 rounded-[var(--radius)] transition-all"
           >
             <CalendarDays className="w-4 h-4 text-[var(--primary)]" />
             <span className="text-sm">Talk to Advisor</span>
           </button>
-          <button 
+          <button
             onClick={() => window.dispatchEvent(new CustomEvent('open-ai-modal', { detail: { project } }))}
             className="flex items-center justify-center gap-2 bg-[var(--primary)] text-white font-bold py-3.5 rounded-[var(--radius)] transition-all shadow-lg shadow-[var(--primary)]/20"
           >

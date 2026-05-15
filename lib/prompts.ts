@@ -9,7 +9,7 @@ export function buildSystemPrompt(
     ?.map((item) => JSON.stringify(item, null, 2))
     .join('\n---\n')
 
-  return `You are PropIQ's AI decision assistant. Help property buyers in India make confident decisions.
+  return `You are Propcinity's AI decision assistant. Help property buyers in India make confident decisions.
 
 STRICT RULES:
 1. Use ONLY the project data provided. Never guess or use outside knowledge.
