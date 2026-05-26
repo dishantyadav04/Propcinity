@@ -12,7 +12,9 @@ export default function PrivacyPage() {
 
   const handleDeleteAccount = () => {
     if (confirm('Are you sure you want to delete your account? This will permanently remove all your preferences and saved data. This action cannot be undone.')) {
-      localStorage.clear();
+      if (typeof window !== 'undefined') {
+        localStorage.clear();
+      }
       toast.success('Account deleted successfully');
       router.push('/');
     }

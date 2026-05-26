@@ -11,14 +11,16 @@ import Link from "next/link";
 import SectionContainer from "@/components/layout/SectionContainer";
 import { motion } from "framer-motion";
 
+import { storage, STORAGE_KEYS } from "@/lib/storage";
+
 export default function ProfilePage() {
   const [intent, setIntent] = useState<UserIntent | null>(null);
   const [curatedCount, setCuratedCount] = useState(0);
 
   useEffect(() => {
-    const saved = localStorage.getItem('userIntent');
-    if (saved) setIntent(JSON.parse(saved));
-    const ids = JSON.parse(localStorage.getItem('curatedIds') || '[]');
+    const saved = storage.get<UserIntent | null>(STORAGE_KEYS.USER_INTENT, null);
+    if (saved) setIntent(saved);
+    const ids = storage.get<string[]>(STORAGE_KEYS.CURATED_IDS, []);
     setCuratedCount(ids.length);
   }, []);
 

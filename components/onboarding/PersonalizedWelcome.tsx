@@ -5,12 +5,14 @@ import { Sparkles, ArrowDown, Cpu } from "lucide-react";
 import { UserIntent } from "@/types/user";
 import { useEffect, useState } from "react";
 
+import { storage, STORAGE_KEYS } from "@/lib/storage";
+
 export default function PersonalizedWelcome() {
   const [intent, setIntent] = useState<UserIntent | null>(null);
 
   useEffect(() => {
-    const saved = localStorage.getItem('userIntent');
-    if (saved) setIntent(JSON.parse(saved));
+    const saved = storage.get<UserIntent | null>(STORAGE_KEYS.USER_INTENT, null);
+    if (saved) setIntent(saved);
   }, []);
 
   if (!intent) return null;

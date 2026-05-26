@@ -7,6 +7,8 @@ import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import * as LucideIcons from "lucide-react";
 
+import { storage, STORAGE_KEYS } from "@/lib/storage";
+
 interface WhyThisFitsYouProps {
   project: Project;
   matchedUnit?: UnitConfig;
@@ -17,13 +19,9 @@ export default function WhyThisFitsYou({ project, matchedUnit, variant }: WhyThi
   const [intent, setIntent] = useState<UserIntent | null>(null);
 
   useEffect(() => {
-    const savedIntent = localStorage.getItem("userIntent");
+    const savedIntent = storage.get<UserIntent | null>(STORAGE_KEYS.USER_INTENT, null);
     if (savedIntent) {
-      try {
-        setIntent(JSON.parse(savedIntent));
-      } catch (e) {
-        console.error("Failed to parse user intent", e);
-      }
+      setIntent(savedIntent);
     }
   }, []);
 

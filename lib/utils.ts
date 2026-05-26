@@ -1,6 +1,8 @@
 import { clsx, type ClassValue } from 'clsx'
 import { twMerge } from 'tailwind-merge'
 
+import { storage, STORAGE_KEYS } from './storage'
+
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
@@ -34,17 +36,17 @@ export function getPriceLabel(project: {
 }
 
 export function addToCompare(project: any): boolean {
-  const current: any[] = JSON.parse(localStorage.getItem('compareItems') || '[]');
+  const current = storage.get<any[]>(STORAGE_KEYS.COMPARE_ITEMS, []);
   const exists = current.find((p: any) => p.id === project.id);
   if (exists) {
     const updated = current.filter((p: any) => p.id !== project.id);
-    localStorage.setItem('compareItems', JSON.stringify(updated));
+    storage.set(STORAGE_KEYS.COMPARE_ITEMS, updated);
     window.dispatchEvent(new Event('compareUpdated'));
     return false; // removed
   }
   if (current.length >= 5) return false; // max reached
   const updated = [...current, project];
-  localStorage.setItem('compareItems', JSON.stringify(updated));
+  storage.set(STORAGE_KEYS.COMPARE_ITEMS, updated);
   window.dispatchEvent(new Event('compareUpdated'));
   return true; // added
 }

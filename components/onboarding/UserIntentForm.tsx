@@ -7,6 +7,7 @@ import {
   ChevronRight
 } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { storage, STORAGE_KEYS } from "@/lib/storage";
 import { cn } from "@/lib/utils";
 
 const CITY_SUBLOCATIONS: Record<string, string[]> = {
@@ -136,8 +137,8 @@ export default function UserIntentForm() {
       preferences: form.preferences,
       rejectedProjects: [], savedProjects: []
     };
-    localStorage.setItem('userIntent', JSON.stringify(intent));
-    localStorage.setItem('onboarding_complete', 'true');
+    storage.set(STORAGE_KEYS.USER_INTENT, intent);
+    storage.set(STORAGE_KEYS.ONBOARDING_DONE, true);
     await new Promise(r => setTimeout(r, 1000));
     router.push('/dashboard');
   };

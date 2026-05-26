@@ -7,17 +7,19 @@ import SectionContainer from "@/components/layout/SectionContainer";
 import { UserIntent } from "@/types/user";
 import { toast } from "sonner";
 
+import { storage, STORAGE_KEYS } from "@/lib/storage";
+
 export default function PreferencesPage() {
   const router = useRouter();
   const [intent, setIntent] = useState<UserIntent | null>(null);
 
   useEffect(() => {
-    const saved = localStorage.getItem('userIntent');
-    if (saved) setIntent(JSON.parse(saved));
+    const saved = storage.get<UserIntent | null>(STORAGE_KEYS.USER_INTENT, null);
+    if (saved) setIntent(saved);
   }, []);
 
   const handleReset = () => {
-    localStorage.removeItem('userIntent');
+    storage.remove(STORAGE_KEYS.USER_INTENT);
     setIntent(null);
     toast.success('Preferences cleared. You can retake the quiz.');
   };

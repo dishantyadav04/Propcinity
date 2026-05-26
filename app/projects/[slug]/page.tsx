@@ -21,6 +21,7 @@ import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
+import { storage, STORAGE_KEYS } from "@/lib/storage";
 
 // ── Tab definitions ────────────────────────────────────────
 const TABS = [
@@ -94,6 +95,13 @@ export default function ProjectDetailPage() {
     };
   }, [slug]);
 
+  useEffect(() => {
+    if (project) {
+      const saved = storage.get<string[]>(STORAGE_KEYS.SAVED_IDS, []);
+      setSavedToShortlist(saved.includes(project.id));
+    }
+  }, [project]);
+
   const scrollToTab = (tabId: string) => {
     setActiveTab(tabId);
     const el = document.getElementById(`section-${tabId}`);
@@ -109,10 +117,10 @@ export default function ProjectDetailPage() {
 
   const handleSaveToShortlist = () => {
     if (!project) return;
-    const saved: string[] = JSON.parse(localStorage.getItem('savedIds') || '[]');
+    const saved = storage.get<string[]>(STORAGE_KEYS.SAVED_IDS, []);
     const isAlready = saved.includes(project.id);
     const next = isAlready ? saved.filter(id => id !== project.id) : [...saved, project.id];
-    localStorage.setItem('savedIds', JSON.stringify(next));
+    storage.set(STORAGE_KEYS.SAVED_IDS, next);
     setSavedToShortlist(!isAlready);
     toast(isAlready ? 'Removed from shortlist' : 'Saved to shortlist ❤️');
   };

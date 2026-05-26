@@ -6,6 +6,8 @@ import { useRouter } from "next/navigation";
 import SectionContainer from "@/components/layout/SectionContainer";
 import { toast } from "sonner";
 
+import { storage, STORAGE_KEYS } from "@/lib/storage";
+
 export default function PersonalInfoPage() {
   const router = useRouter();
   const [isEditing, setIsEditing] = useState(false);
@@ -17,27 +19,25 @@ export default function PersonalInfoPage() {
   });
 
   useEffect(() => {
-    const saved = localStorage.getItem('userIntent');
+    const saved = storage.get<any>(STORAGE_KEYS.USER_INTENT, null);
     if (saved) {
-      const parsed = JSON.parse(saved);
       setForm({
-        name: parsed.name || '',
-        phone: parsed.phone || '',
-        email: parsed.email || '',
-        city: parsed.city || '',
+        name: saved.name || '',
+        phone: saved.phone || '',
+        email: saved.email || '',
+        city: saved.city || '',
       });
     }
   }, []);
 
   const handleSave = () => {
     setIsEditing(false);
-    const saved = localStorage.getItem('userIntent');
+    const saved = storage.get<any>(STORAGE_KEYS.USER_INTENT, null);
     if (saved) {
-      const parsed = JSON.parse(saved);
-      const updated = { ...parsed, ...form };
-      localStorage.setItem('userIntent', JSON.stringify(updated));
+      const updated = { ...saved, ...form };
+      storage.set(STORAGE_KEYS.USER_INTENT, updated);
     } else {
-      localStorage.setItem('userIntent', JSON.stringify(form));
+      storage.set(STORAGE_KEYS.USER_INTENT, form);
     }
     toast.success('Profile updated');
   };

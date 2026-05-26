@@ -9,6 +9,7 @@ import Link from "next/link";
 import { motion } from "framer-motion";
 import { useEffect, useState } from "react";
 import { addToCompare } from "@/lib/utils";
+import { storage, STORAGE_KEYS } from "@/lib/storage";
 import { toast } from "sonner";
 
 interface ProjectCardProps {
@@ -30,7 +31,7 @@ export default function ProjectCard({
 
   useEffect(() => {
     const checkCompare = () => {
-      const current: any[] = JSON.parse(localStorage.getItem('compareItems') || '[]');
+      const current = storage.get<any[]>(STORAGE_KEYS.COMPARE_ITEMS, []);
       setIsComparing(!!current.find(p => p.id === project.id));
     };
     checkCompare();
@@ -41,7 +42,7 @@ export default function ProjectCard({
   const handleCompare = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    const current: any[] = JSON.parse(localStorage.getItem('compareItems') || '[]');
+    const current = storage.get<any[]>(STORAGE_KEYS.COMPARE_ITEMS, []);
     const exists = current.find(p => p.id === project.id);
     if (!exists && current.length >= 5) {
       toast.error("You can compare maximum 5 projects");

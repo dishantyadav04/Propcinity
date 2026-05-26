@@ -7,6 +7,8 @@ import { formatINR } from "@/lib/finance-calculations";
 import { CheckCircle2, XCircle, ArrowLeft, Plus, Loader2, Minus } from "lucide-react";
 import Link from "next/link";
 
+import { storage, STORAGE_KEYS } from "@/lib/storage";
+
 function CompareContent() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -14,9 +16,7 @@ function CompareContent() {
   const idsParam = searchParams?.get('ids');
 
   useEffect(() => {
-    const stored: Project[] = JSON.parse(
-      localStorage.getItem('compareItems') || '[]'
-    );
+    const stored = storage.get<Project[]>(STORAGE_KEYS.COMPARE_ITEMS, []);
 
     if (idsParam) {
       const ids = idsParam.split(',').filter(Boolean);

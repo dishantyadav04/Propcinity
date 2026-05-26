@@ -8,6 +8,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import { formatINR } from "@/lib/finance-calculations";
 import { usePathname, useRouter } from "next/navigation";
 
+import { storage, STORAGE_KEYS } from "@/lib/storage";
+
 const MAX_COMPARE = 5;
 
 export default function CompareBar() {
@@ -19,7 +21,7 @@ export default function CompareBar() {
 
   useEffect(() => {
     const load = () => {
-      const items = JSON.parse(localStorage.getItem('compareItems') || '[]');
+      const items = storage.get<Project[]>(STORAGE_KEYS.COMPARE_ITEMS, []);
       setCompareItems(items);
     };
     load();
@@ -45,13 +47,13 @@ export default function CompareBar() {
 
   const removeItem = (id: string) => {
     const updated = compareItems.filter(item => item.id !== id);
-    localStorage.setItem('compareItems', JSON.stringify(updated));
+    storage.set(STORAGE_KEYS.COMPARE_ITEMS, updated);
     setCompareItems(updated);
     window.dispatchEvent(new Event('compareUpdated'));
   };
 
   const clearAll = () => {
-    localStorage.setItem('compareItems', '[]');
+    storage.set(STORAGE_KEYS.COMPARE_ITEMS, []);
     setCompareItems([]);
     window.dispatchEvent(new Event('compareUpdated'));
   };
