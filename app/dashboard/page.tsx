@@ -12,6 +12,68 @@ import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
 import { storage, STORAGE_KEYS } from '@/lib/storage';
 
+// Score a project against user intent — returns 0-100
+function getMatchPercent(project: Project, intent: any): number {
+  if (!intent) return 0;
+  let score = 0;
+  const MAX = 90;
+
+  // Sub-location match
+  if (intent.subLocations?.length > 0) {
+    const pLoc = (project.location || '').toLowerCase();
+    const match = intent.subLocations.some((sl: string) => {
+      const s = sl.toLowerCase();
+      return pLoc.includes(s) || s.includes(pLoc);
+    });
+    score += match ? 30 : 5;
+  } else {
+    score += 15;
+  }
+
+  // Property type match
+  if (intent.propertyType?.length > 0) {
+    const types = (project.unitConfigs || []).map((u: any) => (u.type || '').toLowerCase());
+    const match = intent.propertyType.some((sel: string) => {
+      const s = sel.toLowerCase();
+      if (s === 'apartment') return types.some((t: string) => /^\d/.test(t) || t.includes('bhk'));
+      if (s === 'villa') return types.some((t: string) => t.includes('villa') || t.includes('row house'));
+      if (s === 'plot') return types.some((t: string) => t.includes('plot'));
+      return false;
+    });
+    score += match ? 20 : 3;
+  } else {
+    score += 10;
+  }
+
+  // BHK match
+  if (intent.bhkType?.length > 0) {
+    const types = (project.unitConfigs || []).map((u: any) => (u.type || '').toLowerCase());
+    const match = intent.bhkType.some((bhk: string) => {
+      const b = bhk.toLowerCase();
+      return types.some((t: string) => t === b || t.includes(b));
+    });
+    score += match ? 20 : 3;
+  } else {
+    score += 10;
+  }
+
+  // Budget match
+  if (intent.budget?.min > 0 || intent.budget?.max > 0) {
+    const uMin = intent.budget.min || 0;
+    const uMax = intent.budget.isOpenMax ? Infinity : (intent.budget.max || Infinity);
+    const prices = (project.unitConfigs || []).map((u: any) => u.priceMin).filter(Boolean);
+    if (prices.length > 0) {
+      const pMin = Math.min(...prices);
+      const pMax = Math.max(...(project.unitConfigs || []).map((u: any) => u.priceMax || u.priceMin).filter(Boolean));
+      score += (pMin <= uMax && pMax >= uMin) ? 20 : 2;
+    }
+  } else {
+    score += 10;
+  }
+
+  return Math.min(100, Math.round((score / MAX) * 100));
+}
+
 export default function DashboardPage() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [userIntent, setUserIntent] = useState<UserIntent | null>(null);
@@ -190,36 +252,36 @@ export default function DashboardPage() {
                   >
                     <ProjectCard project={project} index={index} hideRiskBadge={true} />
 
-                    {/* Risk pill (normal) → Remove pill (hover) — same size */}
-                    <div className="absolute top-3 left-3 z-30" style={{ height: '22px' }}>
-                      <span className={`
-                        absolute inset-0 inline-flex items-center justify-center
-                        px-2.5 text-[10px] font-bold rounded-full whitespace-nowrap
-                        transition-all duration-150
-                        group-hover:opacity-0 group-hover:pointer-events-none
-                      `} style={{
-                        background: (project as any).riskLabel === 'low'
-                          ? 'var(--success-light)' : (project as any).riskLabel === 'medium'
-                          ? 'var(--warning-light)' : 'var(--danger-light)',
-                        color: (project as any).riskLabel === 'low'
-                          ? 'var(--success)' : (project as any).riskLabel === 'medium'
-                          ? 'var(--warning)' : 'var(--danger)',
-                      }}>
-                        {(project as any).riskLabel === 'low' ? 'Low Risk'
-                          : (project as any).riskLabel === 'medium' ? 'Med Risk' : 'High Risk'}
-                      </span>
-                      <button
-                        onClick={() => handleRemove(project.id)}
-                        className="absolute inset-0 inline-flex items-center justify-center gap-1
-                          px-2.5 text-[10px] font-bold rounded-full whitespace-nowrap
-                          bg-[var(--danger)] text-white
-                          opacity-0 pointer-events-none
-                          group-hover:opacity-100 group-hover:pointer-events-auto
-                          transition-all duration-150 hover:brightness-90"
-                      >
-                        <X className="w-3 h-3" /> Remove
-                      </button>
-                    </div>
+                    {/* % Matched badge — top-left */}
+                    {userIntent && (() => {
+                      const pct = getMatchPercent(project, userIntent);
+                      return (
+                        <div className="absolute top-3 left-3 z-30 pointer-events-none">
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-black whitespace-nowrap shadow-sm"
+                            style={{
+                              background: pct >= 75 ? '#DCFCE7' : pct >= 50 ? '#FEF9C3' : '#FEE2E2',
+                              color: pct >= 75 ? '#16A34A' : pct >= 50 ? '#CA8A04' : '#DC2626',
+                            }}>
+                            <Sparkles className="w-2.5 h-2.5" />
+                            {pct}% Match
+                          </span>
+                        </div>
+                      );
+                    })()}
+
+                    {/* Round X remove button — top-right */}
+                    <button
+                      onClick={() => handleRemove(project.id)}
+                      title="Remove from dashboard"
+                      className="absolute top-3 right-3 z-30 w-7 h-7 rounded-full
+                        bg-black/30 text-white backdrop-blur-sm
+                        flex items-center justify-center
+                        opacity-0 group-hover:opacity-100
+                        hover:bg-[var(--danger)] hover:scale-110
+                        transition-all duration-150 shadow-sm"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
                   </motion.div>
                 ))}
               </div>

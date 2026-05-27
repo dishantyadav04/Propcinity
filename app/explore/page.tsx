@@ -10,7 +10,7 @@ import {
   Search, SlidersHorizontal, X, LayoutGrid, List,
   Building2, MapPin, Star, LayoutDashboard,
   ChevronDown, TrendingUp, ShieldCheck, Check,
-  ArrowUpDown, Sparkles
+  ArrowUpDown, Sparkles, Plus
 } from 'lucide-react';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -550,28 +550,45 @@ export default function ExplorePage() {
                 className="relative group"
               >
                 <ProjectCard project={project} index={index} />
-                {/* Action overlay */}
-                <div className="absolute top-12 left-3 flex flex-col gap-1.5 z-10
-                  opacity-0 group-hover:opacity-100 transition-opacity">
-                  <button onClick={e => toggleCurated(project.id, e)}
-                    title={curatedIds.includes(project.id) ? 'Remove from Dashboard' : 'Add to Dashboard'}
-                    className={`p-2 rounded-full shadow-md transition-all backdrop-blur-sm ${
+
+                {/* % Matched badge — top-left */}
+                {userIntent && (() => {
+                  const score = scoreByIntent(project, userIntent);
+                  const pct = Math.min(100, Math.round((score / 90) * 100));
+                  if (score < 0) return null;
+                  return (
+                    <div className="absolute top-3 left-3 z-30 pointer-events-none">
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-black whitespace-nowrap shadow-sm"
+                        style={{
+                          background: pct >= 75 ? '#DCFCE7' : pct >= 50 ? '#FEF9C3' : '#FEE2E2',
+                          color: pct >= 75 ? '#16A34A' : pct >= 50 ? '#CA8A04' : '#DC2626',
+                        }}>
+                        <Sparkles className="w-2.5 h-2.5" />
+                        {pct}% Match
+                      </span>
+                    </div>
+                  );
+                })()}
+
+                {/* Round + / ✓ button — top-right */}
+                <button
+                  onClick={e => toggleCurated(project.id, e)}
+                  title={curatedIds.includes(project.id) ? 'Remove from Dashboard' : 'Add to Dashboard'}
+                  className={`absolute top-3 right-3 z-30 w-7 h-7 rounded-full
+                    flex items-center justify-center
+                    opacity-0 group-hover:opacity-100
+                    transition-all duration-150 shadow-sm backdrop-blur-sm
+                    hover:scale-110 ${
                       curatedIds.includes(project.id)
                         ? 'bg-[var(--primary)] text-white'
-                        : 'bg-white/90 text-[var(--text-muted)] hover:text-[var(--primary)]'
-                    }`}>
-                    <LayoutDashboard className="w-3.5 h-3.5" />
-                  </button>
-                  <button onClick={e => toggleSaved(project.id, e)}
-                    title={savedIds.includes(project.id) ? 'Unsave' : 'Save'}
-                    className={`p-2 rounded-full shadow-md transition-all backdrop-blur-sm ${
-                      savedIds.includes(project.id)
-                        ? 'bg-[var(--danger)] text-white'
-                        : 'bg-white/90 text-[var(--text-muted)] hover:text-[var(--danger)]'
-                    }`}>
-                    <Star className="w-3.5 h-3.5" />
-                  </button>
-                </div>
+                        : 'bg-black/30 text-white hover:bg-[var(--primary)]'
+                    }`}
+                >
+                  {curatedIds.includes(project.id)
+                    ? <Check className="w-3.5 h-3.5" />
+                    : <Plus className="w-3.5 h-3.5" />
+                  }
+                </button>
               </motion.div>
             ))}
           </div>

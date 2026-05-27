@@ -43,10 +43,10 @@ export default function ProfilePage() {
           <motion.div
             initial={{ scale: 0.8, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
-            className="w-24 h-24 bg-gradient-to-br from-[var(--primary)] to-orange-400 
-              rounded-[2.5rem] flex items-center justify-center text-white text-3xl font-black
-              shadow-[0_20px_40px_rgba(255,107,0,0.2)] mb-6">
-            {intent?.name ? intent.name.split(' ').map((n: string) => n[0]).join('').substring(0, 2).toUpperCase() : <User className="w-10 h-10" />}
+            className="w-24 h-24 bg-[var(--primary-light)] border-2 border-[var(--primary)]
+              rounded-full flex items-center justify-center
+              shadow-[0_8px_32px_rgba(255,69,0,0.15)] mb-6">
+            <User className="w-10 h-10 text-[var(--primary)]" strokeWidth={1.5} />
           </motion.div>
           
           <div className="space-y-1">
