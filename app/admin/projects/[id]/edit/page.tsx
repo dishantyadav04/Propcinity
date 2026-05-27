@@ -1,10 +1,17 @@
 'use client';
 
 import { useEffect, useState } from "react";
-import ProjectForm from "@/components/admin/ProjectForm";
+import dynamic from "next/dynamic";
 import { Project } from "@/types/project";
 import PageLoader from "@/components/ui/PageLoader";
 import { useParams } from "next/navigation";
+
+const ProjectForm = dynamic(() => import("@/components/admin/ProjectForm"), {
+  ssr: false,
+  loading: () => (
+    <div className="h-96 bg-[var(--surface-raised)] rounded-2xl border border-[var(--border)] animate-pulse" />
+  ),
+});
 
 export default function EditProjectPage() {
   const { id } = useParams();

@@ -72,7 +72,7 @@ export default function Sidebar() {
         <button
           onClick={() => {
             document.cookie = 'admin_session=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/';
-            window.location.href = '/admin';
+            window.location.href = '/admin/login';
           }}
           className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-semibold
             text-red-400/60 hover:text-red-400 hover:bg-red-400/5 transition-all">

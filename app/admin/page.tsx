@@ -3,8 +3,8 @@
 import { useEffect, useState } from 'react';
 import {
   Building2, HardHat, MessageSquare, Users,
-  TrendingUp, Flame, ThermometerSun, Snowflake,
-  ArrowUpRight, Clock, CheckCircle2, AlertTriangle
+  Flame, ThermometerSun, Snowflake,
+  ArrowUpRight
 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -13,7 +13,6 @@ interface Stats {
   builders: number;
   leads: { total: number; hot: number; warm: number; cold: number };
   users: number;
-  avgTrustScore: number;
   recentLeads: any[];
 }
 
@@ -42,9 +41,6 @@ export default function AdminOverviewPage() {
           cold: leadsData.filter((l: any) => l.intent_label === 'cold').length,
         },
         users: users.users?.length || 0,
-        avgTrustScore: projects.length
-          ? Math.round(projects.reduce((s: number, p: any) => s + (p.trust_score || 0), 0) / projects.length)
-          : 0,
         recentLeads: leadsData.slice(0, 5),
       });
       setIsLoading(false);
@@ -109,10 +105,9 @@ export default function AdminOverviewPage() {
         ))}
       </div>
 
-      {/* Lead intent breakdown + Avg trust */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        {/* Intent breakdown */}
-        <div className="lg:col-span-2 bg-white border border-[var(--border)] rounded-[var(--radius)] p-5">
+      {/* Lead intent breakdown */}
+      <div className="grid grid-cols-1 gap-4">
+        <div className="bg-white border border-[var(--border)] rounded-[var(--radius)] p-5">
           <h2 className="text-sm font-black text-[var(--text-primary)] mb-4">Lead Intent Breakdown</h2>
           <div className="grid grid-cols-3 gap-3">
             {(['hot', 'warm', 'cold'] as const).map(intent => {
@@ -138,32 +133,6 @@ export default function AdminOverviewPage() {
           <p className="text-[10px] text-[var(--text-muted)] mt-3 text-center">
             ⚡ Call HOT leads within 2 hours for best conversion
           </p>
-        </div>
-
-        {/* Avg trust score */}
-        <div className="bg-white border border-[var(--border)] rounded-[var(--radius)] p-5
-          flex flex-col items-center justify-center text-center">
-          <p className="text-xs font-black text-[var(--text-muted)] uppercase tracking-wider mb-3">
-            Avg Trust Score
-          </p>
-          <div className="relative w-24 h-24 mb-3">
-            <svg viewBox="0 0 100 100" className="w-full h-full -rotate-90">
-              <circle cx="50" cy="50" r="40" fill="none" stroke="var(--surface-raised)" strokeWidth="10" />
-              <circle cx="50" cy="50" r="40" fill="none"
-                stroke={stats && stats.avgTrustScore >= 70 ? 'var(--success)' : stats && stats.avgTrustScore >= 45 ? 'var(--warning)' : 'var(--danger)'}
-                strokeWidth="10" strokeLinecap="round"
-                strokeDasharray={`${2 * Math.PI * 40}`}
-                strokeDashoffset={`${2 * Math.PI * 40 * (1 - (stats?.avgTrustScore || 0) / 100)}`}
-                className="transition-all duration-1000"
-              />
-            </svg>
-            <div className="absolute inset-0 flex items-center justify-center">
-              <span className="text-2xl font-black text-[var(--text-primary)]">
-                {isLoading ? '—' : stats?.avgTrustScore}
-              </span>
-            </div>
-          </div>
-          <p className="text-xs text-[var(--text-muted)]">across all projects</p>
         </div>
       </div>
 

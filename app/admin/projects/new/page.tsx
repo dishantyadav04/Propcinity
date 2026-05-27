@@ -1,4 +1,4 @@
-import ProjectForm from "@/components/admin/ProjectForm";
+import ProjectFormWrapper from "@/components/admin/ProjectFormWrapper";
 
 export default function NewProjectPage() {
   return (
@@ -7,7 +7,7 @@ export default function NewProjectPage() {
         <h1 className="text-2xl font-bold text-[var(--text-primary)]" style={{ fontFamily: 'var(--font-display)' }}>Add New Project</h1>
         <p className="text-sm text-[var(--text-muted)]">Audit a new project and publish it to the dashboard</p>
       </div>
-      <ProjectForm />
+      <ProjectFormWrapper />
     </div>
   );
 }

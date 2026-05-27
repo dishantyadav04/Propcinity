@@ -115,18 +115,35 @@ create table leads (
   created_at timestamptz default now()
 );
 
--- projects_public view - ALWAYS use this in client queries
+-- Drop and recreate to update column list
+drop view if exists projects_public;
+
 create view projects_public as
   select
-    id, slug, name, builder_name, builder_score, builder_logo,
+    id, slug, name,
+    builder_name, builder_logo,
+    builder_years_experience, builder_completed_projects,
+    builder_cities, builder_top_projects, builder_description,
     location, city, lat, lng, tagline, description,
-    trust_score, risk_label, rera_id, rera_expiry,
-    launch_date, possession_date, total_units, available_units,
-    pros, cons, amenities, images,
+    rera_id, rera_expiry, rera_link,
+    launch_date, possession_date, rera_possession_date,
+    land_parcel_acres, total_towers, floors_per_tower,
+    total_units, available_units,
+    pros, cons, amenities, internal_amenities, external_amenities,
+    images, videos, brochure_url,
     construction_status, construction_percent,
+    litigation, litigation_details,
+    commencement_certificate, occupancy_certificate,
+    payment_plans, bank_approvals,
     is_published, created_at, updated_at
+    -- commission_rate is deliberately excluded
+    -- trust_score, risk_label, builder_score are deliberately excluded
   from projects
   where is_published = true;
+
+comment on view projects_public is
+  'Public project view. commission_rate, trust_score, risk_label,
+   builder_score are intentionally excluded for security.';
 
 -- updated_at trigger
 create or replace function update_updated_at()

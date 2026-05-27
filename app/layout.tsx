@@ -25,8 +25,22 @@ export const viewport: Viewport = {
 }
 
 export const metadata: Metadata = {
-  title: 'Propcinity | Premium Real Estate Intelligence',
-  description: 'Zero brokerage. Verified insights. AI-powered property matches.',
+  title: 'Propcinity | Zero Brokerage Real Estate',
+  description: 'Find the right property in Pune. AI-powered matches. Zero brokerage. Verified projects.',
+  keywords: ['real estate', 'Pune property', 'zero brokerage', 'buy flat Pune'],
+  authors: [{ name: 'Propcinity' }],
+  creator: 'Propcinity',
+  metadataBase: new URL('https://propcinity.in'),
+  openGraph: {
+    title: 'Propcinity | Zero Brokerage Real Estate',
+    description: 'Find the right property in Pune. AI-powered matches. Zero brokerage.',
+    type: 'website',
+    locale: 'en_IN',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Propcinity | Zero Brokerage Real Estate',
+  },
 }
 
 export default function RootLayout({
