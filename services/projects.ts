@@ -110,6 +110,7 @@ function mapProject(row: any, unitConfigs: SupabaseUnitConfigRow[]): Project {
     bankApprovals: row.bank_approvals || [],
     videos: row.videos || [],
     brochureUrl: row.brochure_url,
+    nearbyLocations: row.nearby_locations || [],
     isPublished: row.is_published,
   }
 }

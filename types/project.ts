@@ -32,6 +32,20 @@ export interface ProjectVideo {
   youtubeUrl: string
 }
 
+export interface ManualNearbyLocation {
+  id: string
+  name: string
+  category: 'school' | 'hospital' | 'mall' | 'metro' | 'it_park' | 'park' | 'restaurant' | 'bank' | 'pharmacy' | 'other'
+  distance: string   // e.g. "700m", "1.2 km"
+}
+
+export interface AmenityLibraryItem {
+  id: string
+  name: string
+  icon: string       // emoji
+  category: 'internal' | 'external' | 'both'
+}
+
 export interface Project {
   id: string
   slug: string
@@ -79,6 +93,7 @@ export interface Project {
   amenities: string[]
   internalAmenities?: string[]
   externalAmenities?: string[]
+  nearbyLocations?: ManualNearbyLocation[]
   images: string[]
 
   // Status

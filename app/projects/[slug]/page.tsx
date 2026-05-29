@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useRef } from "react";
+import React, { useEffect, useState, useRef, useMemo } from "react";
 import { Project, UnitConfig } from "@/types/project";
 import GallerySlider from "@/components/property/GallerySlider";
 import InsightsPanel from "@/components/property/InsightsPanel";
@@ -66,10 +66,15 @@ export default function ProjectDetailPage() {
   const [selectedUnit, setSelectedUnit] = useState<UnitConfig | undefined>();
   const [activeTab, setActiveTab] = useState('overview');
   const [activeVideo, setActiveVideo] = useState(0);
+  const [expandedEMIRow, setExpandedEMIRow] = useState<string | null>(null);
+  const [emiRate, setEmiRate] = useState(8.5);
+  const [emiTenure, setEmiTenure] = useState(20);
+  const [activePricingType, setActivePricingType] = useState('');
   const [savedToShortlist, setSavedToShortlist] = useState(false);
   const tabsRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    setActivePricingType('');
     const load = async () => {
       try {
         const res = await fetch(`/api/projects/${slug}`);
@@ -99,6 +104,9 @@ export default function ProjectDetailPage() {
     if (project) {
       const saved = storage.get<string[]>(STORAGE_KEYS.SAVED_IDS, []);
       setSavedToShortlist(saved.includes(project.id));
+      if (!activePricingType && pricingTypeGroups.length > 0) {
+        setActivePricingType(pricingTypeGroups[0][0]);
+      }
     }
   }, [project]);
 
@@ -125,6 +133,17 @@ export default function ProjectDetailPage() {
     toast(isAlready ? 'Removed from shortlist' : 'Saved to shortlist ❤️');
   };
 
+  const pricingTypeGroups = React.useMemo(() => {
+    if (!project?.unitConfigs?.length) return [] as [string, any[]][];
+    return Array.from(
+      project!.unitConfigs.reduce((map, unit) => {
+        const base = unit.type.match(/^(\d+(?:\.\d+)?(?:\s*BHK|RK)?)/i)?.[0]?.trim() || unit.type.split(/[-–(]/)[0].trim();
+        if (!map.has(base)) map.set(base, []);
+        map.get(base)!.push(unit);
+        return map;
+      }, new Map<string, any[]>())
+    );
+  }, [project?.unitConfigs]);
   if (isLoading) return <PageLoader />;
   if (!project) return (
     <div className="min-h-screen flex flex-col items-center justify-center gap-5 px-6 text-center">
@@ -146,6 +165,16 @@ export default function ProjectDetailPage() {
   ))).join(', ');
   const areaMin = project.unitConfigs?.length ? Math.min(...project.unitConfigs.map(u => u.area)) : 0;
   const areaMax = project.unitConfigs?.length ? Math.max(...project.unitConfigs.map(u => u.area)) : 0;
+
+
+  
+
+  function calcEMI(principal: number, rate: number, tenureYears: number): number {
+    if (!principal || !rate || !tenureYears) return 0;
+    const r = rate / 12 / 100;
+    const n = tenureYears * 12;
+    return Math.round((principal * r * Math.pow(1 + r, n)) / (Math.pow(1 + r, n) - 1));
+  }
 
   return (
     <div className="min-h-screen bg-[var(--background)]">
@@ -308,50 +337,13 @@ export default function ProjectDetailPage() {
                 priceLabel={formatINR(minPrice)}
                 location={project.location}
                 city={project.city}
-              />
+              nearbyLocations={project.nearbyLocations}
+            />
             </div>
 
-            {/* ── VIDEOS ───────────────────────────────── */}
-            {project.videos && project.videos.length > 0 && (
-              <div className="py-10 border-b border-[var(--border)]">
-                <h2 className="text-lg font-black text-[var(--text-primary)] mb-4"
-                  style={{ fontFamily: 'var(--font-display)' }}>
-                  {project.name} Videos
-                </h2>
-                {/* Tab selector */}
-                <div className="flex gap-2 mb-4 overflow-x-auto scrollbar-hide">
-                  {project.videos.map((v, i) => (
-                    <button key={i} onClick={() => setActiveVideo(i)}
-                      className={`flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-bold
-                        border transition-all ${
-                        activeVideo === i
-                          ? 'bg-[var(--primary)] text-white border-[var(--primary)]'
-                          : 'bg-[var(--surface-raised)] text-[var(--text-secondary)] border-[var(--border)]'
-                      }`}>
-                      {v.label}
-                    </button>
-                  ))}
-                </div>
-                {/* Video embed */}
-                <div className="aspect-video rounded-[var(--radius)] overflow-hidden bg-[var(--surface-raised)]">
-                  <iframe
-                    src={`https://www.youtube.com/embed/${project.videos[activeVideo].youtubeUrl.replace('https://youtu.be/', '').replace('https://www.youtube.com/watch?v=', '')}`}
-                    className="w-full h-full"
-                    allowFullScreen
-                    title={project.videos[activeVideo].label}
-                  />
-                </div>
-              </div>
-            )}
+            
 
-            {/* ── PROS & CONS ──────────────────────────── */}
-            <div id="section-pros-cons" className="scroll-mt-36 py-10 border-b border-[var(--border)]">
-              <h2 className="text-lg font-black text-[var(--text-primary)] mb-6"
-                style={{ fontFamily: 'var(--font-display)' }}>
-                {project.name} Pros & Cons
-              </h2>
-              <InsightsPanel pros={project.pros} cons={project.cons} variant="detail" />
-            </div>
+            
 
             {/* ── AMENITIES ────────────────────────────── */}
             <div id="section-amenities" className="scroll-mt-36 py-10 border-b border-[var(--border)]">
@@ -410,39 +402,142 @@ export default function ProjectDetailPage() {
             </div>
 
             {/* ── PRICING ──────────────────────────────── */}
-            <div id="section-pricing" className="scroll-mt-36 py-10 border-b border-[var(--border)]">
-              <h2 className="text-lg font-black text-[var(--text-primary)] mb-6"
-                style={{ fontFamily: 'var(--font-display)' }}>
-                Pricing & Unit Plans
-              </h2>
-              <div className="overflow-x-auto rounded-[var(--radius)] border border-[var(--border)]">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="bg-[var(--surface-raised)] border-b border-[var(--border)]">
-                      <th className="px-4 py-3 text-left font-black text-[var(--text-muted)] text-[10px] uppercase tracking-wider">Config</th>
-                      <th className="px-4 py-3 text-left font-black text-[var(--text-muted)] text-[10px] uppercase tracking-wider">Carpet Area</th>
-                      <th className="px-4 py-3 text-left font-black text-[var(--text-muted)] text-[10px] uppercase tracking-wider">Price</th>
-                      <th className="px-4 py-3 text-left font-black text-[var(--text-muted)] text-[10px] uppercase tracking-wider">Price/sqft</th>
+<div id="section-pricing" className="scroll-mt-36 py-10 border-b border-[var(--border)]">
+  <h2 className="text-lg font-black text-[var(--text-primary)] mb-6"
+    style={{ fontFamily: 'var(--font-display)' }}>
+    Pricing & Unit Plans
+  </h2>
+
+  {/* BHK type tab switcher */}
+  {(() => {
+    // Group unit configs by base BHK type
+    const typeGroups = pricingTypeGroups;
+    const activeUnits = typeGroups.find(([key]) => key === activePricingType)?.[1] || typeGroups[0]?.[1] || [];
+
+    return (
+      <div className="space-y-4">
+        {/* Type tabs */}
+        {typeGroups.length > 1 && (
+          <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-1">
+            {typeGroups.map(([base]) => (
+              <button
+                key={base}
+                onClick={() => setActivePricingType(base)}
+                className={`flex-shrink-0 px-4 py-2 rounded-full text-xs font-bold border transition-all ${
+                  activePricingType === base
+                    ? 'bg-[var(--primary)] text-white border-[var(--primary)]'
+                    : 'bg-[var(--surface-raised)] text-[var(--text-secondary)] border-[var(--border)] hover:border-[var(--primary)]'
+                }`}
+              >
+                {base}
+              </button>
+            ))}
+          </div>
+        )}
+
+        {/* Pricing table */}
+        <div className="overflow-x-auto rounded-[var(--radius)] border border-[var(--border)]">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="bg-[var(--surface-raised)] border-b border-[var(--border)]">
+                <th className="px-4 py-3 text-left font-black text-[var(--text-muted)] text-[10px] uppercase tracking-wider">Carpet Area</th>
+                <th className="px-4 py-3 text-left font-black text-[var(--text-muted)] text-[10px] uppercase tracking-wider">All Inc. Price</th>
+                <th className="px-4 py-3 text-left font-black text-[var(--text-muted)] text-[10px] uppercase tracking-wider">Min Downpayment</th>
+                <th className="px-4 py-3 text-left font-black text-[var(--text-muted)] text-[10px] uppercase tracking-wider">EMI</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-[var(--border)]">
+              {activeUnits.map(unit => {
+                const downpayment = unit.priceMin * 0.15;
+                const loanAmount = unit.priceMin - downpayment;
+                const emi = calcEMI(loanAmount, emiRate, emiTenure);
+                const isExpanded = expandedEMIRow === unit.id;
+
+                return (
+                  <React.Fragment key={unit.id}>
+                    <tr className="hover:bg-[var(--surface-raised)]/50 transition-colors">
+                      <td className="px-4 py-3 font-bold text-[var(--text-primary)]">{unit.area} sqft</td>
+                      <td className="px-4 py-3 font-bold text-[var(--primary)]">
+                        {formatINR(unit.priceMin)}
+                        {unit.priceMax > unit.priceMin && ` – ${formatINR(unit.priceMax)}`}
+                      </td>
+                      <td className="px-4 py-3 text-[var(--text-secondary)]">
+                        {formatINR(Math.round(downpayment))}
+                      </td>
+                      <td className="px-4 py-3">
+                        <button
+                          onClick={() => setExpandedEMIRow(isExpanded ? null : unit.id)}
+                          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold border transition-all ${
+                            isExpanded
+                              ? 'bg-[var(--primary)] text-white border-[var(--primary)]'
+                              : 'bg-[var(--surface-raised)] text-[var(--text-secondary)] border-[var(--border)] hover:border-[var(--primary)] hover:text-[var(--primary)]'
+                          }`}
+                        >
+                          {formatINR(emi)}/mo
+                          <ChevronRight className={`w-3 h-3 transition-transform ${isExpanded ? 'rotate-90' : ''}`} />
+                        </button>
+                      </td>
                     </tr>
-                  </thead>
-                  <tbody className="divide-y divide-[var(--border)]">
-                    {project.unitConfigs.map(unit => (
-                      <tr key={unit.id} className="hover:bg-[var(--surface-raised)]/50 transition-colors">
-                        <td className="px-4 py-3 font-bold text-[var(--text-primary)]">{unit.type}</td>
-                        <td className="px-4 py-3 text-[var(--text-secondary)]">{unit.area} sqft</td>
-                        <td className="px-4 py-3 font-bold text-[var(--primary)]">
-                          {formatINR(unit.priceMin)}
-                          {unit.priceMax > unit.priceMin && ` - ${formatINR(unit.priceMax)}`}
-                        </td>
-                        <td className="px-4 py-3 text-[var(--text-secondary)]">
-                          {formatINR(unit.pricePerSqFt)}/sqft
+                    {/* Inline EMI calculator */}
+                    {isExpanded && (
+                      <tr>
+                        <td colSpan={4} className="px-4 pb-4 bg-[var(--surface-raised)]/50">
+                          <div className="p-4 bg-white border border-[var(--border)] rounded-[var(--radius-sm)] space-y-3 mt-1">
+                            <div className="flex items-center justify-between mb-2">
+                              <p className="text-xs font-black text-[var(--text-primary)] uppercase tracking-wider">EMI Calculator</p>
+                              <p className="text-lg font-black text-[var(--primary)]">
+                                {formatINR(calcEMI(unit.priceMin * 0.85, emiRate, emiTenure))}/mo
+                              </p>
+                            </div>
+                            <div className="grid grid-cols-2 gap-4">
+                              <div className="space-y-1">
+                                <div className="flex justify-between text-[10px] text-[var(--text-muted)] uppercase font-bold">
+                                  <span>Interest Rate</span><span>{emiRate}%</span>
+                                </div>
+                                <input type="range" min={6.5} max={14} step={0.25}
+                                  value={emiRate}
+                                  onChange={e => setEmiRate(Number(e.target.value))}
+                                  className="w-full h-1.5 accent-[var(--primary)] cursor-pointer rounded-full" />
+                              </div>
+                              <div className="space-y-1">
+                                <div className="flex justify-between text-[10px] text-[var(--text-muted)] uppercase font-bold">
+                                  <span>Tenure</span><span>{emiTenure} yrs</span>
+                                </div>
+                                <input type="range" min={5} max={30} step={1}
+                                  value={emiTenure}
+                                  onChange={e => setEmiTenure(Number(e.target.value))}
+                                  className="w-full h-1.5 accent-[var(--primary)] cursor-pointer rounded-full" />
+                              </div>
+                            </div>
+                            <div className="grid grid-cols-3 gap-2 pt-1">
+                              {[
+                                { label: 'Loan Amount', value: formatINR(Math.round(unit.priceMin * 0.85)) },
+                                { label: 'Down Payment', value: formatINR(Math.round(unit.priceMin * 0.15)) },
+                                { label: 'Total Interest', value: formatINR(calcEMI(unit.priceMin * 0.85, emiRate, emiTenure) * emiTenure * 12 - Math.round(unit.priceMin * 0.85)) },
+                              ].map(item => (
+                                <div key={item.label} className="bg-[var(--surface-raised)] p-2 rounded-[var(--radius-xs)]">
+                                  <p className="text-[9px] text-[var(--text-muted)] uppercase font-bold">{item.label}</p>
+                                  <p className="text-xs font-bold text-[var(--text-primary)]">{item.value}</p>
+                                </div>
+                              ))}
+                            </div>
+                            <p className="text-[9px] text-[var(--text-muted)] italic">* Estimate only. 85% loan assumed. Actual terms may vary.</p>
+                          </div>
                         </td>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
+                    )}
+                  </React.Fragment>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    );
+  })()}
+</div>
+
+            
 
             {/* ── PAYMENT SCHEME ───────────────────────── */}
             <div id="section-payment" className="scroll-mt-36 py-10 border-b border-[var(--border)]">

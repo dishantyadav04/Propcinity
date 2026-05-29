@@ -1,7 +1,9 @@
 'use client';
 
 import { useState, useEffect } from "react";
-import { Project } from "@/types/project";
+import { Project, ManualNearbyLocation } from "@/types/project";
+import AmenityLibraryManager from "./AmenityLibraryManager";
+import NearbyLocationsForm from "./NearbyLocationsForm";
 import ImageUpload from "./ImageUpload";
 import UnitConfigForm from "./UnitConfigForm";
 import AdminMapPreview from "./AdminMapPreview";
@@ -38,6 +40,9 @@ export default function ProjectForm({ initialData }: ProjectFormProps) {
     launchDate: '',
     isPublished: true,
     litigation: false,
+    internalAmenities: [],
+    externalAmenities: [],
+    nearbyLocations: [],
     constructionStatus: 'under_construction',
     constructionPercent: 0
   });
@@ -57,7 +62,13 @@ export default function ProjectForm({ initialData }: ProjectFormProps) {
     setIsLoading(true);
 
     try {
-      const body = { ...project, builder_id: selectedBuilderId || null };
+      const body = {
+      ...project,
+      builder_id: selectedBuilderId || null,
+      nearby_locations: project.nearbyLocations || [],
+      internal_amenities: project.internalAmenities || [],
+      external_amenities: project.externalAmenities || [],
+    };
       const response = await fetch(initialData ? `/api/admin/projects/${initialData.id}` : '/api/admin/projects', {
         method: initialData ? 'PATCH' : 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -248,7 +259,27 @@ export default function ProjectForm({ initialData }: ProjectFormProps) {
         </div>
       </div>
 
-      <div className="flex justify-end pt-4 pb-20 md:pb-4">
+      
+      {/* Amenities */}
+      <div className="bg-[var(--surface)] p-6 rounded-2xl border border-[var(--border)] space-y-4">
+        <h3 className="text-sm font-bold text-[var(--text-primary)] uppercase tracking-widest">Amenities</h3>
+        <AmenityLibraryManager
+          selectedInternal={project.internalAmenities || []}
+          selectedExternal={project.externalAmenities || []}
+          onChangeInternal={(items) => setProject({ ...project, internalAmenities: items })}
+          onChangeExternal={(items) => setProject({ ...project, externalAmenities: items })}
+        />
+      </div>
+
+      {/* Nearby Locations */}
+      <div className="bg-[var(--surface)] p-6 rounded-2xl border border-[var(--border)]">
+        <NearbyLocationsForm
+          value={(project.nearbyLocations as ManualNearbyLocation[]) || []}
+          onChange={(locs) => setProject({ ...project, nearbyLocations: locs })}
+        />
+      </div>
+
+<div className="flex justify-end pt-4 pb-20 md:pb-4">
         <button 
           type="submit"
           disabled={isLoading}

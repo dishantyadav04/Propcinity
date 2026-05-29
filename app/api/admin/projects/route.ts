@@ -57,6 +57,14 @@ const projectSchema = z.object({
   construction_percent: z.number().int().min(0).max(100).optional(),
   commission_rate: z.number().optional(),
   is_published: z.boolean().optional(),
+  nearby_locations: z.array(z.object({
+    id: z.string(),
+    name: z.string(),
+    category: z.string(),
+    distance: z.string(),
+  })).optional().default([]),
+  internal_amenities: z.array(z.string()).optional().default([]),
+  external_amenities: z.array(z.string()).optional().default([]),
   unitConfigs: z.array(unitConfigSchema).optional(),
 })
 
