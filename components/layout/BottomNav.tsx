@@ -2,14 +2,14 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, Compass, Sparkles, User } from "lucide-react";
+import { Home, Compass, Sparkles, GitCompareArrows } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const NAV_ITEMS = [
   { label: 'Home', href: '/dashboard', icon: Home },
   { label: 'Explore', href: '/explore', icon: Compass },
   { label: 'AI Chat', href: '/ai-chat', icon: Sparkles },
-  { label: 'Profile', href: '/profile', icon: User },
+  { label: 'Compare', href: '/compare', icon: GitCompareArrows },
 ];
 
 export default function BottomNav() {

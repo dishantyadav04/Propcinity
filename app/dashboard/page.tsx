@@ -86,26 +86,30 @@ export default function DashboardPage() {
   const [rejectedIds, setRejectedIds] = useState<string[]>([]);
   const [userName, setUserName] = useState<string>('');
 
-  // Load all localStorage values once on mount (client-only)
+  // Unified localStorage refresh — runs on mount, curated updates, and tab/page focus
   useEffect(() => {
-    const intent = storage.get<UserIntent | null>(STORAGE_KEYS.USER_INTENT, null);
-    const curated = storage.get<string[]>(STORAGE_KEYS.CURATED_IDS, []);
-    const rejected = storage.get<string[]>(STORAGE_KEYS.REJECTED_IDS, []);
-    const name = (intent as any)?.name?.split(' ')[0] || '';
-
-    setUserIntent(intent);
-    setCuratedIds(curated);
-    setRejectedIds(rejected);
-    setUserName(name);
-  }, []);
-
-  // Listen for curated updates from other pages
-  useEffect(() => {
-    const handler = () => {
-      setCuratedIds(storage.get<string[]>(STORAGE_KEYS.CURATED_IDS, []));
+    const refreshFromStorage = () => {
+      const intent = storage.get<UserIntent | null>(STORAGE_KEYS.USER_INTENT, null);
+      const curated = storage.get<string[]>(STORAGE_KEYS.CURATED_IDS, []);
+      const rejected = storage.get<string[]>(STORAGE_KEYS.REJECTED_IDS, []);
+      const name = (intent as any)?.name?.split(' ')[0] || '';
+      setUserIntent(intent);
+      setCuratedIds(curated);
+      setRejectedIds(rejected);
+      setUserName(name);
     };
-    window.addEventListener('curatedUpdated', handler);
-    return () => window.removeEventListener('curatedUpdated', handler);
+
+    refreshFromStorage();
+    window.addEventListener('curatedUpdated', refreshFromStorage);
+    window.addEventListener('focus', refreshFromStorage);
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') refreshFromStorage();
+    });
+
+    return () => {
+      window.removeEventListener('curatedUpdated', refreshFromStorage);
+      window.removeEventListener('focus', refreshFromStorage);
+    };
   }, []);
 
   // Fetch projects

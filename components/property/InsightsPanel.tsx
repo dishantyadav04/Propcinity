@@ -15,23 +15,19 @@ export default function InsightsPanel({ pros, cons, variant }: InsightsPanelProp
 
   if (variant === 'card') {
     return (
-      <div className="space-y-2">
-        <div className="flex flex-wrap gap-2">
-          {pros.slice(0, 2).map((pro, i) => (
-            <div key={i} className="flex items-center gap-1.5 text-[10px] text-[var(--success)] bg-[var(--success)]/5 px-2 py-0.5 rounded-full border border-[var(--success)]/10">
-              <div className="w-1 h-1 bg-[var(--success)] rounded-full" />
-              <span className="line-clamp-1">{pro}</span>
-            </div>
-          ))}
-        </div>
-        <div className="flex flex-wrap gap-2">
-          {displayCons.slice(0, 1).map((con, i) => (
-            <div key={i} className="flex items-center gap-1.5 text-[10px] text-[var(--danger)] bg-[var(--danger)]/5 px-2 py-0.5 rounded-full border border-[var(--danger)]/10">
-              <div className="w-1 h-1 bg-[var(--danger)] rounded-full" />
-              <span className="line-clamp-1">{con}</span>
-            </div>
-          ))}
-        </div>
+      <div className="flex flex-col gap-1.5">
+        {pros.slice(0, 2).map((pro, i) => (
+          <div key={i} className="flex items-center gap-1.5 text-[10px] text-[var(--success)] bg-[var(--success)]/5 px-2 py-1 rounded-[var(--radius-xs)] border border-[var(--success)]/10 w-full">
+            <div className="w-1.5 h-1.5 bg-[var(--success)] rounded-full flex-shrink-0" />
+            <span className="line-clamp-1">{pro}</span>
+          </div>
+        ))}
+        {displayCons.slice(0, 1).map((con, i) => (
+          <div key={i} className="flex items-center gap-1.5 text-[10px] text-[var(--danger)] bg-[var(--danger)]/5 px-2 py-1 rounded-[var(--radius-xs)] border border-[var(--danger)]/10 w-full">
+            <div className="w-1.5 h-1.5 bg-[var(--danger)] rounded-full flex-shrink-0" />
+            <span className="line-clamp-1">{con}</span>
+          </div>
+        ))}
       </div>
     );
   }

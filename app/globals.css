@@ -114,3 +114,21 @@ h1, h2, h3, h4, h5, h6 {
 
 /* Prevent body overflow scroll artifacts */
 html, body { overflow-x: hidden; }
+
+/* Suppress Leaflet divIcon default blue box */
+.leaflet-marker-icon {
+  background: none !important;
+  border: none !important;
+}
+
+/* Ensure Sonner close button is visible */
+[data-sonner-toaster] [data-close-button] {
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  opacity: 0.6;
+  transition: opacity 0.15s;
+}
+[data-sonner-toaster] [data-close-button]:hover {
+  opacity: 1;
+}

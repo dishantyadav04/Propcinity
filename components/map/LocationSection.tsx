@@ -6,7 +6,7 @@ import { NearbyPlace } from "@/lib/overpass";
 import { ManualNearbyLocation } from "@/types/project";
 import NearbyPlacesList from "@/components/map/NearbyPlacesList";
 import Skeleton from "@/components/ui/Skeleton";
-import { MapPin, Navigation } from "lucide-react";
+import { MapPin, Navigation, ExternalLink } from "lucide-react";
 
 const MapView = dynamic(() => import("@/components/map/MapView"), {
   ssr: false,
@@ -86,6 +86,17 @@ export default function LocationSection({
           </button>
         ))}
       </div>
+
+      {/* Open in Maps link */}
+      <a
+        href={`https://maps.google.com/?q=${lat},${lng}`}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="inline-flex items-center gap-1.5 text-xs font-semibold text-[var(--primary)] hover:underline"
+      >
+        <ExternalLink className="w-3.5 h-3.5" />
+        Open in Maps
+      </a>
 
       {/* Map tab */}
       {activeTab === 'map' && (

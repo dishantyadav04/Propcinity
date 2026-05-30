@@ -91,7 +91,11 @@ export default function MapView({
           className="h-full w-full"
         >
           <MapUpdater center={[lat, lng]} zoom={zoom} />
-          <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+          <TileLayer
+            url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
+            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
+            maxZoom={19}
+          />
           <ProjectMarker lat={lat} lng={lng} name={projectName} priceLabel={priceLabel} />
           {filteredPlaces.map(place => (
             <NearbyMarker key={place.id} place={place} />

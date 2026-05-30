@@ -12,16 +12,30 @@ interface ProjectMarkerProps {
 
 export default function ProjectMarker({ lat, lng, name, priceLabel }: ProjectMarkerProps) {
   const icon = L.divIcon({
-    className: 'custom-project-marker',
+    className: '',
     html: `
-      <div class="flex items-center gap-1.5 bg-[#4F6EF7] text-white px-3 py-1.5 rounded-full font-bold shadow-lg border-2 border-white whitespace-nowrap">
-        <span>📍</span>
-        <span>${priceLabel}</span>
+      <div style="
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        background: #FF5722;
+        color: white;
+        padding: 6px 12px;
+        border-radius: 999px;
+        font-weight: 700;
+        font-size: 12px;
+        white-space: nowrap;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.25);
+        border: 2px solid white;
+        transform: translateX(-50%);
+        position: relative;
+      ">
+        📍 ${priceLabel}
       </div>
     `,
     iconSize: [0, 0],
-    iconAnchor: [50, 16],
-    popupAnchor: [0, -20]
+    iconAnchor: [0, 16],
+    popupAnchor: [0, -20],
   });
 
   return (

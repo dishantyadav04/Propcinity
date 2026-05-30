@@ -15,7 +15,7 @@ import { formatINR } from "@/lib/finance-calculations";
 import {
   MapPin, Share2, Heart, ShieldCheck, Download,
   Play, ChevronRight, CheckCircle2, XCircle, X, ZoomIn,
-  Building2, Home, CalendarDays, Layers, ArrowLeft
+  Building2, Home, CalendarDays, Layers, ArrowLeft, LayoutDashboard
 } from "lucide-react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
@@ -71,6 +71,7 @@ export default function ProjectDetailPage() {
   const [expandedFloorPlan, setExpandedFloorPlan] = useState<{ src: string; label: string } | null>(null);
   const [activePricingType, setActivePricingType] = useState('');
   const [savedToShortlist, setSavedToShortlist] = useState(false);
+  const [addedToDashboard, setAddedToDashboard] = useState(false);
   const tabsRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -104,6 +105,8 @@ export default function ProjectDetailPage() {
     if (project) {
       const saved = storage.get<string[]>(STORAGE_KEYS.SAVED_IDS, []);
       setSavedToShortlist(saved.includes(project.id));
+      const curated = storage.get<string[]>(STORAGE_KEYS.CURATED_IDS, []);
+      setAddedToDashboard(curated.includes(project.id));
       if (!activePricingType && pricingTypeGroups.length > 0) {
         setActivePricingType(pricingTypeGroups[0][0]);
       }
@@ -130,6 +133,19 @@ export default function ProjectDetailPage() {
     storage.set(STORAGE_KEYS.SAVED_IDS, next);
     setSavedToShortlist(!isAlready);
     toast(isAlready ? 'Removed from shortlist' : 'Saved to shortlist ❤️');
+  };
+
+  const handleAddToDashboard = () => {
+    if (!project) return;
+    const curated = storage.get<string[]>(STORAGE_KEYS.CURATED_IDS, []);
+    const isAlready = curated.includes(project.id);
+    const next = isAlready
+      ? curated.filter(id => id !== project.id)
+      : [...curated, project.id];
+    storage.set(STORAGE_KEYS.CURATED_IDS, next);
+    setAddedToDashboard(!isAlready);
+    window.dispatchEvent(new Event('curatedUpdated'));
+    toast(!isAlready ? 'Added to Dashboard ⭐' : 'Removed from Dashboard');
   };
 
   const pricingTypeGroups = React.useMemo(() => {
@@ -299,9 +315,13 @@ export default function ProjectDetailPage() {
             className="p-1.5 text-[var(--text-secondary)]">
             <Share2 className="w-5 h-5" />
           </button>
-          <button onClick={handleSaveToShortlist}
-            className="p-1.5 text-[var(--text-secondary)]">
-            <Heart className={`w-5 h-5 ${savedToShortlist ? 'fill-[var(--danger)] text-[var(--danger)]' : ''}`} />
+          <button onClick={handleAddToDashboard}
+            className={`p-1.5 transition-colors ${
+              addedToDashboard ? 'text-[var(--primary)]' : 'text-[var(--text-secondary)]'
+            }`}
+            title={addedToDashboard ? 'Remove from Dashboard' : 'Add to Dashboard'}
+          >
+            <LayoutDashboard className={`w-5 h-5`} />
           </button>
         </div>
       </div>
@@ -939,7 +959,7 @@ export default function ProjectDetailPage() {
                 </div>
               </div>
 
-              {/* Share + Save */}
+              {/* Share + Add to Dashboard */}
               <div className="flex gap-2">
                 <button
                   onClick={() => navigator.share?.({ title: project.name, url: window.location.href }).catch(() => {})}
@@ -949,15 +969,15 @@ export default function ProjectDetailPage() {
                   <Share2 className="w-4 h-4" /> Share
                 </button>
                 <button
-                  onClick={handleSaveToShortlist}
+                  onClick={handleAddToDashboard}
                   className={`flex-1 flex items-center justify-center gap-2 py-2.5
                     border rounded-[var(--radius-xs)] text-sm font-semibold transition-colors ${
-                    savedToShortlist
-                      ? 'bg-[var(--danger-light)] border-[var(--danger)]/30 text-[var(--danger)]'
-                      : 'border-[var(--border)] text-[var(--text-secondary)] hover:bg-[var(--surface-raised)]'
+                    addedToDashboard
+                      ? 'bg-[var(--primary-light)] border-[var(--primary)]/30 text-[var(--primary)]'
+                      : 'border-[var(--border)] text-[var(--text-secondary)] hover:bg-[var(--primary-light)] hover:border-[var(--primary)] hover:text-[var(--primary)]'
                   }`}>
-                  <Heart className={`w-4 h-4 ${savedToShortlist ? 'fill-[var(--danger)]' : ''}`} />
-                  {savedToShortlist ? 'Saved' : 'Save'}
+                  <LayoutDashboard className="w-4 h-4" />
+                  {addedToDashboard ? 'Added ✓' : 'Add to Dashboard'}
                 </button>
               </div>
 

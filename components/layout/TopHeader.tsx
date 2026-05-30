@@ -75,9 +75,15 @@ export default function TopHeader() {
               <Search className="w-5 h-5" />
             </button>
           )}
-          <Link href="/profile"
-            className="w-8 h-8 bg-[var(--primary)] rounded-full flex items-center justify-center text-white text-xs font-bold">
-            P
+          <Link
+            href="/profile"
+            className="w-8 h-8 rounded-full border-2 border-[var(--border-strong)] bg-[var(--surface-raised)] flex items-center justify-center hover:border-[var(--primary)] transition-colors"
+            aria-label="Profile"
+          >
+            <svg viewBox="0 0 24 24" fill="none" className="w-5 h-5 text-[var(--text-muted)]" stroke="currentColor" strokeWidth={1.5}>
+              <circle cx="12" cy="7" r="3.5" />
+              <path d="M4 20c0-4.418 3.582-8 8-8s8 3.582 8 8" strokeLinecap="round" />
+            </svg>
           </Link>
         </div>
       </div>

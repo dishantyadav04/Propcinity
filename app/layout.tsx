@@ -59,7 +59,22 @@ export default function RootLayout({
         </main>
         <BottomNav />
         <ClientLayoutExtras />
-        <Toaster richColors position="top-center" />
+        <Toaster
+          position="bottom-center"
+          closeButton={true}
+          duration={4000}
+          toastOptions={{
+            style: {
+              borderRadius: 'var(--radius)',
+              fontSize: '13px',
+              fontWeight: '600',
+              padding: '12px 16px',
+            },
+            classNames: {
+              closeButton: 'bg-transparent border-none text-current opacity-60 hover:opacity-100',
+            },
+          }}
+        />
       </body>
     </html>
   )
