@@ -194,6 +194,25 @@ export default function UnitConfigForm({ units, onChange }: UnitConfigFormProps)
               </div>
             </div>
 
+            {/* Parking */}
+            <div className="space-y-1">
+              <label className="text-[10px] text-[var(--text-muted)] uppercase font-bold">
+                Parking Spots
+              </label>
+              <input
+                type="number"
+                min={0}
+                max={5}
+                step={1}
+                value={unit.parking ?? ''}
+                onChange={(e) => updateUnit(unit.id, {
+                  parking: e.target.value === '' ? undefined : Number(e.target.value)
+                })}
+                placeholder="0"
+                className="w-full bg-[var(--surface)] border border-[var(--border)] rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-[var(--primary)]"
+              />
+            </div>
+
             {/* Floor Plan URL field */}
             <div className="space-y-1.5">
               <label className="text-xs font-bold text-[var(--text-muted)] uppercase tracking-wider">

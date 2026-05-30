@@ -43,6 +43,8 @@ export default function ProjectForm({ initialData }: ProjectFormProps) {
     internalAmenities: [],
     externalAmenities: [],
     nearbyLocations: [],
+    reraRegistrations: [],
+    masterPlanImages: [],
     constructionStatus: 'under_construction',
     constructionPercent: 0
   });
@@ -68,6 +70,8 @@ export default function ProjectForm({ initialData }: ProjectFormProps) {
       nearby_locations: project.nearbyLocations || [],
       internal_amenities: project.internalAmenities || [],
       external_amenities: project.externalAmenities || [],
+      rera_registrations: project.reraRegistrations || [],
+      master_plan_images: project.masterPlanImages || [],
     };
       const response = await fetch(initialData ? `/api/admin/projects/${initialData.id}` : '/api/admin/projects', {
         method: initialData ? 'PATCH' : 'POST',
@@ -188,12 +192,105 @@ export default function ProjectForm({ initialData }: ProjectFormProps) {
         />
       </div>
 
+      {/* Master Plan Images */}
+      <div className="bg-[var(--surface)] p-6 rounded-2xl border border-[var(--border)] space-y-4">
+        <h3 className="text-sm font-bold text-[var(--text-primary)] uppercase tracking-widest">
+          Master Plan Images
+        </h3>
+        <p className="text-xs text-[var(--text-muted)]">
+          Upload layout/site plan images. These appear in the Master Plan section.
+        </p>
+        <ImageUpload
+          onUpload={(url) => setProject({...project, masterPlanImages: [...(project.masterPlanImages || []), url]})}
+          onRemove={(url) => setProject({...project, masterPlanImages: (project.masterPlanImages || []).filter(i => i !== url)})}
+          value={project.masterPlanImages || []}
+        />
+      </div>
+
       {/* Inventory */}
       <div className="bg-[var(--surface)] p-6 rounded-2xl border border-[var(--border)]">
         <UnitConfigForm 
           units={project.unitConfigs || []}
           onChange={(units) => setProject({...project, unitConfigs: units})}
         />
+      </div>
+
+      {/* RERA Registrations */}
+      <div className="bg-[var(--surface)] p-6 rounded-2xl border border-[var(--border)] space-y-4">
+        <h3 className="text-sm font-bold text-[var(--text-primary)] uppercase tracking-widest">
+          RERA Registrations
+        </h3>
+        <p className="text-xs text-[var(--text-muted)]">
+          Add one or multiple RERA registration numbers. Each gets its own QR code on the property page.
+        </p>
+
+        <div className="space-y-3">
+          {(project.reraRegistrations || []).map((reg, idx) => (
+            <div key={reg.id} className="p-4 bg-[var(--surface-raised)] border border-[var(--border)] rounded-xl space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-black text-[var(--text-muted)] uppercase">Registration #{idx + 1}</span>
+                <button type="button"
+                  onClick={() => setProject({
+                    ...project,
+                    reraRegistrations: (project.reraRegistrations || []).filter(r => r.id !== reg.id)
+                  })}
+                  className="text-[var(--text-muted)] hover:text-red-500 p-1">
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div className="space-y-1">
+                  <label className="text-[10px] text-[var(--text-muted)] uppercase font-bold">RERA Number *</label>
+                  <input type="text" value={reg.reraId}
+                    onChange={e => setProject({
+                      ...project,
+                      reraRegistrations: (project.reraRegistrations || []).map(r =>
+                        r.id === reg.id ? { ...r, reraId: e.target.value } : r
+                      )
+                    })}
+                    placeholder="e.g. P52100047931"
+                    className="w-full bg-[var(--surface)] border border-[var(--border)] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[var(--primary)]" />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] text-[var(--text-muted)] uppercase font-bold">RERA Portal Link</label>
+                  <input type="url" value={reg.reraLink || ''}
+                    onChange={e => setProject({
+                      ...project,
+                      reraRegistrations: (project.reraRegistrations || []).map(r =>
+                        r.id === reg.id ? { ...r, reraLink: e.target.value } : r
+                      )
+                    })}
+                    placeholder="https://maharera.mahaonline.gov.in/..."
+                    className="w-full bg-[var(--surface)] border border-[var(--border)] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[var(--primary)]" />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] text-[var(--text-muted)] uppercase font-bold">Description (optional)</label>
+                  <input type="text" value={reg.description || ''}
+                    onChange={e => setProject({
+                      ...project,
+                      reraRegistrations: (project.reraRegistrations || []).map(r =>
+                        r.id === reg.id ? { ...r, description: e.target.value } : r
+                      )
+                    })}
+                    placeholder="e.g. Tower 1–2"
+                    className="w-full bg-[var(--surface)] border border-[var(--border)] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[var(--primary)]" />
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <button type="button"
+          onClick={() => setProject({
+            ...project,
+            reraRegistrations: [
+              ...(project.reraRegistrations || []),
+              { id: crypto.randomUUID(), reraId: '', reraLink: '', description: '' }
+            ]
+          })}
+          className="flex items-center gap-2 px-4 py-2 bg-[var(--primary)]/10 text-[var(--primary)] rounded-lg text-xs font-bold hover:bg-[var(--primary)]/20 transition-all">
+          <Plus className="w-3.5 h-3.5" /> Add RERA Registration
+        </button>
       </div>
 
       {/* Pros & Cons */}
@@ -279,7 +376,7 @@ export default function ProjectForm({ initialData }: ProjectFormProps) {
         />
       </div>
 
-<div className="flex justify-end pt-4 pb-20 md:pb-4">
+      <div className="flex justify-end pt-4 pb-20 md:pb-4">
         <button 
           type="submit"
           disabled={isLoading}

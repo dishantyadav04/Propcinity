@@ -27,6 +27,7 @@ const unitConfigSchema = z.object({
   facing: z.array(z.string()).optional().default([]),
   images: z.array(z.string()).optional().default([]),
   highlights: z.array(z.string()).optional().default([]),
+  parking: z.number().optional(),
 })
 
 const projectSchema = z.object({
@@ -65,6 +66,13 @@ const projectSchema = z.object({
   })).optional().default([]),
   internal_amenities: z.array(z.string()).optional().default([]),
   external_amenities: z.array(z.string()).optional().default([]),
+  rera_registrations: z.array(z.object({
+    id: z.string(),
+    reraId: z.string(),
+    reraLink: z.string().optional(),
+    description: z.string().optional(),
+  })).optional().default([]),
+  master_plan_images: z.array(z.string()).optional().default([]),
   unitConfigs: z.array(unitConfigSchema).optional(),
 })
 

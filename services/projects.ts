@@ -60,6 +60,7 @@ function mapUnitConfig(row: SupabaseUnitConfigRow): UnitConfig {
     floorPlan: (row as any).floor_plan_url,
     highlights: row.highlights || [],
     maintenancePerMonth: (row as any).maintenance_cost,
+    parking: (row as any).parking,
   }
 }
 
@@ -111,6 +112,8 @@ function mapProject(row: any, unitConfigs: SupabaseUnitConfigRow[]): Project {
     videos: row.videos || [],
     brochureUrl: row.brochure_url,
     nearbyLocations: row.nearby_locations || [],
+    masterPlanImages: row.master_plan_images || [],
+    reraRegistrations: row.rera_registrations || [],
     isPublished: row.is_published,
   }
 }

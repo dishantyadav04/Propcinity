@@ -14,7 +14,7 @@ import PageLoader from "@/components/ui/PageLoader";
 import { formatINR } from "@/lib/finance-calculations";
 import {
   MapPin, Share2, Heart, ShieldCheck, Download,
-  Play, ChevronRight, CheckCircle2, XCircle,
+  Play, ChevronRight, CheckCircle2, XCircle, X, ZoomIn,
   Building2, Home, CalendarDays, Layers, ArrowLeft
 } from "lucide-react";
 import { useParams, useRouter } from "next/navigation";
@@ -26,13 +26,12 @@ import { storage, STORAGE_KEYS } from "@/lib/storage";
 // ── Tab definitions ────────────────────────────────────────
 const TABS = [
   { id: 'overview',     label: 'Overview' },
-  { id: 'pros-cons',    label: 'Pros & Cons' },
   { id: 'amenities',    label: 'Amenities' },
   { id: 'floor-plans',  label: 'Floor Plans' },
   { id: 'pricing',      label: 'Pricing' },
-  { id: 'payment',      label: 'Payment' },
   { id: 'location',     label: 'Location' },
   { id: 'legal',        label: 'Legal' },
+  { id: 'rera',         label: 'RERA' },
   { id: 'builder',      label: 'Builder' },
 ];
 
@@ -69,6 +68,7 @@ export default function ProjectDetailPage() {
   const [expandedEMIRow, setExpandedEMIRow] = useState<string | null>(null);
   const [emiRate, setEmiRate] = useState(8.5);
   const [emiTenure, setEmiTenure] = useState(20);
+  const [expandedFloorPlan, setExpandedFloorPlan] = useState<{ src: string; label: string } | null>(null);
   const [activePricingType, setActivePricingType] = useState('');
   const [savedToShortlist, setSavedToShortlist] = useState(false);
   const tabsRef = useRef<HTMLDivElement>(null);
@@ -114,11 +114,10 @@ export default function ProjectDetailPage() {
     setActiveTab(tabId);
     const el = document.getElementById(`section-${tabId}`);
     if (el) {
-      const offset = 120; // height of sticky header + tabs
+      const offset = 120;
       const top = el.getBoundingClientRect().top + window.scrollY - offset;
       window.scrollTo({ top, behavior: 'smooth' });
     }
-    // Scroll tab into view horizontally
     const tabEl = tabsRef.current?.querySelector(`[data-tab="${tabId}"]`);
     tabEl?.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
   };
@@ -144,6 +143,122 @@ export default function ProjectDetailPage() {
       }, new Map<string, any[]>())
     );
   }, [project?.unitConfigs]);
+
+  function calcEMI(principal: number, rate: number, tenureYears: number): number {
+    if (!principal || !rate || !tenureYears) return 0;
+    const r = rate / 12 / 100;
+    const n = tenureYears * 12;
+    return Math.round((principal * r * Math.pow(1 + r, n)) / (Math.pow(1 + r, n) - 1));
+  }
+
+  // ── PlanImageGallery inline component ────────────────────
+  function PlanImageGallery({
+    images,
+    labels,
+    label,
+  }: {
+    images: string[];
+    labels?: string[];
+    label: string;
+  }) {
+    const [lightboxIndex, setLightboxIndex] = React.useState<number | null>(null);
+
+    return (
+      <>
+        <AnimatePresence>
+          {lightboxIndex !== null && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-[200] bg-black/85 backdrop-blur-sm flex items-center justify-center p-4"
+              onClick={() => setLightboxIndex(null)}
+            >
+              <motion.div
+                initial={{ scale: 0.92 }}
+                animate={{ scale: 1 }}
+                exit={{ scale: 0.92 }}
+                className="relative max-w-3xl w-full bg-white rounded-[var(--radius-lg)] overflow-hidden"
+                onClick={e => e.stopPropagation()}
+              >
+                <div className="flex items-center justify-between px-5 py-3 border-b border-[var(--border)]">
+                  <p className="font-black text-[var(--text-primary)] text-sm">
+                    {labels?.[lightboxIndex] ?? label}
+                    <span className="ml-2 text-[var(--text-muted)] font-normal text-xs">
+                      {lightboxIndex + 1} / {images.length}
+                    </span>
+                  </p>
+                  <div className="flex items-center gap-2">
+                    {images.length > 1 && (
+                      <>
+                        <button
+                          onClick={() => setLightboxIndex(i => i! > 0 ? i! - 1 : images.length - 1)}
+                          className="p-2 hover:bg-[var(--surface-raised)] rounded-full text-[var(--text-secondary)]"
+                        >
+                          <ChevronRight className="w-4 h-4 rotate-180" />
+                        </button>
+                        <button
+                          onClick={() => setLightboxIndex(i => i! < images.length - 1 ? i! + 1 : 0)}
+                          className="p-2 hover:bg-[var(--surface-raised)] rounded-full text-[var(--text-secondary)]"
+                        >
+                          <ChevronRight className="w-4 h-4" />
+                        </button>
+                      </>
+                    )}
+                    <button
+                      onClick={() => setLightboxIndex(null)}
+                      className="p-2 hover:bg-[var(--surface-raised)] rounded-full"
+                    >
+                      <X className="w-4 h-4 text-[var(--text-secondary)]" />
+                    </button>
+                  </div>
+                </div>
+                <div className="p-4 bg-[var(--surface-raised)]">
+                  <img
+                    src={images[lightboxIndex]}
+                    alt={labels?.[lightboxIndex] ?? label}
+                    className="w-full h-auto max-h-[70vh] object-contain rounded-[var(--radius-xs)]"
+                  />
+                </div>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        <div className="flex gap-3 overflow-x-auto scrollbar-hide pb-2">
+          {images.map((img, idx) => (
+            <div
+              key={idx}
+              className="flex-shrink-0 w-52 h-40 bg-[var(--surface-raised)] border border-[var(--border)]
+                rounded-[var(--radius-sm)] overflow-hidden cursor-pointer group relative"
+              onClick={() => setLightboxIndex(idx)}
+            >
+              <img
+                src={img}
+                alt={labels?.[idx] ?? `${label} ${idx + 1}`}
+                className="w-full h-full object-contain p-2 transition-transform duration-300 group-hover:scale-105"
+              />
+              <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors
+                flex items-center justify-center">
+                <div className="opacity-0 group-hover:opacity-100 transition-opacity
+                  flex items-center gap-1.5 bg-white/90 text-[var(--text-primary)]
+                  px-2.5 py-1 rounded-full text-[10px] font-bold shadow">
+                  <ZoomIn className="w-3 h-3" /> Enlarge
+                </div>
+              </div>
+              {labels?.[idx] && (
+                <div className="absolute bottom-0 left-0 right-0 bg-black/50 text-white text-[9px] font-bold
+                  px-2 py-1 truncate">
+                  {labels[idx]}
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      </>
+    );
+  }
+
   if (isLoading) return <PageLoader />;
   if (!project) return (
     <div className="min-h-screen flex flex-col items-center justify-center gap-5 px-6 text-center">
@@ -165,16 +280,6 @@ export default function ProjectDetailPage() {
   ))).join(', ');
   const areaMin = project.unitConfigs?.length ? Math.min(...project.unitConfigs.map(u => u.area)) : 0;
   const areaMax = project.unitConfigs?.length ? Math.max(...project.unitConfigs.map(u => u.area)) : 0;
-
-
-  
-
-  function calcEMI(principal: number, rate: number, tenureYears: number): number {
-    if (!principal || !rate || !tenureYears) return 0;
-    const r = rate / 12 / 100;
-    const n = tenureYears * 12;
-    return Math.round((principal * r * Math.pow(1 + r, n)) / (Math.pow(1 + r, n) - 1));
-  }
 
   return (
     <div className="min-h-screen bg-[var(--background)]">
@@ -274,7 +379,7 @@ export default function ProjectDetailPage() {
                 </p>
               </div>
 
-              {/* Overview grid — exactly like housiey */}
+              {/* Overview grid */}
               <h2 className="text-lg font-black text-[var(--text-primary)] mb-4"
                 style={{ fontFamily: 'var(--font-display)' }}>
                 {project.name} Overview
@@ -296,7 +401,13 @@ export default function ProjectDetailPage() {
                   { icon: Layers, label: 'Floors', value: project.floorsPerTower || 'N/A' },
                   { icon: Home, label: 'Config', value: configSummary || 'N/A' },
                   { icon: Home, label: 'Carpet Area', value: areaMin ? `${areaMin}-${areaMax} sqft` : 'N/A' },
-                  { icon: ShieldCheck, label: 'RERA NO.', value: project.reraId || 'N/A' },
+                  {
+                    icon: ShieldCheck,
+                    label: 'RERA',
+                    value: project.reraRegistrations?.length
+                      ? project.reraRegistrations.map(r => r.reraId).join(', ')
+                      : (project.reraId || 'N/A'),
+                  },
                   { icon: CalendarDays, label: 'Possession', value: constructionLabel(project.constructionStatus, project.constructionPercent) },
                   { icon: CalendarDays, label: 'Target Possession', value: project.possessionDate ? new Date(project.possessionDate).toLocaleDateString('en-IN', { month: 'short', year: 'numeric' }) : 'N/A' },
                   { icon: CalendarDays, label: 'RERA Possession', value: project.reraPossessionDate ? new Date(project.reraPossessionDate).toLocaleDateString('en-IN', { month: 'short', year: 'numeric' }) : 'N/A' },
@@ -324,6 +435,270 @@ export default function ProjectDetailPage() {
               </p>
             </div>
 
+            {/* ── AMENITIES ──────────────────────────── */}
+            <div id="section-amenities" className="scroll-mt-36 py-10 border-b border-[var(--border)]">
+              <h2 className="text-lg font-black text-[var(--text-primary)] mb-6"
+                style={{ fontFamily: 'var(--font-display)' }}>
+                {project.name} Amenities
+              </h2>
+
+              {/* Internal */}
+              {project.internalAmenities && project.internalAmenities.length > 0 && (
+                <div className="mb-8">
+                  <h3 className="text-xs font-black text-[var(--text-muted)] uppercase tracking-widest mb-4">
+                    Internal Amenities
+                  </h3>
+                  <AmenityGrid amenities={project.internalAmenities} />
+                </div>
+              )}
+
+              {/* External */}
+              {(project.externalAmenities?.length || project.amenities?.length) ? (
+                <div>
+                  <h3 className="text-xs font-black text-[var(--text-muted)] uppercase tracking-widest mb-4">
+                    {project.internalAmenities?.length ? 'External Amenities' : 'All Amenities'}
+                  </h3>
+                  <AmenityGrid amenities={project.externalAmenities?.length ? project.externalAmenities : project.amenities} />
+                </div>
+              ) : null}
+
+              {(!project.internalAmenities?.length && !project.externalAmenities?.length && !project.amenities?.length) && (
+                <p className="text-sm text-[var(--text-muted)] italic">Amenities details coming soon.</p>
+              )}
+            </div>
+
+            {/* ── FLOOR PLANS ──────────────────────────── */}
+            <div id="section-floor-plans" className="scroll-mt-36 py-10 border-b border-[var(--border)]">
+              <h2 className="text-lg font-black text-[var(--text-primary)] mb-6"
+                style={{ fontFamily: 'var(--font-display)' }}>
+                Master & Floor Plans
+              </h2>
+
+              {/* Master Plan sub-section */}
+              <div className="mb-8">
+                <h3 className="text-xs font-black text-[var(--text-muted)] uppercase tracking-widest mb-4">
+                  Master Plan
+                </h3>
+                {project.masterPlanImages && project.masterPlanImages.length > 0 ? (
+                  <PlanImageGallery images={project.masterPlanImages} label="Master Plan" />
+                ) : (
+                  <div className="h-32 bg-[var(--surface-raised)] border border-[var(--border)] rounded-[var(--radius)] flex flex-col items-center justify-center text-[var(--text-muted)] gap-2">
+                    <div className="w-10 h-10 bg-[var(--border)] rounded-lg flex items-center justify-center">
+                      <Layers className="w-5 h-5" />
+                    </div>
+                    <p className="text-[10px] font-bold uppercase tracking-wider">Master Plan TBA</p>
+                  </div>
+                )}
+              </div>
+
+              {/* Floor Plans sub-section — per-unit images */}
+              <div>
+                <h3 className="text-xs font-black text-[var(--text-muted)] uppercase tracking-widest mb-4">
+                  Floor Plans
+                </h3>
+                {(() => {
+                  const unitsWithPlans = (project.unitConfigs || []).filter(u => u.floorPlan);
+                  if (unitsWithPlans.length === 0) {
+                    return (
+                      <div className="h-32 bg-[var(--surface-raised)] border border-[var(--border)] rounded-[var(--radius)] flex flex-col items-center justify-center text-[var(--text-muted)] gap-2">
+                        <div className="w-10 h-10 bg-[var(--border)] rounded-lg flex items-center justify-center">
+                          <Home className="w-5 h-5" />
+                        </div>
+                        <p className="text-[10px] font-bold uppercase tracking-wider">Floor Plans TBA</p>
+                      </div>
+                    );
+                  }
+                  const groups = new Map<string, typeof unitsWithPlans>();
+                  unitsWithPlans.forEach(u => {
+                    const base = u.type.split(/[-–(]/)[0].trim();
+                    if (!groups.has(base)) groups.set(base, []);
+                    groups.get(base)!.push(u);
+                  });
+                  return (
+                    <div className="space-y-6">
+                      {Array.from(groups.entries()).map(([baseType, units]) => (
+                        <div key={baseType}>
+                          <p className="text-xs font-bold text-[var(--text-secondary)] mb-3">{baseType}</p>
+                          <PlanImageGallery
+                            images={units.map(u => u.floorPlan!)}
+                            labels={units.map(u => `${u.type} · ${u.area} sqft`)}
+                            label={`${baseType} Floor Plan`}
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  );
+                })()}
+              </div>
+            </div>
+
+            {/* ── PRICING ──────────────────────────────── */}
+            <div id="section-pricing" className="scroll-mt-36 py-10 border-b border-[var(--border)]">
+              <h2 className="text-lg font-black text-[var(--text-primary)] mb-6"
+                style={{ fontFamily: 'var(--font-display)' }}>
+                Pricing & Unit Plans
+              </h2>
+
+              {(() => {
+                const typeGroups = pricingTypeGroups;
+                const activeUnits = typeGroups.find(([key]) => key === activePricingType)?.[1]
+                  || typeGroups[0]?.[1] || [];
+
+                return (
+                  <div className="space-y-4">
+                    {/* BHK type tabs */}
+                    {typeGroups.length > 1 && (
+                      <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-1">
+                        {typeGroups.map(([base]) => (
+                          <button key={base} onClick={() => setActivePricingType(base)}
+                            className={`flex-shrink-0 px-4 py-2 rounded-full text-xs font-bold border transition-all ${
+                              activePricingType === base
+                                ? 'bg-[var(--primary)] text-white border-[var(--primary)]'
+                                : 'bg-[var(--surface-raised)] text-[var(--text-secondary)] border-[var(--border)] hover:border-[var(--primary)]'
+                            }`}>
+                            {base}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Table */}
+                    <div className="overflow-x-auto rounded-[var(--radius)] border border-[var(--border)]">
+                      <table className="w-full text-sm">
+                        <thead>
+                          <tr className="bg-[var(--surface-raised)] border-b border-[var(--border)]">
+                            {['Carpet Area', 'All Inc. Price', 'Min Downpayment', 'Parking', 'Unit Plan'].map(h => (
+                              <th key={h} className="px-4 py-3 text-left font-black text-[var(--text-muted)] text-[10px] uppercase tracking-wider whitespace-nowrap">
+                                {h}
+                              </th>
+                            ))}
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-[var(--border)]">
+                          {activeUnits.map(unit => {
+                            const downpayment = Math.round(unit.priceMin * 0.15);
+                            const isExpanded = expandedEMIRow === unit.id;
+                            return (
+                              <React.Fragment key={unit.id}>
+                                <tr className="hover:bg-[var(--surface-raised)]/50 transition-colors align-top">
+                                  {/* Carpet Area */}
+                                  <td className="px-4 py-3 font-bold text-[var(--text-primary)] whitespace-nowrap">
+                                    {unit.area} sqft
+                                  </td>
+                                  {/* All Inc. Price */}
+                                  <td className="px-4 py-3 font-bold text-[var(--primary)] whitespace-nowrap">
+                                    {formatINR(unit.priceMin)}
+                                    {unit.priceMax > unit.priceMin && (
+                                      <span className="text-[var(--text-muted)] font-normal"> – {formatINR(unit.priceMax)}</span>
+                                    )}
+                                  </td>
+                                  {/* Min Downpayment + EMI button */}
+                                  <td className="px-4 py-3 whitespace-nowrap">
+                                    <div className="flex items-center gap-2 flex-wrap">
+                                      <span className="text-[var(--text-secondary)] font-medium">{formatINR(downpayment)}</span>
+                                      <button
+                                        onClick={() => setExpandedEMIRow(isExpanded ? null : unit.id)}
+                                        className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-black border transition-all uppercase tracking-wider ${
+                                          isExpanded
+                                            ? 'bg-[var(--primary)] text-white border-[var(--primary)]'
+                                            : 'bg-[var(--surface-raised)] text-[var(--primary)] border-[var(--primary)]/40 hover:bg-[var(--primary)] hover:text-white'
+                                        }`}
+                                      >
+                                        EMI <ChevronRight className={`w-2.5 h-2.5 transition-transform ${isExpanded ? 'rotate-90' : ''}`} />
+                                      </button>
+                                    </div>
+                                  </td>
+                                  {/* Parking */}
+                                  <td className="px-4 py-3 text-[var(--text-secondary)] whitespace-nowrap">
+                                    {unit.parking != null ? (
+                                      <span className="flex items-center gap-1.5 text-sm font-medium">
+                                        🚗 {unit.parking}
+                                      </span>
+                                    ) : (
+                                      <span className="text-[var(--text-muted)] text-xs">—</span>
+                                    )}
+                                  </td>
+                                  {/* Unit Plan thumbnail */}
+                                  <td className="px-4 py-3">
+                                    {unit.floorPlan ? (
+                                      <button
+                                        onClick={() => {
+                                          setExpandedFloorPlan({ src: unit.floorPlan!, label: `${unit.type} · ${unit.area} sqft` });
+                                        }}
+                                        className="w-14 h-14 bg-[var(--surface-raised)] border border-[var(--border)] rounded-lg
+                                          overflow-hidden group relative hover:border-[var(--primary)] transition-colors"
+                                      >
+                                        <img src={unit.floorPlan} alt="unit plan"
+                                          className="w-full h-full object-contain p-1" />
+                                        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors
+                                          flex items-center justify-center">
+                                          <ZoomIn className="w-3 h-3 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
+                                        </div>
+                                      </button>
+                                    ) : (
+                                      <span className="text-[var(--text-muted)] text-xs">—</span>
+                                    )}
+                                  </td>
+                                </tr>
+                                {/* EMI calculator row */}
+                                {isExpanded && (
+                                  <tr>
+                                    <td colSpan={5} className="px-4 pb-4 bg-[var(--surface-raised)]/40">
+                                      <div className="p-4 bg-white border border-[var(--border)] rounded-[var(--radius-sm)] space-y-3 mt-1">
+                                        <div className="flex items-center justify-between mb-2">
+                                          <p className="text-xs font-black text-[var(--text-primary)] uppercase tracking-wider">EMI Calculator</p>
+                                          <p className="text-lg font-black text-[var(--primary)]">
+                                            {formatINR(calcEMI(unit.priceMin * 0.85, emiRate, emiTenure))}/mo
+                                          </p>
+                                        </div>
+                                        <div className="grid grid-cols-2 gap-4">
+                                          <div className="space-y-1">
+                                            <div className="flex justify-between text-[10px] text-[var(--text-muted)] uppercase font-bold">
+                                              <span>Interest Rate</span><span>{emiRate}%</span>
+                                            </div>
+                                            <input type="range" min={6.5} max={14} step={0.25}
+                                              value={emiRate} onChange={e => setEmiRate(Number(e.target.value))}
+                                              className="w-full h-1.5 accent-[var(--primary)] cursor-pointer rounded-full" />
+                                          </div>
+                                          <div className="space-y-1">
+                                            <div className="flex justify-between text-[10px] text-[var(--text-muted)] uppercase font-bold">
+                                              <span>Tenure</span><span>{emiTenure} yrs</span>
+                                            </div>
+                                            <input type="range" min={5} max={30} step={1}
+                                              value={emiTenure} onChange={e => setEmiTenure(Number(e.target.value))}
+                                              className="w-full h-1.5 accent-[var(--primary)] cursor-pointer rounded-full" />
+                                          </div>
+                                        </div>
+                                        <div className="grid grid-cols-3 gap-2 pt-1">
+                                          {[
+                                            { label: 'Loan Amount', value: formatINR(Math.round(unit.priceMin * 0.85)) },
+                                            { label: 'Down Payment', value: formatINR(Math.round(unit.priceMin * 0.15)) },
+                                            { label: 'Total Interest', value: formatINR(Math.max(0, calcEMI(unit.priceMin * 0.85, emiRate, emiTenure) * emiTenure * 12 - Math.round(unit.priceMin * 0.85))) },
+                                          ].map(item => (
+                                            <div key={item.label} className="bg-[var(--surface-raised)] p-2 rounded-[var(--radius-xs)]">
+                                              <p className="text-[9px] text-[var(--text-muted)] uppercase font-bold">{item.label}</p>
+                                              <p className="text-xs font-bold text-[var(--text-primary)]">{item.value}</p>
+                                            </div>
+                                          ))}
+                                        </div>
+                                        <p className="text-[9px] text-[var(--text-muted)] italic">
+                                          * Estimate only. 85% loan assumed. Actual terms may vary.
+                                        </p>
+                                      </div>
+                                    </td>
+                                  </tr>
+                                )}
+                              </React.Fragment>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                );
+              })()}
+            </div>
+
             {/* ── LOCATION ─────────────────────────────── */}
             <div id="section-location" className="scroll-mt-36 py-10 border-b border-[var(--border)]">
               <h2 className="text-lg font-black text-[var(--text-primary)] mb-4"
@@ -337,230 +712,8 @@ export default function ProjectDetailPage() {
                 priceLabel={formatINR(minPrice)}
                 location={project.location}
                 city={project.city}
-              nearbyLocations={project.nearbyLocations}
-            />
-            </div>
-
-            
-
-            
-
-            {/* ── AMENITIES ────────────────────────────── */}
-            <div id="section-amenities" className="scroll-mt-36 py-10 border-b border-[var(--border)]">
-              <h2 className="text-lg font-black text-[var(--text-primary)] mb-6"
-                style={{ fontFamily: 'var(--font-display)' }}>
-                {project.name} Amenities
-              </h2>
-
-              {/* Internal amenities if separate */}
-              {project.internalAmenities && project.internalAmenities.length > 0 && (
-                <div className="mb-6">
-                  <h3 className="text-sm font-black text-[var(--text-secondary)] uppercase tracking-wider mb-3">
-                    Internal Amenities
-                  </h3>
-                  <AmenityGrid amenities={project.internalAmenities} />
-                </div>
-              )}
-
-              <h3 className="text-sm font-black text-[var(--text-secondary)] uppercase tracking-wider mb-3">
-                {project.internalAmenities?.length ? 'External Amenities' : 'All Amenities'}
-              </h3>
-              <AmenityGrid amenities={project.externalAmenities || project.amenities} />
-            </div>
-
-            {/* ── FLOOR PLANS (unit configs with images) ── */}
-            <div id="section-floor-plans" className="scroll-mt-36 py-10 border-b border-[var(--border)]">
-              <h2 className="text-lg font-black text-[var(--text-primary)] mb-6"
-                style={{ fontFamily: 'var(--font-display)' }}>
-                Master & Floor Plans
-              </h2>
-              <div className="space-y-6">
-                {(() => {
-                  const configs = project.unitConfigs || [];
-                  const groups = new Map<string, typeof configs>();
-                  configs.forEach(unit => {
-                    const base = unit.type.split(/[-–(]/)[0].trim();
-                    if (!groups.has(base)) groups.set(base, []);
-                    groups.get(base)!.push(unit);
-                  });
-                  return Array.from(groups.entries()).map(([baseType, units]) => (
-                    <div key={baseType}>
-                      {units.length > 1 && (
-                        <p className="text-sm font-black text-[var(--text-muted)] uppercase tracking-wider mb-3">
-                          {baseType}
-                        </p>
-                      )}
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        {units.map(unit => (
-                          <UnitConfigCard key={unit.id} unit={unit} project={project} />
-                        ))}
-                      </div>
-                    </div>
-                  ));
-                })()}
-              </div>
-            </div>
-
-            {/* ── PRICING ──────────────────────────────── */}
-<div id="section-pricing" className="scroll-mt-36 py-10 border-b border-[var(--border)]">
-  <h2 className="text-lg font-black text-[var(--text-primary)] mb-6"
-    style={{ fontFamily: 'var(--font-display)' }}>
-    Pricing & Unit Plans
-  </h2>
-
-  {/* BHK type tab switcher */}
-  {(() => {
-    // Group unit configs by base BHK type
-    const typeGroups = pricingTypeGroups;
-    const activeUnits = typeGroups.find(([key]) => key === activePricingType)?.[1] || typeGroups[0]?.[1] || [];
-
-    return (
-      <div className="space-y-4">
-        {/* Type tabs */}
-        {typeGroups.length > 1 && (
-          <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-1">
-            {typeGroups.map(([base]) => (
-              <button
-                key={base}
-                onClick={() => setActivePricingType(base)}
-                className={`flex-shrink-0 px-4 py-2 rounded-full text-xs font-bold border transition-all ${
-                  activePricingType === base
-                    ? 'bg-[var(--primary)] text-white border-[var(--primary)]'
-                    : 'bg-[var(--surface-raised)] text-[var(--text-secondary)] border-[var(--border)] hover:border-[var(--primary)]'
-                }`}
-              >
-                {base}
-              </button>
-            ))}
-          </div>
-        )}
-
-        {/* Pricing table */}
-        <div className="overflow-x-auto rounded-[var(--radius)] border border-[var(--border)]">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="bg-[var(--surface-raised)] border-b border-[var(--border)]">
-                <th className="px-4 py-3 text-left font-black text-[var(--text-muted)] text-[10px] uppercase tracking-wider">Carpet Area</th>
-                <th className="px-4 py-3 text-left font-black text-[var(--text-muted)] text-[10px] uppercase tracking-wider">All Inc. Price</th>
-                <th className="px-4 py-3 text-left font-black text-[var(--text-muted)] text-[10px] uppercase tracking-wider">Min Downpayment</th>
-                <th className="px-4 py-3 text-left font-black text-[var(--text-muted)] text-[10px] uppercase tracking-wider">EMI</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-[var(--border)]">
-              {activeUnits.map(unit => {
-                const downpayment = unit.priceMin * 0.15;
-                const loanAmount = unit.priceMin - downpayment;
-                const emi = calcEMI(loanAmount, emiRate, emiTenure);
-                const isExpanded = expandedEMIRow === unit.id;
-
-                return (
-                  <React.Fragment key={unit.id}>
-                    <tr className="hover:bg-[var(--surface-raised)]/50 transition-colors">
-                      <td className="px-4 py-3 font-bold text-[var(--text-primary)]">{unit.area} sqft</td>
-                      <td className="px-4 py-3 font-bold text-[var(--primary)]">
-                        {formatINR(unit.priceMin)}
-                        {unit.priceMax > unit.priceMin && ` – ${formatINR(unit.priceMax)}`}
-                      </td>
-                      <td className="px-4 py-3 text-[var(--text-secondary)]">
-                        {formatINR(Math.round(downpayment))}
-                      </td>
-                      <td className="px-4 py-3">
-                        <button
-                          onClick={() => setExpandedEMIRow(isExpanded ? null : unit.id)}
-                          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold border transition-all ${
-                            isExpanded
-                              ? 'bg-[var(--primary)] text-white border-[var(--primary)]'
-                              : 'bg-[var(--surface-raised)] text-[var(--text-secondary)] border-[var(--border)] hover:border-[var(--primary)] hover:text-[var(--primary)]'
-                          }`}
-                        >
-                          {formatINR(emi)}/mo
-                          <ChevronRight className={`w-3 h-3 transition-transform ${isExpanded ? 'rotate-90' : ''}`} />
-                        </button>
-                      </td>
-                    </tr>
-                    {/* Inline EMI calculator */}
-                    {isExpanded && (
-                      <tr>
-                        <td colSpan={4} className="px-4 pb-4 bg-[var(--surface-raised)]/50">
-                          <div className="p-4 bg-white border border-[var(--border)] rounded-[var(--radius-sm)] space-y-3 mt-1">
-                            <div className="flex items-center justify-between mb-2">
-                              <p className="text-xs font-black text-[var(--text-primary)] uppercase tracking-wider">EMI Calculator</p>
-                              <p className="text-lg font-black text-[var(--primary)]">
-                                {formatINR(calcEMI(unit.priceMin * 0.85, emiRate, emiTenure))}/mo
-                              </p>
-                            </div>
-                            <div className="grid grid-cols-2 gap-4">
-                              <div className="space-y-1">
-                                <div className="flex justify-between text-[10px] text-[var(--text-muted)] uppercase font-bold">
-                                  <span>Interest Rate</span><span>{emiRate}%</span>
-                                </div>
-                                <input type="range" min={6.5} max={14} step={0.25}
-                                  value={emiRate}
-                                  onChange={e => setEmiRate(Number(e.target.value))}
-                                  className="w-full h-1.5 accent-[var(--primary)] cursor-pointer rounded-full" />
-                              </div>
-                              <div className="space-y-1">
-                                <div className="flex justify-between text-[10px] text-[var(--text-muted)] uppercase font-bold">
-                                  <span>Tenure</span><span>{emiTenure} yrs</span>
-                                </div>
-                                <input type="range" min={5} max={30} step={1}
-                                  value={emiTenure}
-                                  onChange={e => setEmiTenure(Number(e.target.value))}
-                                  className="w-full h-1.5 accent-[var(--primary)] cursor-pointer rounded-full" />
-                              </div>
-                            </div>
-                            <div className="grid grid-cols-3 gap-2 pt-1">
-                              {[
-                                { label: 'Loan Amount', value: formatINR(Math.round(unit.priceMin * 0.85)) },
-                                { label: 'Down Payment', value: formatINR(Math.round(unit.priceMin * 0.15)) },
-                                { label: 'Total Interest', value: formatINR(calcEMI(unit.priceMin * 0.85, emiRate, emiTenure) * emiTenure * 12 - Math.round(unit.priceMin * 0.85)) },
-                              ].map(item => (
-                                <div key={item.label} className="bg-[var(--surface-raised)] p-2 rounded-[var(--radius-xs)]">
-                                  <p className="text-[9px] text-[var(--text-muted)] uppercase font-bold">{item.label}</p>
-                                  <p className="text-xs font-bold text-[var(--text-primary)]">{item.value}</p>
-                                </div>
-                              ))}
-                            </div>
-                            <p className="text-[9px] text-[var(--text-muted)] italic">* Estimate only. 85% loan assumed. Actual terms may vary.</p>
-                          </div>
-                        </td>
-                      </tr>
-                    )}
-                  </React.Fragment>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-      </div>
-    );
-  })()}
-</div>
-
-            
-
-            {/* ── PAYMENT SCHEME ───────────────────────── */}
-            <div id="section-payment" className="scroll-mt-36 py-10 border-b border-[var(--border)]">
-              <h2 className="text-lg font-black text-[var(--text-primary)] mb-6"
-                style={{ fontFamily: 'var(--font-display)' }}>
-                Payment Scheme
-              </h2>
-              {project.paymentPlans && project.paymentPlans.length > 0 ? (
-                <div className="space-y-3">
-                  {project.paymentPlans.map((plan, i) => (
-                    <div key={i}
-                      className="p-4 bg-[var(--surface-raised)] border border-[var(--border)]
-                        rounded-[var(--radius-sm)]">
-                      <p className="font-bold text-[var(--text-primary)] mb-1">{plan.name}</p>
-                      <p className="text-sm text-[var(--text-secondary)]">{plan.description}</p>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-sm text-[var(--text-secondary)] italic">
-                  Payment plans available on request. Contact our advisor for details.
-                </p>
-              )}
+                nearbyLocations={project.nearbyLocations}
+              />
             </div>
 
             {/* ── LEGAL ────────────────────────────────── */}
@@ -569,58 +722,89 @@ export default function ProjectDetailPage() {
                 style={{ fontFamily: 'var(--font-display)' }}>
                 Legal
               </h2>
-              <div className="space-y-3">
-                {[
-                  {
-                    label: 'RERA Registered',
-                    value: !!project.reraId,
-                    detail: project.reraId || '',
-                    link: project.reraLink,
-                  },
-                  {
-                    label: 'Litigation',
-                    value: !project.litigation,
-                    detail: project.litigation
-                      ? (project.litigationDetails || 'Has pending litigation — verify before purchase')
-                      : 'No pending litigation on this project',
-                    invertIcon: true,
-                  },
-                  {
-                    label: 'Commencement Certificate',
-                    value: project.commencementCertificate,
-                    detail: project.commencementCertificate
-                      ? 'CC issued — construction is legally authorised'
-                      : 'CC not yet issued or not available',
-                  },
-                ].map(item => (
-                  <div key={item.label}
-                    className={`flex items-start gap-3 p-4 rounded-[var(--radius-sm)] border ${
-                    item.value
-                      ? 'bg-[var(--success-light)] border-[var(--success)]/20'
-                      : 'bg-[var(--danger-light)] border-[var(--danger)]/20'
-                  }`}>
-                    {item.value
-                      ? <CheckCircle2 className="w-5 h-5 text-[var(--success)] flex-shrink-0 mt-0.5" />
-                      : <XCircle className="w-5 h-5 text-[var(--danger)] flex-shrink-0 mt-0.5" />
-                    }
-                    <div>
-                      <p className={`text-sm font-bold ${item.value ? 'text-[var(--success)]' : 'text-[var(--danger)]'}`}>
-                        {item.label}
-                      </p>
-                      <p className="text-xs text-[var(--text-secondary)] mt-0.5">{item.detail}</p>
-                      {item.link && (
-                        <a href={item.link} target="_blank" rel="noopener noreferrer"
-                          className="text-xs text-[var(--primary)] font-bold hover:underline mt-1 block">
-                          View on RERA portal →
-                        </a>
-                      )}
-                    </div>
-                  </div>
-                ))}
-                {project.legalNotes && (
-                  <p className="text-xs text-[var(--text-muted)] mt-2 italic">{project.legalNotes}</p>
-                )}
+              <div className={`flex items-start gap-4 p-5 rounded-[var(--radius-sm)] border ${
+                !project.litigation
+                  ? 'bg-[var(--success-light)] border-[var(--success)]/20'
+                  : 'bg-[var(--danger-light)] border-[var(--danger)]/20'
+              }`}>
+                {!project.litigation
+                  ? <CheckCircle2 className="w-6 h-6 text-[var(--success)] flex-shrink-0 mt-0.5" />
+                  : <XCircle className="w-6 h-6 text-[var(--danger)] flex-shrink-0 mt-0.5" />
+                }
+                <div>
+                  <p className={`font-black text-base ${!project.litigation ? 'text-[var(--success)]' : 'text-[var(--danger)]'}`}>
+                    {!project.litigation
+                      ? 'No Litigation'
+                      : 'Litigation Exists'}
+                  </p>
+                  <p className="text-sm text-[var(--text-secondary)] mt-1">
+                    {project.litigation
+                      ? (project.litigationDetails || 'This project has pending litigation. Verify with a legal expert before purchase.')
+                      : 'There is no pending litigation on this project at the time of last verification.'}
+                  </p>
+                </div>
               </div>
+            </div>
+
+            {/* ── RERA ─────────────────────────────────── */}
+            <div id="section-rera" className="scroll-mt-36 py-10 border-b border-[var(--border)]">
+              <h2 className="text-lg font-black text-[var(--text-primary)] mb-6"
+                style={{ fontFamily: 'var(--font-display)' }}>
+                RERA Registration
+              </h2>
+
+              {(() => {
+                const regs = project.reraRegistrations?.length
+                  ? project.reraRegistrations
+                  : project.reraId
+                    ? [{ id: 'legacy', reraId: project.reraId, reraLink: project.reraLink, description: undefined }]
+                    : [];
+
+                if (regs.length === 0) {
+                  return <p className="text-sm text-[var(--text-muted)] italic">RERA details not available.</p>;
+                }
+
+                return (
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-5">
+                    {regs.map(reg => (
+                      <div key={reg.id} className="flex flex-col items-center gap-3 p-4
+                        bg-[var(--surface-raised)] border border-[var(--border)] rounded-[var(--radius-sm)]">
+                        {reg.reraLink ? (
+                          <a href={reg.reraLink} target="_blank" rel="noopener noreferrer"
+                            className="group flex flex-col items-center gap-1">
+                            <div className="w-28 h-28 bg-white border border-[var(--border)] rounded-lg overflow-hidden
+                              group-hover:shadow-md transition-shadow p-1.5">
+                              <img
+                                src={`https://api.qrserver.com/v1/create-qr-code/?data=${encodeURIComponent(reg.reraLink)}&size=160x160&margin=0`}
+                                alt={`QR for ${reg.reraId}`}
+                                className="w-full h-full object-contain"
+                              />
+                            </div>
+                            <p className="text-[9px] text-[var(--primary)] font-bold group-hover:underline uppercase tracking-wider">
+                              Scan / Click
+                            </p>
+                          </a>
+                        ) : (
+                          <div className="w-28 h-28 bg-[var(--border)] rounded-lg flex items-center justify-center">
+                            <p className="text-[9px] text-[var(--text-muted)] text-center px-2">No RERA link</p>
+                          </div>
+                        )}
+                        <div className="text-center">
+                          <p className="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-wider">
+                            RERA No.
+                          </p>
+                          <p className="text-sm font-bold text-[var(--text-primary)] mt-0.5 break-all">
+                            {reg.reraId}
+                          </p>
+                          {reg.description && (
+                            <p className="text-[10px] text-[var(--text-muted)] mt-0.5">{reg.description}</p>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                );
+              })()}
             </div>
 
             {/* ── BANK APPROVALS ───────────────────────── */}
@@ -739,7 +923,12 @@ export default function ProjectDetailPage() {
                   {[
                     { label: 'Config', value: configSummary },
                     { label: 'Possession', value: possessionLabel(project.possessionDate) },
-                    { label: 'RERA', value: project.reraId || 'N/A' },
+                    {
+                      label: 'RERA',
+                      value: project.reraRegistrations?.length
+                        ? project.reraRegistrations.map(r => r.reraId).join(' · ')
+                        : (project.reraId || 'N/A')
+                    },
                     { label: 'Litigation', value: project.litigation ? '⚠️ Yes' : '✓ No' },
                   ].map(f => (
                     <div key={f.label} className="flex items-center justify-between">
@@ -783,6 +972,35 @@ export default function ProjectDetailPage() {
         bg-white border-t border-[var(--border)] p-3 lg:hidden">
         <ConsultationCTA project={project} variant="sticky" triggerSource="project_detail_sticky" />
       </div>
+
+      {/* Unit plan lightbox */}
+      <AnimatePresence>
+        {expandedFloorPlan && (
+          <motion.div
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[200] bg-black/85 backdrop-blur-sm flex items-center justify-center p-4"
+            onClick={() => setExpandedFloorPlan(null)}
+          >
+            <motion.div
+              initial={{ scale: 0.92 }} animate={{ scale: 1 }} exit={{ scale: 0.92 }}
+              className="relative max-w-2xl w-full bg-white rounded-[var(--radius-lg)] overflow-hidden"
+              onClick={e => e.stopPropagation()}
+            >
+              <div className="flex items-center justify-between px-5 py-3 border-b border-[var(--border)]">
+                <p className="font-black text-[var(--text-primary)] text-sm">{expandedFloorPlan.label}</p>
+                <button onClick={() => setExpandedFloorPlan(null)}
+                  className="p-2 hover:bg-[var(--surface-raised)] rounded-full">
+                  <X className="w-4 h-4 text-[var(--text-secondary)]" />
+                </button>
+              </div>
+              <div className="p-4 bg-[var(--surface-raised)]">
+                <img src={expandedFloorPlan.src} alt={expandedFloorPlan.label}
+                  className="w-full h-auto max-h-[70vh] object-contain rounded-[var(--radius-xs)]" />
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* ── Modals ───────────────────────────────────── */}
       <LeadQualificationSheet

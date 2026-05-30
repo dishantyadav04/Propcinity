@@ -10,6 +10,7 @@ export interface UnitConfig {
   floorPlan?: string      // URL to floor plan image
   highlights?: string[]
   maintenancePerMonth?: number
+  parking?: number        // number of parking spots for this config
 }
 
 export interface BuilderProject {
@@ -44,6 +45,13 @@ export interface AmenityLibraryItem {
   name: string
   icon: string       // emoji
   category: 'internal' | 'external' | 'both'
+}
+
+export interface ReraRegistration {
+  id: string
+  reraId: string          // e.g. "P52100047931"
+  reraLink?: string       // link to maharera.mahaonline.gov.in
+  description?: string    // e.g. "Tower 1–2", "Phase 1"
 }
 
 export interface Project {
@@ -94,6 +102,8 @@ export interface Project {
   internalAmenities?: string[]
   externalAmenities?: string[]
   nearbyLocations?: ManualNearbyLocation[]
+  masterPlanImages?: string[]          // project-level master layout images
+  reraRegistrations?: ReraRegistration[]  // multiple RERA numbers
   images: string[]
 
   // Status

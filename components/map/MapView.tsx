@@ -34,7 +34,6 @@ export default function MapView({
   className 
 }: MapViewProps) {
   const [nearbyPlaces, setNearbyPlaces] = useState<NearbyPlace[]>([]);
-  const [activeFilter, setActiveFilter] = useState<'all' | string>('all');
   const [isLoading, setIsLoading] = useState(true);
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -74,41 +73,10 @@ export default function MapView({
     fetchPlaces();
   }, [lat, lng]);
 
-  const filters = [
-    { id: 'all', label: 'All', icon: '🗺️' },
-    { id: 'it_park', label: 'IT Parks', icon: '💼' },
-    { id: 'metro', label: 'Metro', icon: '🚇' },
-    { id: 'school', label: 'Schools', icon: '🏫' },
-    { id: 'hospital', label: 'Hospitals', icon: '🏥' },
-    { id: 'mall', label: 'Malls', icon: '🛍️' },
-    { id: 'park', label: 'Parks', icon: '🌳' },
-  ];
-
-  const availableFilters = filters.filter(f => f.id === 'all' || nearbyPlaces.some(p => p.type === f.id));
-  const filteredPlaces = activeFilter === 'all' ? nearbyPlaces : nearbyPlaces.filter(p => p.type === activeFilter);
+  const filteredPlaces = nearbyPlaces;
 
   return (
     <div className={cn("space-y-3", className)}>
-      <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
-        {availableFilters.map(f => (
-          <button
-            key={f.id}
-            onClick={() => setActiveFilter(f.id)}
-            className={cn(
-              "flex-shrink-0 flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium border transition-all",
-              activeFilter === f.id 
-                ? "bg-[var(--primary)] border-[var(--primary)] text-white" 
-                : "bg-[var(--surface-raised)] border-[var(--border)] text-[var(--text-secondary)]"
-            )}
-          >
-            <span>{f.icon}</span>
-            <span>{f.label}</span>
-            {f.id !== 'all' && (
-              <span className="opacity-60">{nearbyPlaces.filter(p => p.type === f.id).length}</span>
-            )}
-          </button>
-        ))}
-      </div>
 
       {/* ref attached to wrapper so cleanup effect can clear _leaflet_id */}
       <div
