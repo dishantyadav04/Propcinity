@@ -12,13 +12,11 @@ import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
 import { storage, STORAGE_KEYS } from '@/lib/storage';
 
-// Score a project against user intent — returns 0-100
 function getMatchPercent(project: Project, intent: any): number {
   if (!intent) return 0;
   let score = 0;
   const MAX = 90;
 
-  // Sub-location match
   if (intent.subLocations?.length > 0) {
     const pLoc = (project.location || '').toLowerCase();
     const match = intent.subLocations.some((sl: string) => {
@@ -30,7 +28,6 @@ function getMatchPercent(project: Project, intent: any): number {
     score += 15;
   }
 
-  // Property type match
   if (intent.propertyType?.length > 0) {
     const types = (project.unitConfigs || []).map((u: any) => (u.type || '').toLowerCase());
     const match = intent.propertyType.some((sel: string) => {
@@ -45,7 +42,6 @@ function getMatchPercent(project: Project, intent: any): number {
     score += 10;
   }
 
-  // BHK match
   if (intent.bhkType?.length > 0) {
     const types = (project.unitConfigs || []).map((u: any) => (u.type || '').toLowerCase());
     const match = intent.bhkType.some((bhk: string) => {
@@ -57,7 +53,6 @@ function getMatchPercent(project: Project, intent: any): number {
     score += 10;
   }
 
-  // Budget match
   if (intent.budget?.min > 0 || intent.budget?.max > 0) {
     const uMin = intent.budget.min || 0;
     const uMax = intent.budget.isOpenMax ? Infinity : (intent.budget.max || Infinity);
@@ -74,27 +69,24 @@ function getMatchPercent(project: Project, intent: any): number {
   return Math.min(100, Math.round((score / MAX) * 100));
 }
 
-// Smart fallback scoring — widens BHK/budget when exact match fails
 function getSmartMatchLabel(project: Project, intent: any): string | null {
   if (!intent) return null;
   const types = (project.unitConfigs || []).map((u: any) => (u.type || '').toLowerCase());
-  const uMin = intent.budget?.min || 0;
   const uMax = intent.budget?.isOpenMax ? Infinity : (intent.budget?.max || Infinity);
   const prices = (project.unitConfigs || []).map((u: any) => u.priceMin).filter(Boolean);
   const pMin = prices.length ? Math.min(...prices) : 0;
 
-  // Check if BHK is adjacent (not exact)
   const hasExactBHK = intent.bhkType?.length > 0
-    ? intent.bhkType.some((bhk: string) => types.some((t: string) => t === bhk.toLowerCase() || t.includes(bhk.toLowerCase())))
+    ? intent.bhkType.some((bhk: string) =>
+        types.some((t: string) => t === bhk.toLowerCase() || t.includes(bhk.toLowerCase()))
+      )
     : true;
 
-  // Check budget slightly over (within 20%)
   const slightlyOver = pMin > uMax && uMax > 0 && pMin <= uMax * 1.2;
 
   if (!hasExactBHK && types.length > 0) return 'Similar size available';
   if (slightlyOver) return 'Slightly above budget';
 
-  // Check if location is nearby (not exact subLocation)
   if (intent.subLocations?.length > 0) {
     const pLoc = (project.location || '').toLowerCase();
     const exactLoc = intent.subLocations.some((sl: string) => {
@@ -107,7 +99,81 @@ function getSmartMatchLabel(project: Project, intent: any): string | null {
   return null;
 }
 
-// STORAGE_KEY for vector-cached recommendations
+function smartRankProjects(projects: Project[], intent: any): string[] {
+  if (!intent) return projects.map(p => p.id);
+
+  const uMin = intent.budget?.min || 0;
+  const uMax = intent.budget?.isOpenMax ? Infinity : (intent.budget?.max || Infinity);
+  const budgetFlex = uMax === Infinity ? Infinity : uMax * 1.2;
+
+  const scored = projects.map(project => {
+    const types = (project.unitConfigs || []).map((u: any) => (u.type || '').toLowerCase());
+    const prices = (project.unitConfigs || []).map((u: any) => u.priceMin).filter(Boolean);
+    const pMin = prices.length ? Math.min(...prices) : 0;
+    const pMax = prices.length
+      ? Math.max(...(project.unitConfigs || []).map((u: any) => u.priceMax || u.priceMin).filter(Boolean))
+      : 0;
+
+    let score = 0;
+    let tier = 3;
+
+    const pLoc = (project.location || '').toLowerCase();
+    const exactLoc = intent.subLocations?.length > 0
+      ? intent.subLocations.some((sl: string) => {
+          const s = sl.toLowerCase();
+          return pLoc.includes(s) || s.includes(pLoc);
+        })
+      : true;
+    score += exactLoc ? 30 : 5;
+
+    const exactBHK = intent.bhkType?.length > 0
+      ? intent.bhkType.some((bhk: string) =>
+          types.some((t: string) => t === bhk.toLowerCase() || t.includes(bhk.toLowerCase()))
+        )
+      : true;
+
+    const BHK_ORDER = ['1bhk', '2bhk', '3bhk', '4bhk', '5bhk'];
+    const adjacentBHK = !exactBHK && intent.bhkType?.length > 0
+      ? intent.bhkType.some((bhk: string) => {
+          const idx = BHK_ORDER.indexOf(bhk.toLowerCase());
+          if (idx < 0) return false;
+          const adjacent = [BHK_ORDER[idx - 1], BHK_ORDER[idx + 1]].filter(Boolean);
+          return adjacent.some(ab => types.some((t: string) => t.includes(ab)));
+        })
+      : false;
+
+    if (exactBHK) { score += 20; tier = Math.min(tier, 1); }
+    else if (adjacentBHK) { score += 10; tier = Math.min(tier, 2); }
+    else { score += 3; }
+
+    if (uMin > 0 || uMax < Infinity) {
+      if (pMin <= uMax && pMax >= uMin) { score += 20; }
+      else if (pMin <= budgetFlex && pMax >= uMin) { score += 8; tier = Math.max(tier, 2); }
+      else { score += 2; tier = 3; }
+    } else {
+      score += 10;
+    }
+
+    if (intent.propertyType?.length > 0) {
+      const match = intent.propertyType.some((sel: string) => {
+        const s = sel.toLowerCase();
+        if (s === 'apartment') return types.some((t: string) => /^\d/.test(t) || t.includes('bhk'));
+        if (s === 'villa') return types.some((t: string) => t.includes('villa'));
+        if (s === 'plot') return types.some((t: string) => t.includes('plot'));
+        return false;
+      });
+      score += match ? 20 : 3;
+    } else {
+      score += 10;
+    }
+
+    return { id: project.id, score, tier };
+  });
+
+  scored.sort((a, b) => a.tier !== b.tier ? a.tier - b.tier : b.score - a.score);
+  return scored.map(s => s.id);
+}
+
 const RECO_CACHE_KEY = 'propcinity_reco_cache';
 
 export default function DashboardPage() {
@@ -122,17 +188,14 @@ export default function DashboardPage() {
   const [rejectedIds, setRejectedIds] = useState<string[]>([]);
   const [userName, setUserName] = useState<string>('');
 
-  // Load storage FIRST before anything else — sets storageReady when done
   useEffect(() => {
-    const refreshFromStorage = () => {
+    const loadFromStorage = () => {
       const intent = storage.get<UserIntent | null>(STORAGE_KEYS.USER_INTENT, null);
       const curated = storage.get<string[]>(STORAGE_KEYS.CURATED_IDS, []);
       const rejected = storage.get<string[]>(STORAGE_KEYS.REJECTED_IDS, []);
       const name = (intent as any)?.name?.split(' ')[0] || '';
-      
-      // Load cached recommendations (from embedding run at onboarding)
       const cachedReco = storage.get<string[]>(RECO_CACHE_KEY, []);
-      
+
       setUserIntent(intent);
       setCuratedIds(curated);
       setRejectedIds(rejected);
@@ -141,37 +204,43 @@ export default function DashboardPage() {
       setStorageReady(true);
     };
 
-    refreshFromStorage();
-    window.addEventListener('curatedUpdated', refreshFromStorage);
-    window.addEventListener('focus', refreshFromStorage);
-    const handleVisibility = () => {
-      if (document.visibilityState === 'visible') refreshFromStorage();
+    loadFromStorage();
+
+    // When Explorer fires the event (both pages mounted in same tab)
+    const handleCuratedUpdate = () => {
+      const curated = storage.get<string[]>(STORAGE_KEYS.CURATED_IDS, []);
+      setCuratedIds(curated);
     };
+
+    // When user tabs back or navigates back — always re-read from localStorage
+    const handleFocus = () => loadFromStorage();
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible') loadFromStorage();
+    };
+
+    window.addEventListener('curatedUpdated', handleCuratedUpdate);
+    window.addEventListener('focus', handleFocus);
     document.addEventListener('visibilitychange', handleVisibility);
 
     return () => {
-      window.removeEventListener('curatedUpdated', refreshFromStorage);
-      window.removeEventListener('focus', refreshFromStorage);
+      window.removeEventListener('curatedUpdated', handleCuratedUpdate);
+      window.removeEventListener('focus', handleFocus);
       document.removeEventListener('visibilitychange', handleVisibility);
     };
   }, []);
 
-  // Fetch projects
   useEffect(() => {
     fetch('/api/projects')
       .then(r => r.json())
-      .then(setProjects)
-      .catch(console.error)
+      .then(data => setProjects(Array.isArray(data) ? data : []))
+      .catch(() => setProjects([]))
       .finally(() => setIsLoading(false));
   }, []);
 
-  // Fallback scoring — only if no cached recommendations exist
-  // This replaces the expensive AI PUT call with pure JS scoring
   useEffect(() => {
     if (!storageReady || !userIntent || projects.length === 0) return;
     if (aiRecommended.length > 0) return;
 
-    // Pure JS fallback scoring — no AI, no cost
     setAiLoading(true);
     try {
       const scored = smartRankProjects(projects, userIntent);
@@ -196,35 +265,48 @@ export default function DashboardPage() {
     toast('Removed');
   };
 
-  // displayResults — only runs after storageReady to prevent race condition
   const displayResults = useMemo(() => {
+    // Gate 1: wait for localStorage to be read
     if (!storageReady) return [];
+    // Gate 2: if curated IDs exist, wait for projects to load before computing
+    if (curatedIds.length > 0 && projects.length === 0) return [];
+
     const rejectedSet = new Set(rejectedIds);
     const available = projects.filter(p => !rejectedSet.has(p.id));
 
     if (curatedIds.length > 0) {
-      // Curated wins — show exactly what user added from Explorer
       const curatedProjects = curatedIds
         .map(id => available.find(p => p.id === id))
-        .filter(Boolean) as Project[];
-      const rest = available.filter(p => !curatedIds.includes(p.id));
+        .filter((p): p is Project => p !== undefined);
+      const rest = available
+        .filter(p => !curatedIds.includes(p.id))
+        .sort((a, b) => (b.constructionPercent || 0) - (a.constructionPercent || 0));
       return [...curatedProjects, ...rest].slice(0, 12);
     }
+
     if (aiRecommended.length > 0) {
       const recommended = aiRecommended
         .map(id => available.find(p => p.id === id))
-        .filter(Boolean) as Project[];
+        .filter((p): p is Project => p !== undefined);
       const rest = available
         .filter(p => !aiRecommended.includes(p.id))
         .sort((a, b) => (b.constructionPercent || 0) - (a.constructionPercent || 0));
       return [...recommended, ...rest].slice(0, 12);
     }
+
     return [...available]
       .sort((a, b) => (b.constructionPercent || 0) - (a.constructionPercent || 0))
       .slice(0, 12);
   }, [projects, aiRecommended, curatedIds, rejectedIds, storageReady]);
 
-  if (isLoading) {
+  // Show skeleton while: projects loading, storage not ready, or curated IDs exist
+  // but projects haven't arrived yet (prevents the empty state flash)
+  const showSkeleton =
+    isLoading ||
+    !storageReady ||
+    (curatedIds.length > 0 && projects.length === 0);
+
+  if (showSkeleton) {
     return (
       <SectionContainer wide className="space-y-8 py-10">
         <Skeleton className="h-10 w-48" />
@@ -239,16 +321,13 @@ export default function DashboardPage() {
 
   return (
     <div className="min-h-screen pb-28">
-      {/* Header */}
       <div className="bg-white border-b border-[var(--border)] pt-12 pb-8">
         <SectionContainer wide>
           <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
             <div className="space-y-2">
               <div className="flex items-center gap-2 text-[var(--primary)] text-xs font-bold uppercase tracking-wider">
                 <Sparkles className="w-3.5 h-3.5" />
-                <span>
-                  {aiLoading ? 'Finding your matches...' : 'Your Matches'}
-                </span>
+                <span>{aiLoading ? 'Finding your matches...' : 'Your Matches'}</span>
                 {aiLoading && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
               </div>
               <h1 className="text-2xl sm:text-3xl font-black text-[var(--text-primary)]"
@@ -257,7 +336,7 @@ export default function DashboardPage() {
               </h1>
               <p className="text-sm text-[var(--text-secondary)]">
                 {curatedIds.length > 0
-                  ? `${curatedIds.length} properties you added`
+                  ? `${curatedIds.length} propert${curatedIds.length === 1 ? 'y' : 'ies'} you added`
                   : 'Smart-matched based on your preferences'}
               </p>
             </div>
@@ -301,7 +380,6 @@ export default function DashboardPage() {
                   >
                     <ProjectCard project={project} index={index} hideRiskBadge={true} />
 
-                    {/* % Matched badge — top-left */}
                     {userIntent && (() => {
                       const pct = getMatchPercent(project, userIntent);
                       const fallbackLabel = getSmartMatchLabel(project, userIntent);
@@ -324,7 +402,6 @@ export default function DashboardPage() {
                       );
                     })()}
 
-                    {/* Round X remove button — top-right */}
                     <button
                       onClick={() => handleRemove(project.id)}
                       title="Remove from dashboard"
@@ -357,80 +434,4 @@ export default function DashboardPage() {
       </SectionContainer>
     </div>
   );
-}
-
-// Smart project ranking — pure JS, zero AI cost
-// Handles: exact match, BHK flex, budget flex, location flex
-function smartRankProjects(projects: Project[], intent: any): string[] {
-  if (!intent) return projects.map(p => p.id);
-
-  const uMin = intent.budget?.min || 0;
-  const uMax = intent.budget?.isOpenMax ? Infinity : (intent.budget?.max || Infinity);
-  const budgetFlex = uMax * 1.2;
-
-  const scored = projects.map(project => {
-    const types = (project.unitConfigs || []).map((u: any) => (u.type || '').toLowerCase());
-    const prices = (project.unitConfigs || []).map((u: any) => u.priceMin).filter(Boolean);
-    const pMin = prices.length ? Math.min(...prices) : 0;
-    const pMax = prices.length ? Math.max(...(project.unitConfigs || []).map((u: any) => u.priceMax || u.priceMin).filter(Boolean)) : 0;
-
-    let score = 0;
-    let tier = 3;
-
-    // Location scoring
-    const pLoc = (project.location || '').toLowerCase();
-    const exactLoc = intent.subLocations?.length > 0
-      ? intent.subLocations.some((sl: string) => { const s = sl.toLowerCase(); return pLoc.includes(s) || s.includes(pLoc); })
-      : true;
-    score += exactLoc ? 30 : 5;
-
-    // BHK exact match
-    const exactBHK = intent.bhkType?.length > 0
-      ? intent.bhkType.some((bhk: string) => types.some((t: string) => t === bhk.toLowerCase() || t.includes(bhk.toLowerCase())))
-      : true;
-
-    // BHK adjacent match (one size up or down)
-    const BHK_ORDER = ['1bhk', '2bhk', '3bhk', '4bhk', '5bhk'];
-    const adjacentBHK = !exactBHK && intent.bhkType?.length > 0
-      ? intent.bhkType.some((bhk: string) => {
-          const idx = BHK_ORDER.indexOf(bhk.toLowerCase());
-          if (idx < 0) return false;
-          const adjacent = [BHK_ORDER[idx - 1], BHK_ORDER[idx + 1]].filter(Boolean);
-          return adjacent.some(ab => types.some((t: string) => t.includes(ab)));
-        })
-      : false;
-
-    if (exactBHK) { score += 20; tier = Math.min(tier, 1); }
-    else if (adjacentBHK) { score += 10; tier = Math.min(tier, 2); }
-    else { score += 3; }
-
-    // Budget scoring
-    if (uMin > 0 || uMax < Infinity) {
-      if (pMin <= uMax && pMax >= uMin) { score += 20; }
-      else if (pMin <= budgetFlex && pMax >= uMin) { score += 8; tier = Math.max(tier, 2); }
-      else { score += 2; tier = 3; }
-    } else {
-      score += 10;
-    }
-
-    // Property type
-    if (intent.propertyType?.length > 0) {
-      const match = intent.propertyType.some((sel: string) => {
-        const s = sel.toLowerCase();
-        if (s === 'apartment') return types.some((t: string) => /^\d/.test(t) || t.includes('bhk'));
-        if (s === 'villa') return types.some((t: string) => t.includes('villa'));
-        if (s === 'plot') return types.some((t: string) => t.includes('plot'));
-        return false;
-      });
-      score += match ? 20 : 3;
-    } else {
-      score += 10;
-    }
-
-    return { id: project.id, score, tier };
-  });
-
-  // Sort: tier first (1>2>3), then score
-  scored.sort((a, b) => a.tier !== b.tier ? a.tier - b.tier : b.score - a.score);
-  return scored.map(s => s.id);
 }

@@ -10,18 +10,20 @@ export default function AppleIcon() {
         style={{
           width: 180,
           height: 180,
-          background: '#FF4500',
+          background: '#FFFFFF',
           borderRadius: 40,
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
           fontWeight: 900,
-          fontSize: 100,
-          fontFamily: 'serif',
+          fontSize: 88,
+          fontFamily: 'sans-serif',
           letterSpacing: '-4px',
+          border: '6px solid #E5E5E5',
         }}
       >
-        <span style={{ color: '#FFFFFF', fontWeight: 900 }}>P</span>
+        <span style={{ color: '#FF4500' }}>P</span>
+        <span style={{ color: '#0D0D0D' }}>C</span>
       </div>
     ),
     { ...size }
