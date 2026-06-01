@@ -3,6 +3,7 @@ import { z } from 'zod'
 import { askAI } from '@/lib/ai-fallback'
 import { buildSystemPrompt } from '@/lib/prompts'
 import { getProjectsByIds } from '@/services/projects'
+import { getChatCache, setChatCache, makeCacheKey } from '@/lib/chat-cache'
 
 const schema = z.object({
   question: z.string().trim().min(1).max(500),
@@ -42,6 +43,14 @@ export async function POST(request: NextRequest) {
   }
 
   const { question, projectId, compareProjectIds } = parsed.data
+
+  // Check cache before hitting AI
+  const cacheKey = makeCacheKey(question, projectId)
+  const cached = getChatCache(cacheKey)
+  if (cached) {
+    return NextResponse.json({ answer: cached.answer, provider: cached.provider, cached: true })
+  }
+
   const project = await getProjectsByIds([projectId]).then((result) => result[0] || null)
 
   if (!project) {
@@ -55,8 +64,12 @@ export async function POST(request: NextRequest) {
   const systemPrompt = buildSystemPrompt(project, compareProjects)
   const { answer, provider } = await askAI(question, systemPrompt)
 
+  // Cache the response for future identical questions
+  setChatCache(cacheKey, answer, provider)
+
   return NextResponse.json({ answer, provider })
 }
+
 export async function PUT(request: NextRequest) {
   // AI-powered project recommendations endpoint
   try {

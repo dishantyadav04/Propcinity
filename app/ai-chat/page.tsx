@@ -2,21 +2,56 @@
 
 import { useState, useRef, useEffect } from "react";
 import SectionContainer from "@/components/layout/SectionContainer";
-import { Send, Bot, User, Sparkles, Building2, ChevronRight, MessageSquare } from "lucide-react";
+import { Send, Bot, User, Sparkles, Loader2, MessageSquare } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { storage } from "@/lib/storage";
 
 interface Message {
   role: 'user' | 'assistant';
   content: string;
 }
 
+const SESSION_KEY = 'ai_chat_session';
+const MAX_MESSAGES = 15;
+const SESSION_TTL = 24 * 60 * 60 * 1000;
+
+function getSessionCount(): number {
+  try {
+    const raw = localStorage.getItem(SESSION_KEY);
+    if (!raw) return 0;
+    const parsed = JSON.parse(raw);
+    if (Date.now() - parsed.ts > SESSION_TTL) {
+      localStorage.removeItem(SESSION_KEY);
+      return 0;
+    }
+    return parsed.count || 0;
+  } catch {
+    return 0;
+  }
+}
+
+function incrementSessionCount(): number {
+  try {
+    const count = getSessionCount() + 1;
+    localStorage.setItem(SESSION_KEY, JSON.stringify({ count, ts: Date.now() }));
+    return count;
+  } catch {
+    return 0;
+  }
+}
+
 export default function AIChatPage() {
   const [messages, setMessages] = useState<Message[]>([
-    { role: 'assistant', content: "Hello! I'm your Propcinity Advisor. I have data on over 50 verified projects in Pune. How can I help you find your dream home today?" }
+    { role: 'assistant', content: "Hi! I'm your Propcinity Advisor. I have data on verified projects in Pune. Ask me anything — which areas suit your budget, which builders have the best track record, or what to look for in your shortlist." }
   ]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [sessionCount, setSessionCount] = useState(0);
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    setSessionCount(getSessionCount());
+  }, []);
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -24,23 +59,51 @@ export default function AIChatPage() {
     }
   }, [messages]);
 
+  const remaining = MAX_MESSAGES - sessionCount;
+  const isLimitReached = remaining <= 0;
+
   const handleSend = async () => {
-    if (!input.trim() || isLoading) return;
+    if (!input.trim() || isLoading || isLimitReached) return;
 
     const userMsg = input.trim();
     setInput("");
     setMessages(prev => [...prev, { role: 'user', content: userMsg }]);
     setIsLoading(true);
 
+    const newCount = incrementSessionCount();
+    setSessionCount(newCount);
+
     try {
+      const userIntent = storage.get<any>('userIntent', null);
+      
       const res = await fetch('/api/ai/ask', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ question: userMsg })
+        body: JSON.stringify({ 
+          question: userMsg,
+          projectId: '00000000-0000-0000-0000-000000000000',
+          userContext: userIntent ? {
+            location: userIntent.subLocations?.join(', ') || userIntent.city,
+            budget: userIntent.budget,
+            bhk: userIntent.bhkType,
+          } : undefined
+        })
       });
+      
+      if (res.status === 429) {
+        setMessages(prev => [...prev, { role: 'assistant', content: "You've sent too many messages. Please wait a moment before asking again." }]);
+        return;
+      }
+      
       const data = await res.json();
-      setMessages(prev => [...prev, { role: 'assistant', content: data.answer }]);
-    } catch (e) {
+      
+      if (data.error && data.error !== 'Project not found') {
+        setMessages(prev => [...prev, { role: 'assistant', content: "I'm having trouble connecting right now. Please try again in a moment." }]);
+        return;
+      }
+      
+      setMessages(prev => [...prev, { role: 'assistant', content: data.answer || "I don't have enough information to answer that. Try asking about specific projects, locations, or budgets." }]);
+    } catch {
       setMessages(prev => [...prev, { role: 'assistant', content: "I'm having trouble connecting right now. Please try again in a moment." }]);
     } finally {
       setIsLoading(false);
@@ -48,30 +111,41 @@ export default function AIChatPage() {
   };
 
   const presets = [
-    "Which projects have the best trust scores in Pune?",
-    "Show me 2 BHKs near Hinjewadi IT Park under 80L.",
-    "Which builders have the best delivery track record?",
-    "Explain the risk level for luxury projects in Baner."
+    "Which areas in Pune have the best value for 2BHK under 80L?",
+    "What should I check before booking a property?",
+    "Which builders have the best delivery track record in Pune?",
+    "Explain the risk level for under-construction properties.",
   ];
 
   return (
     <div className="flex flex-col h-[calc(100vh-120px)] md:h-[calc(100vh-64px)]">
+      {/* Header */}
       <div className="flex-shrink-0 bg-white border-b border-[var(--border)] py-4">
         <SectionContainer wide>
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-[var(--primary-light)] rounded-full flex items-center justify-center text-[var(--primary)]">
-              <Bot className="w-6 h-6" />
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-[var(--primary-light)] rounded-full flex items-center justify-center text-[var(--primary)]">
+                <Bot className="w-6 h-6" />
+              </div>
+              <div>
+                <h1 className="font-bold text-lg leading-tight">AI Advisor</h1>
+                <p className="text-xs text-[var(--text-muted)] flex items-center gap-1">
+                  <Sparkles className="w-3 h-3 text-yellow-500" /> Pune Real Estate Expert
+                </p>
+              </div>
             </div>
-            <div>
-              <h1 className="font-bold text-lg leading-tight">AI Advisor</h1>
-              <p className="text-xs text-[var(--text-muted)] flex items-center gap-1">
-                <Sparkles className="w-3 h-3 text-yellow-500" /> Powered by Real-Time Pune Real Estate Data
-              </p>
+            {/* Session budget indicator */}
+            <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold ${
+              remaining <= 3 ? 'bg-red-50 text-red-600' : 'bg-[var(--surface-raised)] text-[var(--text-muted)]'
+            }`}>
+              <MessageSquare className="w-3.5 h-3.5" />
+              {isLimitReached ? 'Limit reached' : `${remaining} left today`}
             </div>
           </div>
         </SectionContainer>
       </div>
 
+      {/* Messages */}
       <div ref={scrollRef} className="flex-1 overflow-y-auto bg-[var(--background)] py-6">
         <SectionContainer wide className="space-y-6">
           {messages.map((m, i) => (
@@ -88,8 +162,8 @@ export default function AIChatPage() {
                   {m.role === 'user' ? <User className="w-4 h-4" /> : <Bot className="w-4 h-4" />}
                 </div>
                 <div className={`p-4 rounded-2xl text-sm leading-relaxed shadow-sm ${
-                  m.role === 'user' 
-                    ? 'bg-[var(--primary)] text-white rounded-tr-none' 
+                  m.role === 'user'
+                    ? 'bg-[var(--primary)] text-white rounded-tr-none'
                     : 'bg-white border border-[var(--border)] text-[var(--text-primary)] rounded-tl-none'
                 }`}>
                   {m.content}
@@ -98,46 +172,69 @@ export default function AIChatPage() {
             </motion.div>
           ))}
           {isLoading && (
-            <div className="flex justify-start">
-              <div className="bg-white border border-[var(--border)] p-4 rounded-2xl rounded-tl-none shadow-sm flex gap-2">
-                <div className="w-2 h-2 bg-[var(--text-muted)] rounded-full animate-bounce" />
-                <div className="w-2 h-2 bg-[var(--text-muted)] rounded-full animate-bounce [animation-delay:0.2s]" />
-                <div className="w-2 h-2 bg-[var(--text-muted)] rounded-full animate-bounce [animation-delay:0.4s]" />
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex justify-start">
+              <div className="flex gap-3 max-w-[85%]">
+                <div className="w-8 h-8 rounded-full flex-shrink-0 flex items-center justify-center bg-white border border-[var(--border)]">
+                  <Bot className="w-4 h-4 text-[var(--text-secondary)]" />
+                </div>
+                <div className="p-4 rounded-2xl bg-white border border-[var(--border)] rounded-tl-none">
+                  <Loader2 className="w-4 h-4 animate-spin text-[var(--text-muted)]" />
+                </div>
               </div>
-            </div>
+            </motion.div>
+          )}
+          
+          {isLimitReached && (
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+              className="flex justify-center py-4">
+              <div className="bg-orange-50 border border-orange-200 rounded-[var(--radius)] p-4 text-center max-w-sm">
+                <p className="text-sm font-bold text-orange-800">Daily limit reached</p>
+                <p className="text-xs text-orange-600 mt-1">Your session resets in 24 hours. For more guidance, speak to our team.</p>
+                <a href="tel:+919999999999" 
+                  className="mt-3 inline-flex items-center gap-2 px-4 py-2 bg-[var(--primary)] text-white text-xs font-bold rounded-full">
+                  Talk to an Expert
+                </a>
+              </div>
+            </motion.div>
           )}
         </SectionContainer>
       </div>
 
-      <div className="flex-shrink-0 bg-white border-t border-[var(--border)] p-4">
+      {/* Presets */}
+      {messages.length <= 1 && !isLimitReached && (
+        <div className="flex-shrink-0 px-4 pb-2">
+          <div className="max-w-6xl mx-auto flex gap-2 overflow-x-auto scrollbar-hide py-2">
+            {presets.map((p, i) => (
+              <button key={i}
+                onClick={() => { setInput(p); }}
+                className="flex-shrink-0 px-3 py-2 text-xs font-semibold bg-white border border-[var(--border)] text-[var(--text-secondary)] rounded-full hover:border-[var(--primary)] hover:text-[var(--primary)] transition-colors whitespace-nowrap">
+                {p}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Input */}
+      <div className="flex-shrink-0 bg-white border-t border-[var(--border)] py-4">
         <SectionContainer wide>
-          {messages.length === 1 && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-4">
-              {presets.map(p => (
-                <button
-                  key={p}
-                  onClick={() => setInput(p)}
-                  className="text-left p-3 rounded-xl border border-[var(--border)] text-xs font-semibold text-[var(--text-secondary)] hover:border-[var(--primary)] hover:bg-[var(--primary-light)] transition-all"
-                >
-                  {p}
-                </button>
-              ))}
-            </div>
-          )}
-          <div className="relative">
-            <input
+          <div className="flex gap-3 items-end">
+            <textarea
               value={input}
               onChange={e => setInput(e.target.value)}
-              onKeyDown={e => e.key === 'Enter' && handleSend()}
-              placeholder="Ask anything about Pune real estate..."
-              className="w-full pl-5 pr-14 py-4 bg-[var(--surface-raised)] border border-[var(--border)] rounded-2xl focus:outline-none focus:border-[var(--primary)] transition-all"
+              onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); } }}
+              disabled={isLoading || isLimitReached}
+              placeholder={isLimitReached ? "Daily limit reached. Come back tomorrow!" : "Ask anything about Pune real estate..."}
+              rows={1}
+              className="flex-1 resize-none px-4 py-3 text-sm bg-[var(--surface-raised)] border border-[var(--border-strong)] rounded-[var(--radius)] text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none focus:border-[var(--primary)] disabled:opacity-50 disabled:cursor-not-allowed"
+              style={{ maxHeight: '120px' }}
             />
             <button
               onClick={handleSend}
-              disabled={!input.trim() || isLoading}
-              className="absolute right-2 top-1/2 -translate-y-1/2 w-10 h-10 bg-[var(--primary)] text-white rounded-xl flex items-center justify-center disabled:opacity-50 transition-all shadow-lg shadow-orange-200"
+              disabled={!input.trim() || isLoading || isLimitReached}
+              className="flex-shrink-0 w-11 h-11 bg-[var(--primary)] text-white rounded-[var(--radius)] flex items-center justify-center shadow-[var(--shadow-primary)] hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed transition-opacity"
             >
-              <Send className="w-5 h-5" />
+              {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
             </button>
           </div>
         </SectionContainer>

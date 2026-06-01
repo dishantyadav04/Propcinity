@@ -77,10 +77,10 @@ export default function TopHeader() {
           )}
           <Link
             href="/profile"
-            className="w-8 h-8 rounded-full border-2 border-[var(--border-strong)] bg-[var(--surface-raised)] flex items-center justify-center hover:border-[var(--primary)] transition-colors"
+            className="w-9 h-9 rounded-full bg-[var(--primary)] flex items-center justify-center hover:opacity-90 transition-opacity shadow-sm"
             aria-label="Profile"
           >
-            <svg viewBox="0 0 24 24" fill="none" className="w-5 h-5 text-[var(--text-muted)]" stroke="currentColor" strokeWidth={1.5}>
+            <svg viewBox="0 0 24 24" fill="none" className="w-5 h-5 text-white" stroke="currentColor" strokeWidth={2}>
               <circle cx="12" cy="7" r="3.5" />
               <path d="M4 20c0-4.418 3.582-8 8-8s8 3.582 8 8" strokeLinecap="round" />
             </svg>
