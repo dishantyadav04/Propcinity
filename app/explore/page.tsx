@@ -269,13 +269,22 @@ export default function ExplorePage() {
 
   const toggleCurated = (id: string, e: React.MouseEvent) => {
     e.preventDefault(); e.stopPropagation();
-    const next = curatedIds.includes(id)
-      ? curatedIds.filter(i => i !== id)
-      : [...curatedIds, id];
+    const isAdding = !curatedIds.includes(id);
+    const next = isAdding
+      ? [...curatedIds, id]
+      : curatedIds.filter(i => i !== id);
     setCuratedIds(next);
     storage.set(STORAGE_KEYS.CURATED_IDS, next);
+
+    if (isAdding) {
+      const rejected = storage.get<string[]>(STORAGE_KEYS.REJECTED_IDS, []);
+      if (rejected.includes(id)) {
+        storage.set(STORAGE_KEYS.REJECTED_IDS, rejected.filter(rid => rid !== id));
+      }
+    }
+
     window.dispatchEvent(new Event('curatedUpdated'));
-    toast(next.includes(id) ? 'Added to Dashboard ⭐' : 'Removed from Dashboard');
+    toast(isAdding ? 'Added to Dashboard ⭐' : 'Removed from Dashboard');
   };
 
   const toggleSaved = (id: string, e: React.MouseEvent) => {

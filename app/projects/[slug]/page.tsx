@@ -144,6 +144,14 @@ export default function ProjectDetailPage() {
       : [...curated, project.id];
     storage.set(STORAGE_KEYS.CURATED_IDS, next);
     setAddedToDashboard(!isAlready);
+
+    if (!isAlready) {
+      const rejected = storage.get<string[]>(STORAGE_KEYS.REJECTED_IDS, []);
+      if (rejected.includes(project.id)) {
+        storage.set(STORAGE_KEYS.REJECTED_IDS, rejected.filter(rid => rid !== project.id));
+      }
+    }
+
     window.dispatchEvent(new Event('curatedUpdated'));
     toast(!isAlready ? 'Added to Dashboard ⭐' : 'Removed from Dashboard');
   };
