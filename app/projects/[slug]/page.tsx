@@ -15,8 +15,9 @@ import { formatINR } from "@/lib/finance-calculations";
 import {
   MapPin, Share2, Heart, ShieldCheck, Download,
   Play, ChevronRight, CheckCircle2, XCircle, X, ZoomIn,
-  Building2, Home, CalendarDays, Layers, ArrowLeft, LayoutDashboard
+  Building2, Home, CalendarDays, Layers, ArrowLeft, LayoutDashboard, ExternalLink
 } from "lucide-react";
+import ProjectMapPreview from '@/components/map/ProjectMapPreview';
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
@@ -462,6 +463,40 @@ export default function ProjectDetailPage() {
                 {project.description}
               </p>
             </div>
+
+            {/* ── MAP PREVIEW (above amenities) ───────── */}
+            {project.lat && project.lng && (
+              <div className="py-8 border-b border-[var(--border)]">
+                <div className="flex items-center justify-between mb-4">
+                  <h2
+                    className="text-lg font-black text-[var(--text-primary)]"
+                    style={{ fontFamily: 'var(--font-display)' }}
+                  >
+                    Location
+                  </h2>
+                  <a
+                    href={`https://maps.google.com/?q=${project.lat},${project.lng}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1.5 text-xs font-semibold text-[var(--primary)] hover:underline"
+                  >
+                    <ExternalLink className="w-3.5 h-3.5" />
+                    Open in Maps
+                  </a>
+                </div>
+                <p className="text-sm text-[var(--text-muted)] mb-3">
+                  {project.location}, {project.city}
+                </p>
+                <ProjectMapPreview
+                  lat={project.lat}
+                  lng={project.lng}
+                  projectName={project.name}
+                  priceLabel={formatINR(minPrice)}
+                  height="280px"
+                  zoom={15}
+                />
+              </div>
+            )}
 
             {/* ── AMENITIES ──────────────────────────── */}
             <div id="section-amenities" className="scroll-mt-36 py-10 border-b border-[var(--border)]">
