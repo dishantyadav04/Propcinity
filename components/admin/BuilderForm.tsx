@@ -172,7 +172,7 @@ export default function BuilderForm({ initial, mode }: BuilderFormProps) {
                   rounded-[var(--radius-xs)] text-sm focus:outline-none focus:border-[var(--primary)]" />
             )}
 
-            {/* Track Record Sliders */}
+            {/* Track Record */}
             {[
               { key: 'total_projects_delivered', label: 'Projects Delivered', min: 0, max: 200, suffix: '' },
               { key: 'on_time_delivery_percent', label: 'On-Time Delivery %', min: 0, max: 100, suffix: '%' },
@@ -182,16 +182,18 @@ export default function BuilderForm({ initial, mode }: BuilderFormProps) {
               { key: 'refund_disputes', label: 'Refund Disputes', min: 0, max: 10, suffix: '' },
             ].map(field => (
               <div key={field.key}>
-                <div className="flex items-center justify-between mb-1">
-                  <label className="text-sm font-bold text-[var(--text-primary)]">{field.label}</label>
-                  <span className="text-sm font-black text-[var(--primary)]">
-                    {(form as any)[field.key]}{field.suffix}
-                  </span>
-                </div>
-                <input type="range" min={field.min} max={field.max}
+                <label className="text-xs font-bold text-[var(--text-muted)] mb-1 block">
+                  {field.label}{field.suffix ? ` (${field.suffix})` : ''}
+                </label>
+                <input
+                  type="number"
+                  min={field.min}
+                  max={field.max}
                   value={(form as any)[field.key]}
                   onChange={e => set(field.key, Number(e.target.value))}
-                  className="w-full accent-[var(--primary)]" />
+                  className="w-full px-3 py-2.5 bg-[var(--surface-raised)] border border-[var(--border)]
+                    rounded-[var(--radius-xs)] text-sm focus:outline-none focus:border-[var(--primary)]"
+                />
               </div>
             ))}
           </div>

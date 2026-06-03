@@ -20,6 +20,14 @@ export default function ProjectForm({ initialData }: ProjectFormProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [builders, setBuilders] = useState<any[]>([]);
   const [selectedBuilderId, setSelectedBuilderId] = useState((initialData as any)?.builder_id || '');
+  const [builderSearch, setBuilderSearch] = useState('');
+  const [builderDropdownOpen, setBuilderDropdownOpen] = useState(false);
+
+  const filteredBuilders = builders.filter(b =>
+    b.name.toLowerCase().includes(builderSearch.toLowerCase())
+  );
+
+  const selectedBuilderName = builders.find(b => b.id === selectedBuilderId)?.name || '';
   
   const [project, setProject] = useState<Partial<Project>>(initialData || {
     name: '',
@@ -113,23 +121,65 @@ export default function ProjectForm({ initialData }: ProjectFormProps) {
             <label className="text-sm font-bold text-[var(--text-primary)]">
               Builder <span className="text-red-500">*</span>
             </label>
-            <select value={selectedBuilderId}
-              onChange={e => {
-                setSelectedBuilderId(e.target.value);
-                const builder = builders.find(b => b.id === e.target.value);
-                if (builder) {
-                  setProject(prev => ({ ...prev, builderName: builder.name }));
-                }
-              }}
-              className="w-full px-3 py-2.5 bg-[var(--surface-raised)] border border-[var(--border)]
-                rounded-[var(--radius-xs)] text-sm focus:outline-none focus:border-[var(--primary)]">
-              <option value="">Select a builder...</option>
-              {builders.map(b => (
-                <option key={b.id} value={b.id}>
-                  {b.name}
-                </option>
-              ))}
-            </select>
+            <div className="relative">
+              <input
+                type="text"
+                value={builderDropdownOpen ? builderSearch : selectedBuilderName}
+                onChange={e => {
+                  setBuilderSearch(e.target.value);
+                  setBuilderDropdownOpen(true);
+                }}
+                onFocus={() => {
+                  setBuilderSearch('');
+                  setBuilderDropdownOpen(true);
+                }}
+                onBlur={() => setTimeout(() => setBuilderDropdownOpen(false), 150)}
+                placeholder="Search or select a builder..."
+                className="w-full px-3 py-2.5 bg-[var(--surface-raised)] border border-[var(--border)]
+                  rounded-[var(--radius-xs)] text-sm focus:outline-none focus:border-[var(--primary)] pr-8"
+              />
+              <span className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-[var(--text-muted)]">
+                ▾
+              </span>
+              {builderDropdownOpen && (
+                <div className="absolute z-50 mt-1 w-full bg-white border border-[var(--border)]
+                  rounded-[var(--radius-xs)] shadow-lg max-h-52 overflow-y-auto">
+                  <div
+                    onMouseDown={() => {
+                      setSelectedBuilderId('');
+                      setProject(prev => ({ ...prev, builderName: '' }));
+                      setBuilderDropdownOpen(false);
+                      setBuilderSearch('');
+                    }}
+                    className="px-3 py-2 text-sm text-[var(--text-muted)] hover:bg-[var(--surface-raised)] cursor-pointer"
+                  >
+                    — Clear selection —
+                  </div>
+                  {filteredBuilders.length === 0 ? (
+                    <div className="px-3 py-2 text-sm text-[var(--text-muted)]">No builders found</div>
+                  ) : (
+                    filteredBuilders.map(b => (
+                      <div
+                        key={b.id}
+                        onMouseDown={() => {
+                          setSelectedBuilderId(b.id);
+                          setProject(prev => ({ ...prev, builderName: b.name }));
+                          setBuilderDropdownOpen(false);
+                          setBuilderSearch('');
+                        }}
+                        className={`px-3 py-2 text-sm cursor-pointer hover:bg-[var(--surface-raised)] transition-colors ${
+                          selectedBuilderId === b.id
+                            ? 'font-bold text-[var(--primary)] bg-[var(--surface-raised)]'
+                            : 'text-[var(--text-primary)]'
+                        }`}
+                      >
+                        {b.name}
+                      </div>
+                    ))
+                  )}
+                </div>
+              )}
+            </div>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
