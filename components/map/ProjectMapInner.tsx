@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useId } from 'react';
 import { MapContainer, TileLayer, Marker, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
@@ -23,6 +23,12 @@ function RecenterMap({ lat, lng }: { lat: number; lng: number }) {
 }
 
 export default function ProjectMapInner({ lat, lng, projectName, priceLabel, zoom = 15 }: Props) {
+  // useId() returns a stable, unique string for this component instance.
+  // Passing it as the `key` on MapContainer ensures React creates a fresh
+  // DOM node on every Strict Mode remount instead of reusing the old one
+  // that still has Leaflet's _leaflet_id stamped on it.
+  const mapId = useId();
+
   useEffect(() => {
     delete (L.Icon.Default.prototype as any)._getIconUrl;
     L.Icon.Default.mergeOptions({
@@ -30,16 +36,11 @@ export default function ProjectMapInner({ lat, lng, projectName, priceLabel, zoo
       iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon.png',
       shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
     });
-
-    return () => {
-      document.querySelectorAll('.leaflet-container').forEach((el: any) => {
-        if (el._leaflet_id) el._leaflet_id = null;
-      });
-    };
   }, []);
 
   return (
     <MapContainer
+      key={mapId}
       center={[lat, lng]}
       zoom={zoom}
       scrollWheelZoom={false}

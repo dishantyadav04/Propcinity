@@ -1,6 +1,7 @@
 'use client';
 
-import ProjectMapInner from './ProjectMapInner';
+import dynamic from 'next/dynamic';
+import Skeleton from '@/components/ui/Skeleton';
 
 interface MapViewProps {
   lat: number;
@@ -10,6 +11,14 @@ interface MapViewProps {
   zoom?: number;
   className?: string;
 }
+
+const ProjectMapInner = dynamic(
+  () => import('./ProjectMapInner'),
+  {
+    ssr: false,
+    loading: () => <Skeleton className="h-[300px] w-full rounded-[var(--radius)]" />,
+  }
+);
 
 export default function MapView({ lat, lng, projectName, priceLabel, zoom = 14 }: MapViewProps) {
   return (
