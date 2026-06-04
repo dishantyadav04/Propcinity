@@ -1,6 +1,7 @@
 'use client';
 
-import { Plus, Trash2, Maximize, IndianRupee, ImageIcon, X, Zap } from "lucide-react";
+import { useState } from "react";
+import { Plus, Trash2, Maximize, IndianRupee, ImageIcon, X, Zap, Loader2 } from "lucide-react";
 import { UnitConfig } from "@/types/project";
 
 interface UnitConfigFormProps {
@@ -9,6 +10,8 @@ interface UnitConfigFormProps {
 }
 
 export default function UnitConfigForm({ units, onChange }: UnitConfigFormProps) {
+  const [uploadingId, setUploadingId] = useState<string | null>(null);
+
   const addUnit = () => {
     onChange([...units, {
       id: crypto.randomUUID(),
@@ -20,6 +23,8 @@ export default function UnitConfigForm({ units, onChange }: UnitConfigFormProps)
       floor: 'Mid Floor',
       facing: ['East'],
       highlights: ['Spacious Balcony'],
+      total: 0,
+      available: 0,
       maintenancePerMonth: 0
     }]);
   };
@@ -32,15 +37,28 @@ export default function UnitConfigForm({ units, onChange }: UnitConfigFormProps)
     onChange(units.map(u => u.id === id ? { ...u, ...updates } : u));
   };
 
-  const handleFloorPlanUpload = (id: string, e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFloorPlanUpload = async (id: string, e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (ev) => {
-      const dataUrl = ev.target?.result as string;
-      updateUnit(id, { floorPlan: dataUrl });
-    };
-    reader.readAsDataURL(file);
+
+    const formData = new FormData();
+    formData.append('file', file);
+    setUploadingId(id);
+
+    try {
+      const res = await fetch('/api/admin/upload', {
+        method: 'POST',
+        credentials: 'include',
+        body: formData,
+      });
+      if (!res.ok) throw new Error('Upload failed');
+      const { url } = await res.json();
+      updateUnit(id, { floorPlan: url });
+    } catch (err) {
+      console.error('Floor plan upload failed:', err);
+    } finally {
+      setUploadingId(null);
+    }
   };
 
   const removeFloorPlan = (id: string) => {
@@ -89,7 +107,11 @@ export default function UnitConfigForm({ units, onChange }: UnitConfigFormProps)
               <label className="text-[10px] text-[var(--text-muted)] uppercase font-bold flex items-center gap-1.5">
                 <ImageIcon className="w-3 h-3" /> Floor Plan Image
               </label>
-              {unit.floorPlan ? (
+              {uploadingId === unit.id ? (
+                <div className="w-full h-40 rounded-lg border border-[var(--border)] bg-[var(--surface)] flex items-center justify-center">
+                  <Loader2 className="w-6 h-6 animate-spin text-[var(--primary)]" />
+                </div>
+              ) : unit.floorPlan ? (
                 <div className="relative w-full h-40 rounded-lg overflow-hidden border border-[var(--border)] bg-[var(--surface)]">
                   <img
                     src={unit.floorPlan}
@@ -117,6 +139,30 @@ export default function UnitConfigForm({ units, onChange }: UnitConfigFormProps)
                   />
                 </label>
               )}
+            </div>
+
+            {/* Total + Available */}
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <label className="text-[10px] text-[var(--text-muted)] uppercase font-bold">Total Units</label>
+                <input
+                  type="number" min="0"
+                  value={unit.total ?? ''}
+                  onChange={(e) => updateUnit(unit.id, { total: e.target.value ? Number(e.target.value) : undefined })}
+                  className="w-full bg-[var(--surface)] border border-[var(--border)] rounded-lg px-3 py-2 text-sm"
+                  placeholder="0"
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="text-[10px] text-[var(--text-muted)] uppercase font-bold">Available</label>
+                <input
+                  type="number" min="0"
+                  value={unit.available ?? ''}
+                  onChange={(e) => updateUnit(unit.id, { available: e.target.value ? Number(e.target.value) : undefined })}
+                  className="w-full bg-[var(--surface)] border border-[var(--border)] rounded-lg px-3 py-2 text-sm"
+                  placeholder="0"
+                />
+              </div>
             </div>
 
             {/* Pricing & Details Grid */}

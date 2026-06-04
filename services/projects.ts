@@ -59,6 +59,8 @@ function mapUnitConfig(row: SupabaseUnitConfigRow): UnitConfig {
     facing: row.facing || [],
     floorPlan: (row as any).floor_plan_url,
     highlights: row.highlights || [],
+    total: row.total,
+    available: row.available,
     maintenancePerMonth: (row as any).maintenance_cost,
     parking: (row as any).parking,
   }
@@ -317,9 +319,20 @@ export async function adminUpdateProject(
 ): Promise<void> {
   const supabase = createAdminSupabaseClient()
   if (!supabase) return
-  const { unitConfigs, ...project } = projectData as {
-    unitConfigs?: Record<string, unknown>[]
-  }
+
+  const {
+    unitConfigs,
+    // Strip camelCase fields that leak through
+    builderName, builderLogo, builderYearsExperience, builderCompletedProjects,
+    builderCities, builderTopProjects, builderDescription,
+    reraId, reraExpiry, reraLink, launchDate, possessionDate, reraPossessionDate,
+    landParcelAcres, totalTowers, floorsPerTower, totalUnits, availableUnits,
+    constructionStatus, constructionPercent,
+    litigationDetails, commencementCertificate, occupancyCertificate, legalNotes,
+    brochureUrl, paymentPlans, bankApprovals,
+    nearbyLocations, internalAmenities, externalAmenities, reraRegistrations, masterPlanImages,
+    ...project
+  } = projectData as any
 
   await supabase
     .from('projects')
@@ -334,7 +347,7 @@ export async function adminUpdateProject(
 
     if (unitConfigs.length) {
       await supabase.from('unit_configs').insert(
-        unitConfigs.map((unit) => ({ ...unit, project_id: id }))
+        unitConfigs.map((unit: Record<string, unknown>) => ({ ...unit, project_id: id }))
       )
     }
   }

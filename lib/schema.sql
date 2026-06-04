@@ -25,10 +25,43 @@ create table projects (
   amenities text[] default '{}',
   images text[] default '{}',
   construction_status text check (
-    construction_status in ('pre_launch','under_construction','ready_to_move')
+    construction_status in ('pre_launch','new_launch','under_construction','ready_to_move')
   ),
   construction_percent integer default 0
     check (construction_percent >= 0 and construction_percent <= 100),
+
+  -- Builder info (denormalised for display)
+  builder_id uuid references builders,
+  builder_years_experience integer,
+  builder_completed_projects integer,
+  builder_cities text[] default '{}',
+  builder_top_projects jsonb default '[]'::jsonb,
+  builder_description text,
+
+  -- RERA
+  rera_link text,
+  rera_possession_date date,
+
+  -- Project specs
+  land_parcel_acres numeric,
+  total_towers integer,
+  floors_per_tower text,
+
+  -- Legal
+  litigation boolean default false,
+  litigation_details text,
+  commencement_certificate boolean default false,
+  occupancy_certificate boolean default false,
+  legal_notes text,
+
+  -- Financial
+  payment_plans jsonb default '[]'::jsonb,
+  bank_approvals jsonb default '[]'::jsonb,
+
+  -- Media
+  videos jsonb default '[]'::jsonb,
+  brochure_url text,
+
   commission_rate numeric,
   is_published boolean default false,
   created_at timestamptz default now(),

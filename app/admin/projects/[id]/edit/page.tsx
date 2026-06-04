@@ -21,13 +21,76 @@ export default function EditProjectPage() {
   useEffect(() => {
     const loadProject = async () => {
       try {
-        const res = await fetch('/api/admin/projects', {
+        const res = await fetch(`/api/admin/projects/${id}`, {
           credentials: 'include',
         });
-        if (!res.ok) throw new Error('Unauthorized');
-        const json = await res.json();
-        const data = (json.projects || []).find((project: Project) => project.id === id) || null;
-        setProject(data);
+        if (!res.ok) throw new Error('Not found');
+        const { project: raw } = await res.json();
+
+        const mapped: Project = {
+          id: raw.id,
+          slug: raw.slug,
+          name: raw.name,
+          builderName: raw.builder_name || '',
+          builderLogo: raw.builder_logo,
+          builder_id: raw.builder_id,
+          location: raw.location || '',
+          city: raw.city || 'Pune',
+          lat: Number(raw.lat) || 18.5204,
+          lng: Number(raw.lng) || 73.8567,
+          tagline: raw.tagline || '',
+          description: raw.description || '',
+          reraId: raw.rera_id || '',
+          reraExpiry: raw.rera_expiry || '',
+          reraLink: raw.rera_link || '',
+          launchDate: raw.launch_date || '',
+          possessionDate: raw.possession_date || '',
+          reraPossessionDate: raw.rera_possession_date || '',
+          landParcelAcres: raw.land_parcel_acres,
+          totalTowers: raw.total_towers,
+          floorsPerTower: raw.floors_per_tower || '',
+          totalUnits: raw.total_units || 0,
+          availableUnits: raw.available_units || 0,
+          unitConfigs: (raw.unit_configs || []).map((u: any) => ({
+            id: u.id,
+            type: u.type,
+            area: Number(u.area),
+            priceMin: Number(u.price_min),
+            priceMax: Number(u.price_max),
+            pricePerSqFt: Number(u.price_per_sqft) || 0,
+            floor: u.floor_range || '',
+            facing: u.facing || [],
+            floorPlan: u.floor_plan_url || '',
+            highlights: u.highlights || [],
+            maintenancePerMonth: u.maintenance_cost || 0,
+            parking: u.parking,
+            total: u.total || 0,
+            available: u.available || 0,
+          })),
+          pros: raw.pros || [],
+          cons: raw.cons || [],
+          amenities: raw.amenities || [],
+          internalAmenities: raw.internal_amenities || [],
+          externalAmenities: raw.external_amenities || [],
+          images: raw.images || [],
+          masterPlanImages: raw.master_plan_images || [],
+          reraRegistrations: raw.rera_registrations || [],
+          nearbyLocations: raw.nearby_locations || [],
+          constructionStatus: raw.construction_status || 'under_construction',
+          constructionPercent: raw.construction_percent || 0,
+          litigation: !!raw.litigation,
+          litigationDetails: raw.litigation_details || '',
+          commencementCertificate: !!raw.commencement_certificate,
+          occupancyCertificate: !!raw.occupancy_certificate,
+          legalNotes: raw.legal_notes || '',
+          paymentPlans: raw.payment_plans || [],
+          bankApprovals: raw.bank_approvals || [],
+          videos: raw.videos || [],
+          brochureUrl: raw.brochure_url || '',
+          isPublished: !!raw.is_published,
+        };
+
+        setProject(mapped);
       } catch (err) {
         console.error(err);
       } finally {

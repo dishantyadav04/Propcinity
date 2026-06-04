@@ -1,15 +1,89 @@
 'use client';
 
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import SectionContainer from "@/components/layout/SectionContainer";
-import { Settings, Shield, Bell, Database, Globe, Sliders } from "lucide-react";
+import { Settings, Shield, Bell, Database, Globe, Sliders, Save, Loader2 } from "lucide-react";
+import { toast } from "sonner";
 
 export default function AdminSettingsPage() {
+  const router = useRouter();
+  const [expandedCard, setExpandedCard] = useState<string | null>(null);
+  const [notificationEmail, setNotificationEmail] = useState("");
+  const [isSaving, setIsSaving] = useState(false);
+  const [isLoadingSettings, setIsLoadingSettings] = useState(true);
+
+  useEffect(() => {
+    fetch('/api/admin/settings', { credentials: 'include' })
+      .then(r => r.json())
+      .then(d => {
+        if (d.settings?.lead_notification_email) {
+          setNotificationEmail(d.settings.lead_notification_email);
+        }
+      })
+      .catch(console.error)
+      .finally(() => setIsLoadingSettings(false));
+  }, []);
+
+  const saveNotificationEmail = async () => {
+    setIsSaving(true);
+    try {
+      const res = await fetch('/api/admin/settings', {
+        method: 'PUT',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ key: 'lead_notification_email', value: notificationEmail }),
+      });
+      if (!res.ok) throw new Error('Failed to save');
+      toast.success('Notification email saved');
+    } catch {
+      toast.error('Failed to save settings');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   const sections = [
-    { title: 'Platform Branding', icon: <Globe className="w-5 h-5" />, desc: 'Configure company name, logo, and core design tokens.' },
-    { title: 'Scoring Algorithms', icon: <Shield className="w-5 h-5" />, desc: 'Adjust weights for RERA, Builder History, and Market Trends.' },
-    { title: 'Lead Notifications', icon: <Bell className="w-5 h-5" />, desc: 'Configure email and WhatsApp alerts for new inquiries.' },
-    { title: 'Database Sync', icon: <Database className="w-5 h-5" />, desc: 'Force refresh project data from Overpass and RERA APIs.' },
-    { title: 'Access Control', icon: <Sliders className="w-5 h-5" />, desc: 'Manage administrative roles and platform permissions.' },
+    {
+      id: 'branding',
+      title: 'Platform Branding',
+      icon: <Globe className="w-5 h-5" />,
+      desc: 'Configure company name, logo, and core design tokens.',
+      badge: 'Coming Soon',
+      link: null,
+    },
+    {
+      id: 'scoring',
+      title: 'Scoring Algorithms',
+      icon: <Shield className="w-5 h-5" />,
+      desc: 'Adjust weights for RERA, Builder History, and Market Trends.',
+      badge: 'Coming Soon',
+      link: null,
+    },
+    {
+      id: 'notifications',
+      title: 'Lead Notifications',
+      icon: <Bell className="w-5 h-5" />,
+      desc: 'Configure email and WhatsApp alerts for new inquiries.',
+      badge: 'Configure',
+      link: null,
+    },
+    {
+      id: 'sync',
+      title: 'Database Sync',
+      icon: <Database className="w-5 h-5" />,
+      desc: 'Force refresh project data from Overpass and RERA APIs.',
+      badge: 'Coming Soon',
+      link: null,
+    },
+    {
+      id: 'access',
+      title: 'Access Control',
+      icon: <Sliders className="w-5 h-5" />,
+      desc: 'Manage administrative roles and platform permissions.',
+      badge: 'Configure',
+      link: '/admin/users',
+    },
   ];
 
   return (
@@ -22,24 +96,68 @@ export default function AdminSettingsPage() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {sections.map((s, i) => (
-          <div key={i} className="group bg-white border border-[var(--border)] p-8 rounded-[var(--radius-lg)] shadow-sm hover:shadow-md transition-all cursor-pointer">
+        {sections.map((s) => (
+          <div
+            key={s.id}
+            className="group bg-white border border-[var(--border)] p-8 rounded-[var(--radius-lg)] shadow-sm hover:shadow-md transition-all"
+          >
             <div className="flex items-start justify-between">
               <div className="w-12 h-12 bg-[var(--primary-light)] text-[var(--primary)] rounded-2xl flex items-center justify-center">
                 {s.icon}
               </div>
-              <div className="px-3 py-1 bg-[var(--surface-raised)] text-[var(--text-muted)] text-[10px] font-bold rounded-full uppercase tracking-widest">
-                Configure
+              <div
+                onClick={() => {
+                  if (s.link) {
+                    router.push(s.link);
+                  } else if (s.id === 'notifications') {
+                    setExpandedCard(expandedCard === 'notifications' ? null : 'notifications');
+                  }
+                }}
+                className={`px-3 py-1 text-[10px] font-bold rounded-full uppercase tracking-widest transition-colors ${
+                  s.badge === 'Coming Soon'
+                    ? 'bg-[var(--surface-raised)] text-[var(--text-muted)] cursor-default'
+                    : 'bg-[var(--primary)]/10 text-[var(--primary)] hover:bg-[var(--primary)]/20 cursor-pointer'
+                }`}
+              >
+                {s.badge}
               </div>
             </div>
             <div className="mt-6 space-y-2">
-              <h3 className="text-xl font-bold group-hover:text-[var(--primary)] transition-colors">{s.title}</h3>
+              <h3 className={`text-xl font-bold ${s.link || s.id === 'notifications' ? 'group-hover:text-[var(--primary)] transition-colors' : ''}`}>
+                {s.title}
+              </h3>
               <p className="text-sm text-[var(--text-secondary)] leading-relaxed">{s.desc}</p>
             </div>
+
+            {s.id === 'notifications' && expandedCard === 'notifications' && (
+              <div className="mt-6 pt-6 border-t border-[var(--border)] space-y-4">
+                <div className="space-y-2">
+                  <label className="text-[10px] text-[var(--text-muted)] uppercase font-bold">
+                    Notification Email
+                  </label>
+                  <input
+                    type="email"
+                    value={notificationEmail}
+                    onChange={(e) => setNotificationEmail(e.target.value)}
+                    placeholder="admin@example.com"
+                    className="w-full bg-[var(--surface-raised)] border border-[var(--border)] rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-[var(--primary)]"
+                    disabled={isLoadingSettings}
+                  />
+                </div>
+                <button
+                  onClick={saveNotificationEmail}
+                  disabled={isSaving || isLoadingSettings}
+                  className="flex items-center gap-2 px-6 py-2.5 bg-[var(--primary)] text-white rounded-xl text-sm font-bold hover:opacity-90 transition-all disabled:opacity-50"
+                >
+                  {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                  Save
+                </button>
+              </div>
+            )}
           </div>
         ))}
       </div>
-      
+
       <div className="bg-[var(--surface-dark)] text-white p-8 rounded-[var(--radius-lg)] shadow-xl flex items-center justify-between">
         <div className="space-y-1">
           <p className="text-xs font-bold text-white/40 uppercase tracking-widest">System Status</p>

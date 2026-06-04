@@ -9,6 +9,8 @@ export interface UnitConfig {
   facing?: string[]
   floorPlan?: string      // URL to floor plan image
   highlights?: string[]
+  total?: number
+  available?: number
   maintenancePerMonth?: number
   parking?: number        // number of parking spots for this config
 }

@@ -55,7 +55,7 @@ export default function ProjectForm({ initialData }: ProjectFormProps) {
         l.toLowerCase().includes(locationSearch.toLowerCase())
       ).slice(0, 8)
     : PUNE_LOCALITIES.slice(0, 8);
-  
+
   const [project, setProject] = useState<Partial<Project>>(initialData || {
     name: '',
     slug: '',
@@ -63,6 +63,7 @@ export default function ProjectForm({ initialData }: ProjectFormProps) {
     location: '',
     city: 'Pune',
     description: '',
+    tagline: '',
     images: [],
     pros: [],
     cons: [],
@@ -71,10 +72,26 @@ export default function ProjectForm({ initialData }: ProjectFormProps) {
     lat: 18.5204,
     lng: 73.8567,
     reraId: '',
-    possessionDate: '',
+    reraExpiry: '',
+    reraLink: '',
     launchDate: '',
+    possessionDate: '',
+    reraPossessionDate: '',
+    landParcelAcres: undefined,
+    totalTowers: undefined,
+    floorsPerTower: '',
+    totalUnits: undefined,
+    availableUnits: undefined,
     isPublished: true,
     litigation: false,
+    litigationDetails: '',
+    commencementCertificate: false,
+    occupancyCertificate: false,
+    legalNotes: '',
+    brochureUrl: '',
+    videos: [],
+    paymentPlans: [],
+    bankApprovals: [],
     internalAmenities: [],
     externalAmenities: [],
     nearbyLocations: [],
@@ -99,28 +116,95 @@ export default function ProjectForm({ initialData }: ProjectFormProps) {
     setIsLoading(true);
 
     try {
-      const body = {
-      ...project,
-      builder_id: selectedBuilderId || null,
-      nearby_locations: project.nearbyLocations || [],
-      internal_amenities: project.internalAmenities || [],
-      external_amenities: project.externalAmenities || [],
-      rera_registrations: project.reraRegistrations || [],
-      master_plan_images: project.masterPlanImages || [],
-    };
+      const body: Record<string, unknown> = {
+        ...project,
+        builder_id: selectedBuilderId || null,
+        tagline: project.tagline,
+        possession_date: project.possessionDate,
+        rera_possession_date: project.reraPossessionDate,
+        land_parcel_acres: project.landParcelAcres,
+        total_towers: project.totalTowers,
+        floors_per_tower: project.floorsPerTower,
+        total_units: project.totalUnits,
+        available_units: project.availableUnits,
+        construction_status: project.constructionStatus,
+        construction_percent: project.constructionPercent,
+        launch_date: project.launchDate,
+        rera_id: project.reraId,
+        rera_expiry: project.reraExpiry,
+        rera_link: project.reraLink,
+        litigation: project.litigation,
+        litigation_details: project.litigationDetails,
+        commencement_certificate: project.commencementCertificate,
+        occupancy_certificate: project.occupancyCertificate,
+        legal_notes: project.legalNotes,
+        brochure_url: project.brochureUrl,
+        videos: project.videos,
+        payment_plans: project.paymentPlans,
+        bank_approvals: project.bankApprovals,
+        nearby_locations: project.nearbyLocations || [],
+        internal_amenities: project.internalAmenities || [],
+        external_amenities: project.externalAmenities || [],
+        rera_registrations: project.reraRegistrations || [],
+        master_plan_images: project.masterPlanImages || [],
+        unitConfigs: (project.unitConfigs || []).map(u => ({
+          id: u.id,
+          type: u.type,
+          area: u.area,
+          price_min: u.priceMin,
+          price_max: u.priceMax,
+          floor_range: u.floor || '',
+          facing: u.facing || [],
+          highlights: u.highlights || [],
+          total: u.total || 0,
+          available: u.available || 0,
+          parking: u.parking,
+          floor_plan_url: u.floorPlan?.startsWith('http') ? u.floorPlan : undefined,
+          maintenance_cost: u.maintenancePerMonth,
+        })),
+        possessionDate: undefined,
+        reraPossessionDate: undefined,
+        landParcelAcres: undefined,
+        totalTowers: undefined,
+        floorsPerTower: undefined,
+        totalUnits: undefined,
+        availableUnits: undefined,
+        constructionStatus: undefined,
+        constructionPercent: undefined,
+        launchDate: undefined,
+        reraId: undefined,
+        reraExpiry: undefined,
+        reraLink: undefined,
+        litigationDetails: undefined,
+        commencementCertificate: undefined,
+        occupancyCertificate: undefined,
+        legalNotes: undefined,
+        brochureUrl: undefined,
+        paymentPlans: undefined,
+        bankApprovals: undefined,
+        nearbyLocations: undefined,
+        internalAmenities: undefined,
+        externalAmenities: undefined,
+        reraRegistrations: undefined,
+        masterPlanImages: undefined,
+      };
+
       const response = await fetch(initialData ? `/api/admin/projects/${initialData.id}` : '/api/admin/projects', {
         method: initialData ? 'PATCH' : 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body)
       });
 
-      if (!response.ok) throw new Error("Failed to save project");
-      
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({}));
+        throw new Error(err.error || "Failed to save project");
+      }
+
       toast.success(initialData ? "Project updated" : "Project created");
       router.push('/admin/projects');
       router.refresh();
-    } catch (err) {
-      toast.error("Something went wrong");
+    } catch (err: any) {
+      toast.error(err.message || "Something went wrong");
     } finally {
       setIsLoading(false);
     }
@@ -134,8 +218,8 @@ export default function ProjectForm({ initialData }: ProjectFormProps) {
           <h3 className="text-sm font-bold text-[var(--text-primary)] uppercase tracking-widest">General Information</h3>
           <div className="space-y-2">
             <label className="text-[10px] text-[var(--text-muted)] uppercase font-bold">Project Name</label>
-            <input 
-              type="text" 
+            <input
+              type="text"
               value={project.name}
               onChange={(e) => setProject({...project, name: e.target.value, slug: e.target.value.toLowerCase().replace(/\s+/g, '-')})}
               className="w-full bg-[var(--surface-raised)] border border-[var(--border)] rounded-xl px-4 py-2.5 text-sm"
@@ -143,7 +227,7 @@ export default function ProjectForm({ initialData }: ProjectFormProps) {
               required
             />
           </div>
-          
+
           <div className="space-y-2">
             <label className="text-sm font-bold text-[var(--text-primary)]">
               Builder <span className="text-red-500">*</span>
@@ -209,59 +293,47 @@ export default function ProjectForm({ initialData }: ProjectFormProps) {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <label className="text-[10px] text-[var(--text-muted)] uppercase font-bold">Location</label>
-              <div className="relative">
-                <input
-                  type="text"
-                  value={locationSearch}
-                  onChange={e => {
-                    setLocationSearch(e.target.value);
-                    setProject({ ...project, location: e.target.value });
-                    setLocationDropdownOpen(true);
-                  }}
-                  onFocus={() => setLocationDropdownOpen(true)}
-                  onBlur={() => setTimeout(() => setLocationDropdownOpen(false), 150)}
-                  className="w-full bg-[var(--surface-raised)] border border-[var(--border)] rounded-xl px-4 py-2.5 text-sm pr-8 focus:outline-none focus:border-[var(--primary)]"
-                  placeholder="e.g. Wakad, Hinjewadi..."
-                  autoComplete="off"
-                />
-                <span className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-[var(--text-muted)] text-xs">
-                  ▾
-                </span>
-                {locationDropdownOpen && filteredLocalities.length > 0 && (
-                  <div className="absolute z-50 mt-1 w-full bg-white border border-[var(--border)] rounded-[var(--radius-xs)] shadow-lg max-h-52 overflow-y-auto">
-                    {filteredLocalities.map(locality => (
-                      <div
-                        key={locality}
-                        onMouseDown={() => {
-                          setLocationSearch(locality);
-                          setProject(prev => ({ ...prev, location: locality }));
-                          setLocationDropdownOpen(false);
-                        }}
-                        className={`px-3 py-2 text-sm cursor-pointer hover:bg-[var(--surface-raised)] transition-colors ${
-                          project.location === locality
-                            ? 'font-bold text-[var(--primary)] bg-[var(--surface-raised)]'
-                            : 'text-[var(--text-primary)]'
-                        }`}
-                      >
-                        {locality}
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
-            <div className="space-y-2">
-              <label className="text-[10px] text-[var(--text-muted)] uppercase font-bold">Construction %</label>
-              <input 
-                type="number" 
-                min="0" max="100"
-                value={project.constructionPercent || 0}
-                onChange={(e) => setProject({...project, constructionPercent: Number(e.target.value)})}
-                className="w-full bg-[var(--surface-raised)] border border-[var(--border)] rounded-xl px-4 py-2.5 text-sm"
+          <div className="space-y-2">
+            <label className="text-[10px] text-[var(--text-muted)] uppercase font-bold">Location</label>
+            <div className="relative">
+              <input
+                type="text"
+                value={locationSearch}
+                onChange={e => {
+                  setLocationSearch(e.target.value);
+                  setProject({ ...project, location: e.target.value });
+                  setLocationDropdownOpen(true);
+                }}
+                onFocus={() => setLocationDropdownOpen(true)}
+                onBlur={() => setTimeout(() => setLocationDropdownOpen(false), 150)}
+                className="w-full bg-[var(--surface-raised)] border border-[var(--border)] rounded-xl px-4 py-2.5 text-sm pr-8 focus:outline-none focus:border-[var(--primary)]"
+                placeholder="e.g. Wakad, Hinjewadi..."
+                autoComplete="off"
               />
+              <span className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-[var(--text-muted)] text-xs">
+                ▾
+              </span>
+              {locationDropdownOpen && filteredLocalities.length > 0 && (
+                <div className="absolute z-50 mt-1 w-full bg-white border border-[var(--border)] rounded-[var(--radius-xs)] shadow-lg max-h-52 overflow-y-auto">
+                  {filteredLocalities.map(locality => (
+                    <div
+                      key={locality}
+                      onMouseDown={() => {
+                        setLocationSearch(locality);
+                        setProject(prev => ({ ...prev, location: locality }));
+                        setLocationDropdownOpen(false);
+                      }}
+                      className={`px-3 py-2 text-sm cursor-pointer hover:bg-[var(--surface-raised)] transition-colors ${
+                        project.location === locality
+                          ? 'font-bold text-[var(--primary)] bg-[var(--surface-raised)]'
+                          : 'text-[var(--text-primary)]'
+                      }`}
+                    >
+                      {locality}
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -271,7 +343,7 @@ export default function ProjectForm({ initialData }: ProjectFormProps) {
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <label className="text-[10px] text-[var(--text-muted)] uppercase font-bold">Latitude</label>
-              <input 
+              <input
                 type="number" step="any"
                 value={project.lat}
                 onChange={(e) => setProject({...project, lat: Number(e.target.value)})}
@@ -280,7 +352,7 @@ export default function ProjectForm({ initialData }: ProjectFormProps) {
             </div>
             <div className="space-y-2">
               <label className="text-[10px] text-[var(--text-muted)] uppercase font-bold">Longitude</label>
-              <input 
+              <input
                 type="number" step="any"
                 value={project.lng}
                 onChange={(e) => setProject({...project, lng: Number(e.target.value)})}
@@ -292,10 +364,122 @@ export default function ProjectForm({ initialData }: ProjectFormProps) {
         </div>
       </div>
 
+      {/* Project Specs & Dates */}
+      <div className="bg-[var(--surface)] p-6 rounded-2xl border border-[var(--border)] space-y-4">
+        <h3 className="text-sm font-bold text-[var(--text-primary)] uppercase tracking-widest">Project Specs & Dates</h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="space-y-2">
+            <label className="text-[10px] text-[var(--text-muted)] uppercase font-bold">Tagline</label>
+            <input
+              type="text"
+              value={project.tagline || ''}
+              onChange={(e) => setProject({...project, tagline: e.target.value})}
+              className="w-full bg-[var(--surface-raised)] border border-[var(--border)] rounded-xl px-4 py-2.5 text-sm"
+              placeholder="e.g. Experience luxury living"
+            />
+          </div>
+          <div className="space-y-2">
+            <label className="text-[10px] text-[var(--text-muted)] uppercase font-bold">Launch Date</label>
+            <input
+              type="date"
+              value={project.launchDate || ''}
+              onChange={(e) => setProject({...project, launchDate: e.target.value})}
+              className="w-full bg-[var(--surface-raised)] border border-[var(--border)] rounded-xl px-4 py-2.5 text-sm"
+            />
+          </div>
+          <div className="space-y-2">
+            <label className="text-[10px] text-[var(--text-muted)] uppercase font-bold">Target Possession</label>
+            <input
+              type="date"
+              value={project.possessionDate || ''}
+              onChange={(e) => setProject({...project, possessionDate: e.target.value})}
+              className="w-full bg-[var(--surface-raised)] border border-[var(--border)] rounded-xl px-4 py-2.5 text-sm"
+            />
+          </div>
+          <div className="space-y-2">
+            <label className="text-[10px] text-[var(--text-muted)] uppercase font-bold">RERA Possession Date</label>
+            <input
+              type="date"
+              value={project.reraPossessionDate || ''}
+              onChange={(e) => setProject({...project, reraPossessionDate: e.target.value})}
+              className="w-full bg-[var(--surface-raised)] border border-[var(--border)] rounded-xl px-4 py-2.5 text-sm"
+            />
+          </div>
+          <div className="space-y-2">
+            <label className="text-[10px] text-[var(--text-muted)] uppercase font-bold">Total Units</label>
+            <input
+              type="number" min="0"
+              value={project.totalUnits ?? ''}
+              onChange={(e) => setProject({...project, totalUnits: e.target.value ? Number(e.target.value) : undefined})}
+              className="w-full bg-[var(--surface-raised)] border border-[var(--border)] rounded-xl px-4 py-2.5 text-sm"
+            />
+          </div>
+          <div className="space-y-2">
+            <label className="text-[10px] text-[var(--text-muted)] uppercase font-bold">Available Units</label>
+            <input
+              type="number" min="0"
+              value={project.availableUnits ?? ''}
+              onChange={(e) => setProject({...project, availableUnits: e.target.value ? Number(e.target.value) : undefined})}
+              className="w-full bg-[var(--surface-raised)] border border-[var(--border)] rounded-xl px-4 py-2.5 text-sm"
+            />
+          </div>
+          <div className="space-y-2">
+            <label className="text-[10px] text-[var(--text-muted)] uppercase font-bold">Land Parcel (acres)</label>
+            <input
+              type="number" step="any" min="0"
+              value={project.landParcelAcres ?? ''}
+              onChange={(e) => setProject({...project, landParcelAcres: e.target.value ? Number(e.target.value) : undefined})}
+              className="w-full bg-[var(--surface-raised)] border border-[var(--border)] rounded-xl px-4 py-2.5 text-sm"
+            />
+          </div>
+          <div className="space-y-2">
+            <label className="text-[10px] text-[var(--text-muted)] uppercase font-bold">Total Towers</label>
+            <input
+              type="number" min="1"
+              value={project.totalTowers ?? ''}
+              onChange={(e) => setProject({...project, totalTowers: e.target.value ? Number(e.target.value) : undefined})}
+              className="w-full bg-[var(--surface-raised)] border border-[var(--border)] rounded-xl px-4 py-2.5 text-sm"
+            />
+          </div>
+          <div className="space-y-2">
+            <label className="text-[10px] text-[var(--text-muted)] uppercase font-bold">Floors Per Tower</label>
+            <input
+              type="text"
+              value={project.floorsPerTower || ''}
+              onChange={(e) => setProject({...project, floorsPerTower: e.target.value})}
+              className="w-full bg-[var(--surface-raised)] border border-[var(--border)] rounded-xl px-4 py-2.5 text-sm"
+              placeholder="e.g. G+33"
+            />
+          </div>
+          <div className="space-y-2">
+            <label className="text-[10px] text-[var(--text-muted)] uppercase font-bold">Construction Status</label>
+            <select
+              value={project.constructionStatus || 'under_construction'}
+              onChange={(e) => setProject({ ...project, constructionStatus: e.target.value as any })}
+              className="w-full bg-[var(--surface-raised)] border border-[var(--border)] rounded-xl px-4 py-2.5 text-sm"
+            >
+              <option value="pre_launch">Pre-Launch</option>
+              <option value="new_launch">New Launch</option>
+              <option value="under_construction">Under Construction</option>
+              <option value="ready_to_move">Ready to Move</option>
+            </select>
+          </div>
+          <div className="space-y-2">
+            <label className="text-[10px] text-[var(--text-muted)] uppercase font-bold">Construction %</label>
+            <input
+              type="number" min="0" max="100"
+              value={project.constructionPercent || 0}
+              onChange={(e) => setProject({...project, constructionPercent: Number(e.target.value)})}
+              className="w-full bg-[var(--surface-raised)] border border-[var(--border)] rounded-xl px-4 py-2.5 text-sm"
+            />
+          </div>
+        </div>
+      </div>
+
       {/* Images */}
       <div className="bg-[var(--surface)] p-6 rounded-2xl border border-[var(--border)] space-y-4">
         <h3 className="text-sm font-bold text-[var(--text-primary)] uppercase tracking-widest">Project Gallery</h3>
-        <ImageUpload 
+        <ImageUpload
           value={project.images}
           onUpload={(url) => setProject({...project, images: [...(project.images || []), url]})}
           onRemove={(url) => setProject({...project, images: project.images?.filter(i => i !== url)})}
@@ -317,12 +501,198 @@ export default function ProjectForm({ initialData }: ProjectFormProps) {
         />
       </div>
 
+      {/* Media & Documents */}
+      <div className="bg-[var(--surface)] p-6 rounded-2xl border border-[var(--border)] space-y-4">
+        <h3 className="text-sm font-bold text-[var(--text-primary)] uppercase tracking-widest">Media & Documents</h3>
+        <div className="space-y-2">
+          <label className="text-[10px] text-[var(--text-muted)] uppercase font-bold">Brochure URL</label>
+          <input
+            type="url"
+            value={project.brochureUrl || ''}
+            onChange={(e) => setProject({...project, brochureUrl: e.target.value})}
+            className="w-full bg-[var(--surface-raised)] border border-[var(--border)] rounded-xl px-4 py-2.5 text-sm"
+            placeholder="https://..."
+          />
+        </div>
+
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <h4 className="text-xs font-bold text-[var(--text-muted)] uppercase tracking-wider">Videos (YouTube)</h4>
+            <button
+              type="button"
+              onClick={() => setProject({
+                ...project,
+                videos: [...(project.videos || []), { label: '', youtubeUrl: '' }]
+              })}
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-[var(--primary)]/10 text-[var(--primary)] rounded-lg text-xs font-bold hover:bg-[var(--primary)]/20 transition-all"
+            >
+              <Plus className="w-3.5 h-3.5" /> Add Video
+            </button>
+          </div>
+          {(project.videos || []).map((video, idx) => (
+            <div key={idx} className="p-4 bg-[var(--surface-raised)] border border-[var(--border)] rounded-xl space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-black text-[var(--text-muted)] uppercase">Video #{idx + 1}</span>
+                <button type="button"
+                  onClick={() => setProject({
+                    ...project,
+                    videos: (project.videos || []).filter((_, i) => i !== idx)
+                  })}
+                  className="text-[var(--text-muted)] hover:text-red-500 p-1">
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <label className="text-[10px] text-[var(--text-muted)] uppercase font-bold">Label</label>
+                  <input type="text" value={video.label}
+                    onChange={e => setProject({
+                      ...project,
+                      videos: (project.videos || []).map((v, i) => i === idx ? { ...v, label: e.target.value } : v)
+                    })}
+                    placeholder="e.g. 3.5BHK Sample Flat"
+                    className="w-full bg-[var(--surface)] border border-[var(--border)] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[var(--primary)]" />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] text-[var(--text-muted)] uppercase font-bold">YouTube URL</label>
+                  <input type="url" value={video.youtubeUrl}
+                    onChange={e => setProject({
+                      ...project,
+                      videos: (project.videos || []).map((v, i) => i === idx ? { ...v, youtubeUrl: e.target.value } : v)
+                    })}
+                    placeholder="https://youtube.com/watch?v=..."
+                    className="w-full bg-[var(--surface)] border border-[var(--border)] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[var(--primary)]" />
+                </div>
+              </div>
+            </div>
+          ))}
+          {(project.videos || []).length === 0 && (
+            <p className="text-xs text-[var(--text-muted)] italic">No videos added yet.</p>
+          )}
+        </div>
+      </div>
+
       {/* Inventory */}
       <div className="bg-[var(--surface)] p-6 rounded-2xl border border-[var(--border)]">
-        <UnitConfigForm 
+        <UnitConfigForm
           units={project.unitConfigs || []}
           onChange={(units) => setProject({...project, unitConfigs: units})}
         />
+      </div>
+
+      {/* Payment Plans & Bank Approvals */}
+      <div className="bg-[var(--surface)] p-6 rounded-2xl border border-[var(--border)] space-y-6">
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <h3 className="text-sm font-bold text-[var(--text-primary)] uppercase tracking-widest">Payment Plans</h3>
+            <button
+              type="button"
+              onClick={() => setProject({
+                ...project,
+                paymentPlans: [...(project.paymentPlans || []), { name: '', description: '' }]
+              })}
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-[var(--primary)]/10 text-[var(--primary)] rounded-lg text-xs font-bold hover:bg-[var(--primary)]/20 transition-all"
+            >
+              <Plus className="w-3.5 h-3.5" /> Add Plan
+            </button>
+          </div>
+          {(project.paymentPlans || []).map((plan, idx) => (
+            <div key={idx} className="p-4 bg-[var(--surface-raised)] border border-[var(--border)] rounded-xl space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-black text-[var(--text-muted)] uppercase">Plan #{idx + 1}</span>
+                <button type="button"
+                  onClick={() => setProject({
+                    ...project,
+                    paymentPlans: (project.paymentPlans || []).filter((_, i) => i !== idx)
+                  })}
+                  className="text-[var(--text-muted)] hover:text-red-500 p-1">
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <label className="text-[10px] text-[var(--text-muted)] uppercase font-bold">Plan Name</label>
+                  <input type="text" value={plan.name}
+                    onChange={e => setProject({
+                      ...project,
+                      paymentPlans: (project.paymentPlans || []).map((p, i) => i === idx ? { ...p, name: e.target.value } : p)
+                    })}
+                    placeholder="e.g. CLP, Flexi Plan"
+                    className="w-full bg-[var(--surface)] border border-[var(--border)] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[var(--primary)]" />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] text-[var(--text-muted)] uppercase font-bold">Description</label>
+                  <input type="text" value={plan.description}
+                    onChange={e => setProject({
+                      ...project,
+                      paymentPlans: (project.paymentPlans || []).map((p, i) => i === idx ? { ...p, description: e.target.value } : p)
+                    })}
+                    placeholder="e.g. 10-80-10 plan"
+                    className="w-full bg-[var(--surface)] border border-[var(--border)] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[var(--primary)]" />
+                </div>
+              </div>
+            </div>
+          ))}
+          {(project.paymentPlans || []).length === 0 && (
+            <p className="text-xs text-[var(--text-muted)] italic">No payment plans added yet.</p>
+          )}
+        </div>
+
+        <div className="space-y-3 border-t border-[var(--border)] pt-6">
+          <div className="flex items-center justify-between">
+            <h3 className="text-sm font-bold text-[var(--text-primary)] uppercase tracking-widest">Bank Approvals</h3>
+            <button
+              type="button"
+              onClick={() => setProject({
+                ...project,
+                bankApprovals: [...(project.bankApprovals || []), { bankName: '', logoUrl: '' }]
+              })}
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-[var(--primary)]/10 text-[var(--primary)] rounded-lg text-xs font-bold hover:bg-[var(--primary)]/20 transition-all"
+            >
+              <Plus className="w-3.5 h-3.5" /> Add Bank
+            </button>
+          </div>
+          {(project.bankApprovals || []).map((bank, idx) => (
+            <div key={idx} className="p-4 bg-[var(--surface-raised)] border border-[var(--border)] rounded-xl space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-black text-[var(--text-muted)] uppercase">Bank #{idx + 1}</span>
+                <button type="button"
+                  onClick={() => setProject({
+                    ...project,
+                    bankApprovals: (project.bankApprovals || []).filter((_, i) => i !== idx)
+                  })}
+                  className="text-[var(--text-muted)] hover:text-red-500 p-1">
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <label className="text-[10px] text-[var(--text-muted)] uppercase font-bold">Bank Name</label>
+                  <input type="text" value={bank.bankName}
+                    onChange={e => setProject({
+                      ...project,
+                      bankApprovals: (project.bankApprovals || []).map((b, i) => i === idx ? { ...b, bankName: e.target.value } : b)
+                    })}
+                    placeholder="e.g. SBI, HDFC"
+                    className="w-full bg-[var(--surface)] border border-[var(--border)] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[var(--primary)]" />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] text-[var(--text-muted)] uppercase font-bold">Logo URL (optional)</label>
+                  <input type="url" value={bank.logoUrl || ''}
+                    onChange={e => setProject({
+                      ...project,
+                      bankApprovals: (project.bankApprovals || []).map((b, i) => i === idx ? { ...b, logoUrl: e.target.value } : b)
+                    })}
+                    placeholder="https://..."
+                    className="w-full bg-[var(--surface)] border border-[var(--border)] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[var(--primary)]" />
+                </div>
+              </div>
+            </div>
+          ))}
+          {(project.bankApprovals || []).length === 0 && (
+            <p className="text-xs text-[var(--text-muted)] italic">No bank approvals added yet.</p>
+          )}
+        </div>
       </div>
 
       {/* RERA Registrations */}
@@ -403,19 +773,77 @@ export default function ProjectForm({ initialData }: ProjectFormProps) {
         </button>
       </div>
 
+      {/* Legal & Compliance */}
+      <div className="bg-[var(--surface)] p-6 rounded-2xl border border-[var(--border)] space-y-4">
+        <h3 className="text-sm font-bold text-[var(--text-primary)] uppercase tracking-widest">Legal & Compliance</h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="space-y-3">
+            <label className="flex items-center gap-3 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={project.litigation || false}
+                onChange={(e) => setProject({...project, litigation: e.target.checked})}
+                className="w-4 h-4 rounded border-[var(--border)]"
+              />
+              <span className="text-sm font-medium text-[var(--text-primary)]">Litigation</span>
+            </label>
+            {project.litigation && (
+              <div className="space-y-1 pl-7">
+                <label className="text-[10px] text-[var(--text-muted)] uppercase font-bold">Litigation Details</label>
+                <textarea
+                  value={project.litigationDetails || ''}
+                  onChange={(e) => setProject({...project, litigationDetails: e.target.value})}
+                  className="w-full bg-[var(--surface-raised)] border border-[var(--border)] rounded-xl px-4 py-2.5 text-sm min-h-[80px]"
+                  placeholder="Describe any ongoing litigation..."
+                />
+              </div>
+            )}
+          </div>
+          <div className="space-y-4">
+            <label className="flex items-center gap-3 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={project.commencementCertificate || false}
+                onChange={(e) => setProject({...project, commencementCertificate: e.target.checked})}
+                className="w-4 h-4 rounded border-[var(--border)]"
+              />
+              <span className="text-sm font-medium text-[var(--text-primary)]">Commencement Certificate</span>
+            </label>
+            <label className="flex items-center gap-3 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={project.occupancyCertificate || false}
+                onChange={(e) => setProject({...project, occupancyCertificate: e.target.checked})}
+                className="w-4 h-4 rounded border-[var(--border)]"
+              />
+              <span className="text-sm font-medium text-[var(--text-primary)]">Occupancy Certificate</span>
+            </label>
+          </div>
+        </div>
+        <div className="space-y-1">
+          <label className="text-[10px] text-[var(--text-muted)] uppercase font-bold">Legal Notes</label>
+          <textarea
+            value={project.legalNotes || ''}
+            onChange={(e) => setProject({...project, legalNotes: e.target.value})}
+            className="w-full bg-[var(--surface-raised)] border border-[var(--border)] rounded-xl px-4 py-2.5 text-sm min-h-[80px]"
+            placeholder="Any additional legal notes..."
+          />
+        </div>
+      </div>
+
       {/* Pros & Cons */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div className="bg-[var(--surface)] p-6 rounded-2xl border border-[var(--border)] space-y-4">
           <h3 className="text-sm font-bold text-[var(--success)] uppercase tracking-widest">Pros</h3>
           <div className="flex gap-2">
-            <input 
-              type="text" 
+            <input
+              type="text"
               value={newPro}
               onChange={(e) => setNewPro(e.target.value)}
               className="flex-1 bg-[var(--surface-raised)] border border-[var(--border)] rounded-lg px-3 py-2 text-xs"
               placeholder="Add a pro..."
             />
-            <button 
+            <button
               type="button"
               onClick={() => { if(newPro) { setProject({...project, pros: [...(project.pros || []), newPro]}); setNewPro(""); } }}
               className="p-2 bg-[var(--success)]/10 text-[var(--success)] rounded-lg"
@@ -438,14 +866,14 @@ export default function ProjectForm({ initialData }: ProjectFormProps) {
         <div className="bg-[var(--surface)] p-6 rounded-2xl border border-[var(--border)] space-y-4">
           <h3 className="text-sm font-bold text-[var(--danger)] uppercase tracking-widest">Cons</h3>
           <div className="flex gap-2">
-            <input 
-              type="text" 
+            <input
+              type="text"
               value={newCon}
               onChange={(e) => setNewCon(e.target.value)}
               className="flex-1 bg-[var(--surface-raised)] border border-[var(--border)] rounded-lg px-3 py-2 text-xs"
               placeholder="Add a con..."
             />
-            <button 
+            <button
               type="button"
               onClick={() => { if(newCon) { setProject({...project, cons: [...(project.cons || []), newCon]}); setNewCon(""); } }}
               className="p-2 bg-[var(--danger)]/10 text-[var(--danger)] rounded-lg"
@@ -466,7 +894,7 @@ export default function ProjectForm({ initialData }: ProjectFormProps) {
         </div>
       </div>
 
-      
+
       {/* Amenities */}
       <div className="bg-[var(--surface)] p-6 rounded-2xl border border-[var(--border)] space-y-4">
         <h3 className="text-sm font-bold text-[var(--text-primary)] uppercase tracking-widest">Amenities</h3>
@@ -487,7 +915,7 @@ export default function ProjectForm({ initialData }: ProjectFormProps) {
       </div>
 
       <div className="flex justify-end pt-4 pb-20 md:pb-4">
-        <button 
+        <button
           type="submit"
           disabled={isLoading}
           className="flex items-center gap-2 bg-[var(--primary)] text-white font-bold py-4 px-12 rounded-xl shadow-lg shadow-[var(--primary)]/20 hover:scale-[1.02] transition-all disabled:opacity-50"
