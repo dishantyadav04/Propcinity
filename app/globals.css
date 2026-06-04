@@ -48,7 +48,8 @@
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
-html { scroll-behavior: smooth; accent-color: var(--primary); }
+html[data-scroll-behavior="smooth"] { scroll-behavior: smooth; }
+html { accent-color: var(--primary); }
 body {
   background: var(--background);
   color: var(--text-primary);

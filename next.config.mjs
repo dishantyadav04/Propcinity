@@ -1,9 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // Disabled to prevent React 18 Strict Mode's double-invoke from causing
-  // the Leaflet "Map container is already initialized" error in development.
-  // NOTE: This is dev-only behaviour — Strict Mode is not active in production.
-  reactStrictMode: false,
+  reactStrictMode: true,
 
   serverExternalPackages: ['@anthropic-ai/sdk', 'openai', 'posthog-node'],
 

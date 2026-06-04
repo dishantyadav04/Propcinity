@@ -15,9 +15,8 @@ import { formatINR } from "@/lib/finance-calculations";
 import {
   MapPin, Share2, Heart, ShieldCheck, Download,
   Play, ChevronRight, CheckCircle2, XCircle, X, ZoomIn,
-  Building2, Home, CalendarDays, Layers, ArrowLeft, LayoutDashboard, ExternalLink
+  Building2, Home, CalendarDays, Layers, ArrowLeft, LayoutDashboard
 } from "lucide-react";
-import ProjectMapPreview from '@/components/map/ProjectMapPreview';
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
@@ -27,10 +26,11 @@ import { storage, STORAGE_KEYS } from "@/lib/storage";
 // ── Tab definitions ────────────────────────────────────────
 const TABS = [
   { id: 'overview',     label: 'Overview' },
+  { id: 'location',     label: 'Location' },
   { id: 'amenities',    label: 'Amenities' },
   { id: 'floor-plans',  label: 'Floor Plans' },
   { id: 'pricing',      label: 'Pricing' },
-  { id: 'location',     label: 'Location' },
+  { id: 'pros-cons',    label: 'Pros & Cons' },
   { id: 'legal',        label: 'Legal' },
   { id: 'rera',         label: 'RERA' },
   { id: 'builder',      label: 'Builder' },
@@ -464,39 +464,22 @@ export default function ProjectDetailPage() {
               </p>
             </div>
 
-            {/* ── MAP PREVIEW (above amenities) ───────── */}
-            {project.lat && project.lng && (
-              <div className="py-8 border-b border-[var(--border)]">
-                <div className="flex items-center justify-between mb-4">
-                  <h2
-                    className="text-lg font-black text-[var(--text-primary)]"
-                    style={{ fontFamily: 'var(--font-display)' }}
-                  >
-                    Location
-                  </h2>
-                  <a
-                    href={`https://maps.google.com/?q=${project.lat},${project.lng}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1.5 text-xs font-semibold text-[var(--primary)] hover:underline"
-                  >
-                    <ExternalLink className="w-3.5 h-3.5" />
-                    Open in Maps
-                  </a>
-                </div>
-                <p className="text-sm text-[var(--text-muted)] mb-3">
-                  {project.location}, {project.city}
-                </p>
-                <ProjectMapPreview
-                  lat={project.lat}
-                  lng={project.lng}
-                  projectName={project.name}
-                  priceLabel={formatINR(minPrice)}
-                  height="280px"
-                  zoom={15}
-                />
-              </div>
-            )}
+            {/* ── LOCATION ─────────────────────────────── */}
+            <div id="section-location" className="scroll-mt-36 py-10 border-b border-[var(--border)]">
+              <h2 className="text-lg font-black text-[var(--text-primary)] mb-4"
+                style={{ fontFamily: 'var(--font-display)' }}>
+                {project.name} Location
+              </h2>
+              <LocationSection
+                lat={project.lat}
+                lng={project.lng}
+                projectName={project.name}
+                priceLabel={formatINR(minPrice)}
+                location={project.location}
+                city={project.city}
+                nearbyLocations={project.nearbyLocations}
+              />
+            </div>
 
             {/* ── AMENITIES ──────────────────────────── */}
             <div id="section-amenities" className="scroll-mt-36 py-10 border-b border-[var(--border)]">
@@ -762,22 +745,61 @@ export default function ProjectDetailPage() {
               })()}
             </div>
 
-            {/* ── LOCATION ─────────────────────────────── */}
-            <div id="section-location" className="scroll-mt-36 py-10 border-b border-[var(--border)]">
-              <h2 className="text-lg font-black text-[var(--text-primary)] mb-4"
-                style={{ fontFamily: 'var(--font-display)' }}>
-                {project.name} Location
-              </h2>
-              <LocationSection
-                lat={project.lat}
-                lng={project.lng}
-                projectName={project.name}
-                priceLabel={formatINR(minPrice)}
-                location={project.location}
-                city={project.city}
-                nearbyLocations={project.nearbyLocations}
-              />
-            </div>
+            {/* ── PROS & CONS ───────────────────────── */}
+            {((project.pros && project.pros.length > 0) || (project.cons && project.cons.length > 0)) && (
+              <div id="section-pros-cons" className="scroll-mt-36 py-10 border-b border-[var(--border)]">
+                <h2
+                  className="text-lg font-black text-[var(--text-primary)] mb-6"
+                  style={{ fontFamily: 'var(--font-display)' }}
+                >
+                  Pros & Cons
+                </h2>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                  {/* Pros */}
+                  {project.pros && project.pros.length > 0 && (
+                    <div className="bg-[var(--success-light)] border border-[var(--success)]/20 rounded-[var(--radius)] p-5">
+                      <div className="flex items-center gap-2 mb-4">
+                        <div className="w-6 h-6 rounded-full bg-[var(--success)] flex items-center justify-center flex-shrink-0">
+                          <CheckCircle2 className="w-3.5 h-3.5 text-white" />
+                        </div>
+                        <h3 className="text-xs font-black text-[var(--success)] uppercase tracking-widest">
+                          Pros
+                        </h3>
+                      </div>
+                      <ul className="space-y-2.5">
+                        {project.pros.map((pro, i) => (
+                          <li key={i} className="flex items-start gap-2.5">
+                            <CheckCircle2 className="w-4 h-4 text-[var(--success)] flex-shrink-0 mt-0.5" />
+                            <span className="text-sm text-[var(--text-secondary)] leading-snug">{pro}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                  {/* Cons */}
+                  {project.cons && project.cons.length > 0 && (
+                    <div className="bg-[var(--danger-light)] border border-[var(--danger)]/20 rounded-[var(--radius)] p-5">
+                      <div className="flex items-center gap-2 mb-4">
+                        <div className="w-6 h-6 rounded-full bg-[var(--danger)] flex items-center justify-center flex-shrink-0">
+                          <XCircle className="w-3.5 h-3.5 text-white" />
+                        </div>
+                        <h3 className="text-xs font-black text-[var(--danger)] uppercase tracking-widest">
+                          Cons
+                        </h3>
+                      </div>
+                      <ul className="space-y-2.5">
+                        {project.cons.map((con, i) => (
+                          <li key={i} className="flex items-start gap-2.5">
+                            <XCircle className="w-4 h-4 text-[var(--danger)] flex-shrink-0 mt-0.5" />
+                            <span className="text-sm text-[var(--text-secondary)] leading-snug">{con}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
 
             {/* ── LEGAL ────────────────────────────────── */}
             <div id="section-legal" className="scroll-mt-36 py-10 border-b border-[var(--border)]">

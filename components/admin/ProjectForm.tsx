@@ -11,6 +11,24 @@ import { Save, Plus, X, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 
+const PUNE_LOCALITIES = [
+  'Wakad', 'Hinjewadi', 'Hinjewadi Phase 1', 'Hinjewadi Phase 2', 'Hinjewadi Phase 3',
+  'Pimpri', 'Chinchwad', 'Baner', 'Balewadi', 'Pashan',
+  'Aundh', 'Kothrud', 'Karve Nagar', 'Warje', 'Bavdhan',
+  'Shivajinagar', 'Deccan', 'Sadashiv Peth', 'Peth Area',
+  'Kharadi', 'Viman Nagar', 'Kalyani Nagar', 'Koregaon Park',
+  'Hadapsar', 'Manjari', 'Magarpatta', 'Fursungi',
+  'Undri', 'Kondhwa', 'NIBM', 'Mohammadwadi',
+  'Sus', 'Mahalunge', 'Punawale', 'Tathawade', 'Maan',
+  'Moshi', 'Chakan', 'Talegaon', 'Dehu Road',
+  'Lohegaon', 'Dhanori', 'Vishrantwadi', 'Tingre Nagar',
+  'Sinhagad Road', 'Dhayari', 'Narhe', 'Ambegaon',
+  'Wagholi', 'Nagar Road', 'Mundhwa', 'Kesnand',
+  'Pimple Saudagar', 'Pimple Nilakh', 'Ravet', 'Akurdi',
+  'Nigdi', 'Pradhikaran', 'Bhosari', 'Dighi',
+  'Yerawada', 'Navi Peth', 'Camp', 'Wanowrie',
+];
+
 interface ProjectFormProps {
   initialData?: Project;
 }
@@ -28,6 +46,15 @@ export default function ProjectForm({ initialData }: ProjectFormProps) {
   );
 
   const selectedBuilderName = builders.find(b => b.id === selectedBuilderId)?.name || '';
+
+  const [locationSearch, setLocationSearch] = useState(initialData?.location || '');
+  const [locationDropdownOpen, setLocationDropdownOpen] = useState(false);
+
+  const filteredLocalities = locationSearch.length >= 1
+    ? PUNE_LOCALITIES.filter(l =>
+        l.toLowerCase().includes(locationSearch.toLowerCase())
+      ).slice(0, 8)
+    : PUNE_LOCALITIES.slice(0, 8);
   
   const [project, setProject] = useState<Partial<Project>>(initialData || {
     name: '',
@@ -185,13 +212,46 @@ export default function ProjectForm({ initialData }: ProjectFormProps) {
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <label className="text-[10px] text-[var(--text-muted)] uppercase font-bold">Location</label>
-              <input 
-                type="text" 
-                value={project.location}
-                onChange={(e) => setProject({...project, location: e.target.value})}
-                className="w-full bg-[var(--surface-raised)] border border-[var(--border)] rounded-xl px-4 py-2.5 text-sm"
-                placeholder="e.g. Hinjewadi Phase 1"
-              />
+              <div className="relative">
+                <input
+                  type="text"
+                  value={locationSearch}
+                  onChange={e => {
+                    setLocationSearch(e.target.value);
+                    setProject({ ...project, location: e.target.value });
+                    setLocationDropdownOpen(true);
+                  }}
+                  onFocus={() => setLocationDropdownOpen(true)}
+                  onBlur={() => setTimeout(() => setLocationDropdownOpen(false), 150)}
+                  className="w-full bg-[var(--surface-raised)] border border-[var(--border)] rounded-xl px-4 py-2.5 text-sm pr-8 focus:outline-none focus:border-[var(--primary)]"
+                  placeholder="e.g. Wakad, Hinjewadi..."
+                  autoComplete="off"
+                />
+                <span className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-[var(--text-muted)] text-xs">
+                  ▾
+                </span>
+                {locationDropdownOpen && filteredLocalities.length > 0 && (
+                  <div className="absolute z-50 mt-1 w-full bg-white border border-[var(--border)] rounded-[var(--radius-xs)] shadow-lg max-h-52 overflow-y-auto">
+                    {filteredLocalities.map(locality => (
+                      <div
+                        key={locality}
+                        onMouseDown={() => {
+                          setLocationSearch(locality);
+                          setProject(prev => ({ ...prev, location: locality }));
+                          setLocationDropdownOpen(false);
+                        }}
+                        className={`px-3 py-2 text-sm cursor-pointer hover:bg-[var(--surface-raised)] transition-colors ${
+                          project.location === locality
+                            ? 'font-bold text-[var(--primary)] bg-[var(--surface-raised)]'
+                            : 'text-[var(--text-primary)]'
+                        }`}
+                      >
+                        {locality}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
             <div className="space-y-2">
               <label className="text-[10px] text-[var(--text-muted)] uppercase font-bold">Construction %</label>
