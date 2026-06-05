@@ -233,7 +233,7 @@ export default function LandingPage() {
           {/* Floating stat cards — desktop only, top-right area */}
           <div className="hidden lg:flex flex-col gap-3 absolute right-0 top-1/2 -translate-y-1/2">
             <StatCard icon={Building2} value={projectCount > 0 ? `${projectCount}+` : '...'} label="Audited projects" delay={0.5} />
-            <StatCard icon={ShieldCheck} value="100%" label="RERA verified" delay={0.6} />
+            <StatCard icon={ShieldCheck} value="100%" label="Audited Builders" delay={0.6} />
             <StatCard icon={MapPin} value="100%" label="Buyer Trust" delay={0.7} />
             <StatCard icon={TrendingUp} value="₹0" label="Brokerage Fees" delay={0.8} />
           </div>

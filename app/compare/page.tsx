@@ -87,9 +87,14 @@ function CompareContent() {
       </span>
     )},
     { label: 'Builder', render: p => <span className="text-sm font-semibold">{p.builderName || '—'}</span> },
-    { label: 'RERA', render: p => p.reraId
-      ? <CheckCircle2 className="w-5 h-5 text-[var(--success)]" />
-      : <XCircle className="w-5 h-5 text-[var(--text-muted)]" /> },
+    { label: 'RERA Status', render: p => {
+      switch (p.reraStatus) {
+        case 'registered': return <CheckCircle2 className="w-5 h-5 text-[var(--success)]" />;
+        case 'expired': return <XCircle className="w-5 h-5 text-[var(--danger)]" />;
+        case 'pending': return <span className="text-xs text-amber-500 font-bold">Pending</span>;
+        default: return <XCircle className="w-5 h-5 text-[var(--text-muted)]" />;
+      }
+    }},
     { label: 'Possession', render: p => <span className="text-xs">{p.possessionDate || '—'}</span> },
     { label: 'Construction', render: p => (
       <div className="space-y-1 w-24">

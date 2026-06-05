@@ -37,6 +37,7 @@ export const projectSchema = z.object({
   description: z.string().optional(),
   trust_score: z.number().int().min(0).max(100).optional(),
   risk_label: z.enum(['low', 'medium', 'high']).optional(),
+  rera_status: z.enum(['registered', 'expired', 'pending', 'not_registered']).optional(),
   rera_id: z.string().optional(),
   rera_expiry: z.string().optional().nullable(),
   rera_link: z.string().optional().nullable(),

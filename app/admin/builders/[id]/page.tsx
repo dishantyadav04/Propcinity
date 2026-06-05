@@ -50,7 +50,6 @@ export default function BuilderDetailPage() {
     if (res.ok) {
       toast.success('Project update saved. Builder score recalculated.');
       setShowUpdateForm(false);
-      // Reload builder to show new score
       fetch('/api/admin/builders', { credentials: 'include' })
         .then(r => r.json())
         .then(d => setBuilder((d.builders || []).find((b: any) => b.id === id) || null));
@@ -110,7 +109,7 @@ export default function BuilderDetailPage() {
               { label: 'Avg Delay', value: `${builder.avg_delay_months || 0}mo` },
               { label: 'Legal Cases', value: builder.legal_cases || 0 },
               { label: 'Complaints', value: builder.customer_complaints || 0 },
-              { label: 'RERA', value: builder.rera_registered ? 'Yes ✓' : 'No ✗' },
+              { label: 'Years in Biz', value: builder.years_in_business || 'N/A' },
             ].map(m => (
               <div key={m.label} className="p-3 bg-[var(--surface-raised)] rounded-[var(--radius-xs)]">
                 <p className="text-xs text-[var(--text-muted)] font-semibold">{m.label}</p>

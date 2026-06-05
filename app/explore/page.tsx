@@ -93,6 +93,13 @@ function scoreByIntent(project: Project, intent: any): number {
     score += 10;
   }
 
+  // RERA status
+  if (project.reraStatus === 'expired' || project.reraStatus === 'not_registered') {
+    score -= 15;
+  } else if (project.reraStatus === 'registered') {
+    score += 10;
+  }
+
   return score;
 }
 
@@ -649,7 +656,7 @@ export default function ExplorePage() {
                         ))}
                       </div>
                       <div className="flex items-center gap-3 text-xs text-[var(--text-muted)]">
-                        {project.reraId && (
+                        {project.reraStatus === 'registered' && project.reraId && (
                           <span className="flex items-center gap-1 text-[var(--success)] font-semibold">
                             <ShieldCheck className="w-3.5 h-3.5" /> RERA
                           </span>

@@ -432,10 +432,8 @@ export default function ProjectDetailPage() {
                   { icon: Home, label: 'Carpet Area', value: areaMin ? `${areaMin}-${areaMax} sqft` : 'N/A' },
                   {
                     icon: ShieldCheck,
-                    label: 'RERA',
-                    value: project.reraRegistrations?.length
-                      ? project.reraRegistrations.map(r => r.reraId).join(', ')
-                      : (project.reraId || 'N/A'),
+                    label: 'RERA Status',
+                    value: (project.reraStatus || 'not_registered').replace(/_/g, ' '),
                   },
                   { icon: CalendarDays, label: 'Possession', value: constructionLabel(project.constructionStatus, project.constructionPercent) },
                   { icon: CalendarDays, label: 'Target Possession', value: project.possessionDate ? new Date(project.possessionDate).toLocaleDateString('en-IN', { month: 'short', year: 'numeric' }) : 'N/A' },
@@ -1009,10 +1007,8 @@ export default function ProjectDetailPage() {
                     { label: 'Config', value: configSummary },
                     { label: 'Possession', value: possessionLabel(project.possessionDate) },
                     {
-                      label: 'RERA',
-                      value: project.reraRegistrations?.length
-                        ? project.reraRegistrations.map(r => r.reraId).join(' · ')
-                        : (project.reraId || 'N/A')
+                      label: 'RERA Status',
+                      value: (project.reraStatus || 'not_registered').replace(/_/g, ' ')
                     },
                     { label: 'Litigation', value: project.litigation ? '⚠️ Yes' : '✓ No' },
                   ].map(f => (

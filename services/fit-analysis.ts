@@ -40,7 +40,7 @@ export function generateFitReasons(
     reasons.push({ icon: 'Building', text: 'Advanced construction stage', strength: 'strong' })
   }
 
-  if (project.reraId) {
+  if (project.reraStatus === 'registered') {
     reasons.push({ icon: 'BadgeCheck', text: 'RERA registered - legally protected', strength: 'moderate' })
   }
 

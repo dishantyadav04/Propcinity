@@ -53,7 +53,7 @@ export interface ReraRegistration {
   id: string
   reraId: string          // e.g. "P52100047931"
   reraLink?: string       // link to maharera.mahaonline.gov.in
-  description?: string    // e.g. "Tower 1–2", "Phase 1"
+  description?: string    // e.g. "Tower 1-2", "Phase 1"
 }
 
 export interface Project {
@@ -78,6 +78,7 @@ export interface Project {
   // Removed: trustScore, builderScore, riskLabel
 
   // RERA
+  reraStatus: 'registered' | 'expired' | 'pending' | 'not_registered'
   reraId: string
   reraExpiry?: string
   reraLink?: string

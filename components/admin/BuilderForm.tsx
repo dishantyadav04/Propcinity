@@ -19,8 +19,6 @@ export default function BuilderForm({ initial, mode }: BuilderFormProps) {
     established_year: initial?.established_year || '',
     headquartered: initial?.headquartered || 'Pune',
     description: initial?.description || '',
-    rera_registered: initial?.rera_registered ?? false,
-    rera_id: initial?.rera_id || '',
     years_in_business: initial?.years_in_business ||
       (initial?.established_year
         ? Math.max(0, new Date().getFullYear() - parseInt(initial.established_year))
@@ -149,28 +147,6 @@ export default function BuilderForm({ initial, mode }: BuilderFormProps) {
             <h2 className="text-xs font-black text-[var(--text-muted)] uppercase tracking-wider">
               Builder Track Record & Legal
             </h2>
-
-            {/* RERA */}
-            <div className="flex items-center justify-between p-3 bg-[var(--surface-raised)] rounded-[var(--radius-xs)]">
-              <div>
-                <p className="text-sm font-bold text-[var(--text-primary)]">RERA Registered</p>
-              </div>
-              <button onClick={() => set('rera_registered', !form.rera_registered)}
-                className={`relative w-12 h-6 rounded-full transition-colors ${
-                  form.rera_registered ? 'bg-[var(--primary)]' : 'bg-[var(--border-strong)]'
-                }`}>
-                <span className={`absolute top-[3px] left-[3px] w-[18px] h-[18px] bg-white rounded-full
-                  shadow-sm transition-transform duration-200 ${
-                  form.rera_registered ? 'translate-x-6' : 'translate-x-0'
-                }`} />
-              </button>
-            </div>
-            {form.rera_registered && (
-              <input value={form.rera_id} onChange={e => set('rera_id', e.target.value)}
-                placeholder="RERA ID"
-                className="w-full px-3 py-2.5 bg-[var(--surface-raised)] border border-[var(--border)]
-                  rounded-[var(--radius-xs)] text-sm focus:outline-none focus:border-[var(--primary)]" />
-            )}
 
             {/* Track Record */}
             {[

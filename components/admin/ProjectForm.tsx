@@ -74,6 +74,7 @@ export default function ProjectForm({ initialData }: ProjectFormProps) {
     reraId: '',
     reraExpiry: '',
     reraLink: '',
+    reraStatus: 'not_registered',
     launchDate: '',
     possessionDate: '',
     reraPossessionDate: '',
@@ -133,6 +134,7 @@ export default function ProjectForm({ initialData }: ProjectFormProps) {
         rera_id: project.reraId,
         rera_expiry: project.reraExpiry,
         rera_link: project.reraLink,
+        rera_status: project.reraStatus,
         litigation: project.litigation,
         litigation_details: project.litigationDetails,
         commencement_certificate: project.commencementCertificate,
@@ -175,6 +177,7 @@ export default function ProjectForm({ initialData }: ProjectFormProps) {
         reraId: undefined,
         reraExpiry: undefined,
         reraLink: undefined,
+        reraStatus: undefined,
         litigationDetails: undefined,
         commencementCertificate: undefined,
         occupancyCertificate: undefined,
@@ -692,6 +695,23 @@ export default function ProjectForm({ initialData }: ProjectFormProps) {
           {(project.bankApprovals || []).length === 0 && (
             <p className="text-xs text-[var(--text-muted)] italic">No bank approvals added yet.</p>
           )}
+        </div>
+      </div>
+
+      {/* RERA Status */}
+      <div className="bg-[var(--surface)] p-6 rounded-2xl border border-[var(--border)] space-y-4">
+        <h3 className="text-sm font-bold text-[var(--text-primary)] uppercase tracking-widest">RERA Status</h3>
+        <div className="max-w-xs">
+          <select
+            value={project.reraStatus || 'not_registered'}
+            onChange={(e) => setProject({ ...project, reraStatus: e.target.value as any })}
+            className="w-full bg-[var(--surface-raised)] border border-[var(--border)] rounded-xl px-4 py-2.5 text-sm"
+          >
+            <option value="registered">✓ Registered</option>
+            <option value="expired">⚠ Expired</option>
+            <option value="pending">⏳ Pending</option>
+            <option value="not_registered">✗ Not Registered</option>
+          </select>
         </div>
       </div>
 

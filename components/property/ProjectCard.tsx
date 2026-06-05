@@ -117,7 +117,7 @@ export default function ProjectCard({
 
           {/* RERA badge + CTA */}
           <div className="flex items-center justify-between pt-1">
-            {project.reraId && (
+            {project.reraStatus === 'registered' && project.reraId && (
               <span className="flex items-center gap-1 text-[10px] text-[var(--success)] font-bold">
                 <ShieldCheck className="w-3 h-3" /> RERA Verified
               </span>

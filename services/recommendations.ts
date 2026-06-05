@@ -15,7 +15,7 @@ export function projectToEmbeddingText(project: Project): string {
     `${project.name} by ${project.builderName || ''} in ${project.location || ''}, ${project.city || 'Pune'}.`,
     project.description || '',
     `Configurations: ${price || 'various'}.`,
-    `Status: ${(project.constructionStatus || '').replace(/_/g, ' ')}.`,
+    `Status: ${(project.constructionStatus || '').replace(/_/g, ' ')}, RERA: ${project.reraStatus || 'unknown'}.`,
     `Amenities: ${(project.amenities || []).join(', ')}.`,
     `Pros: ${(project.pros || []).join(', ')}.`,
   ].filter(Boolean).join(' ').trim();

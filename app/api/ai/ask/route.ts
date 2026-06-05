@@ -83,6 +83,7 @@ export async function PUT(request: NextRequest) {
       unitTypes: (p.unitConfigs || []).map((u: any) => u.type).join(', '),
       priceMin: p.unitConfigs?.[0]?.priceMin || 0,
       possession: p.possessionDate,
+      reraStatus: p.reraStatus || 'not_registered',
       pros: (p.pros || []).slice(0, 2).join('; '),
       cons: (p.cons || []).slice(0, 1).join('; '),
     }))
@@ -91,6 +92,7 @@ export async function PUT(request: NextRequest) {
 Given a buyer's preferences and a list of projects, return a JSON array of recommended project IDs sorted by best match.
 Return ONLY valid JSON in this format: { "recommended": ["id1", "id2", ...], "reasoning": {"id1": "reason", ...} }
 Do not return more than 10 IDs. Base recommendations on: location, budget, BHK preference, timeline.
+Favor projects with reraStatus = "registered". Penalize expired or not_registered RERA status.
 Always be honest - if a project doesn't match, don't include it.`
 
     const userPrompt = `Buyer preferences: ${JSON.stringify(userIntent)}

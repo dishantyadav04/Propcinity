@@ -87,6 +87,7 @@ function mapProject(row: any, unitConfigs: SupabaseUnitConfigRow[]): Project {
     reraId: row.rera_id,
     reraExpiry: row.rera_expiry,
     reraLink: row.rera_link,
+    reraStatus: row.rera_status || 'not_registered',
     launchDate: row.launch_date,
     possessionDate: row.possession_date,
     reraPossessionDate: row.rera_possession_date,
@@ -325,7 +326,7 @@ export async function adminUpdateProject(
     // Strip camelCase fields that leak through
     builderName, builderLogo, builderYearsExperience, builderCompletedProjects,
     builderCities, builderTopProjects, builderDescription,
-    reraId, reraExpiry, reraLink, launchDate, possessionDate, reraPossessionDate,
+    reraId, reraExpiry, reraLink, reraStatus, launchDate, possessionDate, reraPossessionDate,
     landParcelAcres, totalTowers, floorsPerTower, totalUnits, availableUnits,
     constructionStatus, constructionPercent,
     litigationDetails, commencementCertificate, occupancyCertificate, legalNotes,

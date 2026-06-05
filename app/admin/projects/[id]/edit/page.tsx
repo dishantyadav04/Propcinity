@@ -40,6 +40,7 @@ export default function EditProjectPage() {
           lng: Number(raw.lng) || 73.8567,
           tagline: raw.tagline || '',
           description: raw.description || '',
+          reraStatus: (raw.rera_status || 'not_registered') as any,
           reraId: raw.rera_id || '',
           reraExpiry: raw.rera_expiry || '',
           reraLink: raw.rera_link || '',

@@ -124,13 +124,6 @@ export default function BuildersPage() {
 
                 {/* Stats */}
                 <div className="grid grid-cols-2 gap-2 text-xs">
-                  <div className="flex items-center gap-1.5 text-[var(--text-muted)]">
-                    {builder.rera_registered
-                      ? <CheckCircle2 className="w-3.5 h-3.5 text-green-500" />
-                      : <XCircle className="w-3.5 h-3.5 text-red-400" />
-                    }
-                    RERA
-                  </div>
                   <div className="text-[var(--text-muted)]">
                     {builder.total_projects_delivered || 0} delivered
                   </div>
@@ -139,6 +132,9 @@ export default function BuildersPage() {
                   </div>
                   <div className="text-[var(--text-muted)]">
                     {builder.avg_delay_months || 0}mo avg delay
+                  </div>
+                  <div className="text-[var(--text-muted)]">
+                    {builder.legal_cases || 0} legal cases
                   </div>
                 </div>
               </div>
