@@ -6,13 +6,18 @@ import { Project } from '@/types/project';
 import { formatINR } from '@/lib/finance-calculations';
 import Skeleton from '@/components/ui/Skeleton';
 import ProjectCard from '@/components/property/ProjectCard';
+import { useGuestMode } from '@/hooks/useGuestMode';
+import { GUEST_LIMITS } from '@/lib/guest-config';
+import GuestGate from '@/components/ui/GuestGate';
+import { scoreByIntent, getMatchPercent } from '@/lib/match-score';
 import {
   Search, SlidersHorizontal, X, LayoutGrid, List,
   Building2, MapPin, Star, LayoutDashboard,
   ChevronDown, TrendingUp, ShieldCheck, Check,
-  ArrowUpDown, Sparkles, Plus
+  ArrowUpDown, Sparkles, Plus, Lock
 } from 'lucide-react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
 import { addToCompare } from '@/lib/utils';
@@ -26,83 +31,6 @@ const MapView = dynamic(() => import('@/components/map/MapView'), {
 type SortOption = 'relevance' | 'price_asc' | 'price_desc' | 'newest';
 type ViewMode = 'grid' | 'list';
 
-// Score a project against user's intent (pure function, no localStorage)
-function scoreByIntent(project: Project, intent: any): number {
-  if (!intent) return 0;
-  let score = 0;
-
-  // City must match
-  if ((project.city || '').toLowerCase() !== (intent.city || 'pune').toLowerCase()) {
-    return -1; // exclude
-  }
-
-  // Sub-location
-  if (intent.subLocations?.length > 0) {
-    const pLoc = (project.location || '').toLowerCase();
-    const match = intent.subLocations.some((sl: string) => {
-      const s = sl.toLowerCase();
-      return pLoc.includes(s) || s.includes(pLoc);
-    });
-    score += match ? 30 : 5;
-  } else {
-    score += 15;
-  }
-
-  // Property type
-  if (intent.propertyType?.length > 0) {
-    const types = (project.unitConfigs || []).map((u: any) => (u.type || '').toLowerCase());
-    const match = intent.propertyType.some((sel: string) => {
-      const s = sel.toLowerCase();
-      if (s === 'apartment') return types.some((t: string) =>
-        /^\d/.test(t) || t.includes('bhk') || t.includes('studio') || t.includes('rk')
-      );
-      if (s === 'villa') return types.some((t: string) =>
-        t.includes('villa') || t.includes('row house')
-      );
-      if (s === 'plot') return types.some((t: string) => t.includes('plot'));
-      return false;
-    });
-    score += match ? 20 : 3;
-  } else {
-    score += 10;
-  }
-
-  // BHK
-  if (intent.bhkType?.length > 0) {
-    const types = (project.unitConfigs || []).map((u: any) => (u.type || '').toLowerCase());
-    const match = intent.bhkType.some((bhk: string) => {
-      const b = bhk.toLowerCase();
-      return types.some((t: string) => t === b || t.includes(b));
-    });
-    score += match ? 20 : 3;
-  } else {
-    score += 10;
-  }
-
-  // Budget
-  if (intent.budget?.min > 0 || intent.budget?.max > 0) {
-    const uMin = intent.budget.min || 0;
-    const uMax = intent.budget.isOpenMax ? Infinity : (intent.budget.max || Infinity);
-    const prices = (project.unitConfigs || []).map((u: any) => u.priceMin).filter(Boolean);
-    if (prices.length > 0) {
-      const pMin = Math.min(...prices);
-      const pMax = Math.max(...(project.unitConfigs || []).map((u: any) => u.priceMax || u.priceMin).filter(Boolean));
-      score += (pMin <= uMax && pMax >= uMin) ? 20 : 2;
-    }
-  } else {
-    score += 10;
-  }
-
-  // RERA status
-  if (project.reraStatus === 'expired' || project.reraStatus === 'not_registered') {
-    score -= 15;
-  } else if (project.reraStatus === 'registered') {
-    score += 10;
-  }
-
-  return score;
-}
-
 const SORT_OPTIONS: { value: SortOption; label: string; icon: string }[] = [
   { value: 'relevance',  label: 'Best Match',        icon: '⭐' },
   { value: 'price_asc',  label: 'Price: Low → High', icon: '↑' },
@@ -111,6 +39,8 @@ const SORT_OPTIONS: { value: SortOption; label: string; icon: string }[] = [
 ];
 
 export default function ExplorePage() {
+  const router = useRouter();
+  const { isGuest } = useGuestMode();
   const [projects, setProjects] = useState<Project[]>([]);
   const [filtered, setFiltered] = useState<Project[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -317,6 +247,12 @@ export default function ExplorePage() {
     riskFilter !== 'all', typeFilter !== 'all', budgetFilter !== 'all'
   ].filter(Boolean).length;
 
+  // Guest card visibility
+  const visibleProjects = isGuest
+    ? filtered.slice(0, GUEST_LIMITS.explore.visibleCards)
+    : filtered;
+  const hasHiddenProjects = isGuest && filtered.length > GUEST_LIMITS.explore.visibleCards;
+
   return (
     <div className="min-h-screen bg-[var(--background)] pb-40">
 
@@ -375,7 +311,16 @@ export default function ExplorePage() {
             </div>
 
             {/* Filter toggle */}
-            <button onClick={() => setShowFilters(!showFilters)}
+            <button
+              onClick={() => {
+                if (isGuest) {
+                  toast('Set your preferences to unlock filters', {
+                    action: { label: 'Get Started', onClick: () => router.push('/onboarding') }
+                  });
+                  return;
+                }
+                setShowFilters(!showFilters);
+              }}
               className={`relative flex items-center gap-1.5 px-3 py-2.5 rounded-[var(--radius-xs)]
                 border text-sm font-semibold transition-colors flex-shrink-0 ${
                 showFilters || activeFilterCount > 0
@@ -384,6 +329,7 @@ export default function ExplorePage() {
               }`}>
               <SlidersHorizontal className="w-4 h-4" />
               <span className="hidden sm:inline">Filter</span>
+              {isGuest && <Lock className="w-3 h-3 text-[var(--text-muted)]" />}
               {activeFilterCount > 0 && (
                 <span className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-[var(--primary)]
                   text-white text-[9px] font-black rounded-full flex items-center justify-center">
@@ -426,46 +372,61 @@ export default function ExplorePage() {
                       </p>
                     </div>
                     <div className="p-1.5 space-y-0.5">
-                      {SORT_OPTIONS.map(opt => (
-                        <button key={opt.value}
-                          onClick={() => { setSortBy(opt.value); setSortOpen(false); }}
-                          className={`w-full flex items-center gap-3 px-3 py-2.5
-                            rounded-[var(--radius-xs)] text-sm font-semibold transition-all text-left ${
-                            sortBy === opt.value
-                              ? 'bg-[var(--primary-light)] text-[var(--primary)]'
-                              : 'text-[var(--text-secondary)] hover:bg-[var(--surface-raised)]'
-                          }`}>
-                          <span className="text-base w-5 text-center">{opt.icon}</span>
-                          <span className="flex-1">{opt.label}</span>
-                          {sortBy === opt.value && <Check className="w-3.5 h-3.5 text-[var(--primary)]" />}
-                        </button>
-                      ))}
+                      {SORT_OPTIONS.map(opt => {
+                        const locked = isGuest && opt.value !== 'relevance';
+                        return (
+                          <button key={opt.value}
+                            onClick={() => {
+                              if (locked) {
+                                toast('Sign up to sort by price or date', {
+                                  action: { label: 'Get Started', onClick: () => router.push('/onboarding') }
+                                });
+                                return;
+                              }
+                              setSortBy(opt.value);
+                              setSortOpen(false);
+                            }}
+                            className={`w-full flex items-center gap-3 px-3 py-2.5
+                              rounded-[var(--radius-xs)] text-sm font-semibold transition-all text-left ${
+                              sortBy === opt.value
+                                ? 'bg-[var(--primary-light)] text-[var(--primary)]'
+                                : 'text-[var(--text-secondary)] hover:bg-[var(--surface-raised)]'
+                            } ${locked ? 'opacity-50' : ''}`}>
+                            <span className="text-base w-5 text-center">{opt.icon}</span>
+                            <span className="flex-1">{opt.label}</span>
+                            {locked && <Lock className="w-3 h-3 ml-auto text-[var(--text-muted)]" />}
+                            {sortBy === opt.value && !locked && <Check className="w-3.5 h-3.5 text-[var(--primary)]" />}
+                          </button>
+                        );
+                      })}
                     </div>
                   </motion.div>
                 )}
               </AnimatePresence>
             </div>
 
-            {/* View mode — desktop */}
-            <div className="hidden sm:flex items-center bg-[var(--surface-raised)]
-              rounded-[var(--radius-xs)] p-0.5">
-              <button onClick={() => setViewMode('grid')}
-                className={`p-2 rounded transition-all ${
-                  viewMode === 'grid'
-                    ? 'bg-white shadow-sm text-[var(--text-primary)]'
-                    : 'text-[var(--text-muted)]'
-                }`}>
-                <LayoutGrid className="w-4 h-4" />
-              </button>
-              <button onClick={() => setViewMode('list')}
-                className={`p-2 rounded transition-all ${
-                  viewMode === 'list'
-                    ? 'bg-white shadow-sm text-[var(--text-primary)]'
-                    : 'text-[var(--text-muted)]'
-                }`}>
-                <List className="w-4 h-4" />
-              </button>
-            </div>
+            {/* View mode — desktop (hidden for guests) */}
+            {!isGuest && (
+              <div className="hidden sm:flex items-center bg-[var(--surface-raised)]
+                rounded-[var(--radius-xs)] p-0.5">
+                <button onClick={() => setViewMode('grid')}
+                  className={`p-2 rounded transition-all ${
+                    viewMode === 'grid'
+                      ? 'bg-white shadow-sm text-[var(--text-primary)]'
+                      : 'text-[var(--text-muted)]'
+                  }`}>
+                  <LayoutGrid className="w-4 h-4" />
+                </button>
+                <button onClick={() => setViewMode('list')}
+                  className={`p-2 rounded transition-all ${
+                    viewMode === 'list'
+                      ? 'bg-white shadow-sm text-[var(--text-primary)]'
+                      : 'text-[var(--text-muted)]'
+                  }`}>
+                  <List className="w-4 h-4" />
+                </button>
+              </div>
+            )}
           </div>
 
           {/* Expandable filter row */}
@@ -558,7 +519,7 @@ export default function ExplorePage() {
           </div>
         ) : viewMode === 'grid' ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {filtered.map((project, index) => (
+            {visibleProjects.map((project, index) => (
               <motion.div key={project.id} layout
                 initial={{ opacity: 0, y: 16 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -588,7 +549,15 @@ export default function ExplorePage() {
 
                 {/* Round + / ✓ button — top-right */}
                 <button
-                  onClick={e => toggleCurated(project.id, e)}
+                  onClick={e => {
+                    if (isGuest) {
+                      toast('Sign up to save projects to your Dashboard', {
+                        action: { label: 'Get Started', onClick: () => router.push('/onboarding') }
+                      });
+                      return;
+                    }
+                    toggleCurated(project.id, e);
+                  }}
                   title={curatedIds.includes(project.id) ? 'Remove from Dashboard' : 'Add to Dashboard'}
                   className={`absolute top-3 right-3 z-30 w-7 h-7 rounded-full
                     flex items-center justify-center
@@ -607,11 +576,23 @@ export default function ExplorePage() {
                 </button>
               </motion.div>
             ))}
+
+            {/* Guest placeholder cards */}
+            {hasHiddenProjects && Array.from({ length: 3 }).map((_, i) => (
+              <GuestGate
+                key={`placeholder-${i}`}
+                isGuest={true}
+                label={i === 0 ? `+${filtered.length - GUEST_LIMITS.explore.visibleCards} more projects — sign up to see all` : undefined}
+                blur={true}
+              >
+                <div className="bg-white border border-[var(--border)] rounded-[var(--radius)] h-[360px]" />
+              </GuestGate>
+            ))}
           </div>
         ) : (
           // LIST VIEW
           <div className="space-y-3">
-            {filtered.map((project, index) => {
+            {visibleProjects.map((project, index) => {
               const minPrice = project.unitConfigs?.length
                 ? Math.min(...project.unitConfigs.map(u => u.priceMin)) : 0;
               const configs = Array.from(new Set((project.unitConfigs || []).map(u => u.type)));
@@ -668,7 +649,16 @@ export default function ExplorePage() {
                   {/* Actions — outside Link */}
                   <div className="absolute right-4 top-1/2 -translate-y-1/2 flex flex-col gap-2">
                     <button
-                      onClick={e => { e.preventDefault(); e.stopPropagation(); toggleCurated(project.id, e); }}
+                      onClick={e => {
+                        e.preventDefault(); e.stopPropagation();
+                        if (isGuest) {
+                          toast('Sign up to save projects to your Dashboard', {
+                            action: { label: 'Get Started', onClick: () => router.push('/onboarding') }
+                          });
+                          return;
+                        }
+                        toggleCurated(project.id, e);
+                      }}
                       className={`flex items-center gap-1.5 px-3 py-2 rounded-[var(--radius-xs)]
                         font-bold text-[10px] transition-all border ${
                         curatedIds.includes(project.id)

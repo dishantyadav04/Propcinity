@@ -4,10 +4,12 @@ import { Search, Bell, X } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
 import { useState } from "react";
+import { useGuestMode } from "@/hooks/useGuestMode";
 
 export default function TopHeader() {
   const pathname = usePathname();
   const router = useRouter();
+  const { isGuest } = useGuestMode();
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -27,7 +29,7 @@ export default function TopHeader() {
       <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-4">
 
         {/* Logo */}
-        <Link href="/dashboard" className="flex items-center flex-shrink-0">
+        <Link href={isGuest ? '/onboarding' : '/dashboard'} className="flex items-center flex-shrink-0">
           <span className="text-xl font-black text-[var(--text-primary)] tracking-tight"
             style={{ fontFamily: 'var(--font-display)' }}>
             Prop<span className="text-[var(--primary)]">cinity</span>
@@ -75,16 +77,25 @@ export default function TopHeader() {
               <Search className="w-5 h-5" />
             </button>
           )}
-          <Link
-            href="/profile"
-            className="w-9 h-9 rounded-full bg-[var(--primary)] flex items-center justify-center hover:opacity-90 transition-opacity shadow-sm"
-            aria-label="Profile"
-          >
-            <svg viewBox="0 0 24 24" fill="none" className="w-5 h-5 text-white" stroke="currentColor" strokeWidth={2}>
-              <circle cx="12" cy="7" r="3.5" />
-              <path d="M4 20c0-4.418 3.582-8 8-8s8 3.582 8 8" strokeLinecap="round" />
-            </svg>
-          </Link>
+          {isGuest ? (
+            <Link
+              href="/onboarding"
+              className="px-4 py-2 bg-[var(--primary)] text-white text-sm font-bold rounded-[var(--radius-xs)] hover:opacity-90 transition-opacity shadow-[var(--shadow-primary)]"
+            >
+              Get Started
+            </Link>
+          ) : (
+            <Link
+              href="/profile"
+              className="w-9 h-9 rounded-full bg-[var(--primary)] flex items-center justify-center hover:opacity-90 transition-opacity shadow-sm"
+              aria-label="Profile"
+            >
+              <svg viewBox="0 0 24 24" fill="none" className="w-5 h-5 text-white" stroke="currentColor" strokeWidth={2}>
+                <circle cx="12" cy="7" r="3.5" />
+                <path d="M4 20c0-4.418 3.582-8 8-8s8 3.582 8 8" strokeLinecap="round" />
+              </svg>
+            </Link>
+          )}
         </div>
       </div>
     </header>

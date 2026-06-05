@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Home, Compass, Sparkles, GitCompareArrows } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useGuestMode } from "@/hooks/useGuestMode";
 
 const NAV_ITEMS = [
   { label: 'Home', href: '/dashboard', icon: Home },
@@ -14,12 +15,19 @@ const NAV_ITEMS = [
 
 export default function BottomNav() {
   const pathname = usePathname();
+  const { isGuest } = useGuestMode();
   if (pathname.startsWith('/admin') || pathname === '/' || pathname === '/onboarding' || pathname === '/auth') return null;
+
+  const resolvedItems = NAV_ITEMS.map(item => ({
+    ...item,
+    href: isGuest && item.href === '/dashboard' ? '/onboarding' : item.href,
+    label: isGuest && item.href === '/dashboard' ? 'Set Up' : item.label,
+  }));
 
   return (
     <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-[var(--surface)] border-t border-[var(--border)] pb-[env(safe-area-inset-bottom)]">
       <div className="flex justify-around items-center h-16 px-4">
-        {NAV_ITEMS.map((item) => {
+        {resolvedItems.map((item) => {
           const isActive = pathname === item.href || pathname.startsWith(item.href + '/');
           return (
             <Link key={item.href} href={item.href}

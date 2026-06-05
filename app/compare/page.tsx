@@ -1,15 +1,20 @@
 'use client';
 
 import { useEffect, useState, useMemo, Suspense } from "react";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
 import { Project } from "@/types/project";
 import { formatINR } from "@/lib/finance-calculations";
-import { CheckCircle2, XCircle, ArrowLeft, Plus, Loader2, Minus } from "lucide-react";
+import { CheckCircle2, XCircle, ArrowLeft, Plus, Loader2, Minus, Lock } from "lucide-react";
 import Link from "next/link";
-
+import { toast } from "sonner";
+import { useGuestMode } from "@/hooks/useGuestMode";
+import { GUEST_LIMITS } from "@/lib/guest-config";
+import GuestGate from "@/components/ui/GuestGate";
 import { storage, STORAGE_KEYS } from "@/lib/storage";
 
 function CompareContent() {
+  const router = useRouter();
+  const { isGuest } = useGuestMode();
   const [projects, setProjects] = useState<Project[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const searchParams = useSearchParams();
@@ -22,11 +27,18 @@ function CompareContent() {
       const ids = idsParam.split(',').filter(Boolean);
       const fromStore = stored.filter(p => ids.includes(p.id));
 
-      if (fromStore.length > 0) {
+      if (fromStore.length === ids.length) {
         setProjects(fromStore);
         setIsLoading(false);
         return;
       }
+
+      fetch('/api/projects')
+        .then(r => r.json())
+        .then((all: Project[]) => setProjects(all.filter(p => ids.includes(p.id))))
+        .catch(console.error)
+        .finally(() => setIsLoading(false));
+      return;
     }
 
     if (stored.length > 0) {
@@ -35,18 +47,7 @@ function CompareContent() {
       return;
     }
 
-    if (idsParam) {
-      const ids = idsParam.split(',').filter(Boolean);
-      fetch('/api/projects')
-        .then(r => r.json())
-        .then((all: Project[]) =>
-          setProjects(all.filter(p => ids.includes(p.id)))
-        )
-        .catch(console.error)
-        .finally(() => setIsLoading(false));
-    } else {
-      setIsLoading(false);
-    }
+    setIsLoading(false);
   }, [idsParam]);
 
   const allAmenities = useMemo(() => {
@@ -113,6 +114,29 @@ function CompareContent() {
     })),
   ];
 
+  const freeRows = isGuest ? rows.slice(0, GUEST_LIMITS.compare.visibleRows) : rows;
+  const lockedRows = isGuest ? rows.slice(GUEST_LIMITS.compare.visibleRows) : [];
+
+  const viewDetailsLink = (p: Project) => {
+    if (isGuest) {
+      return (
+        <button
+          onClick={() => toast('Sign up to view full project details', {
+            action: { label: 'Get Started', onClick: () => router.push('/onboarding') }
+          })}
+          className="inline-block text-[10px] font-black text-[var(--primary)]"
+        >
+          View Details →
+        </button>
+      );
+    }
+    return (
+      <Link href={`/projects/${p.slug}`} className="inline-block text-[10px] font-black text-[var(--primary)]">
+        View Details →
+      </Link>
+    );
+  };
+
   return (
     <div className="min-h-screen bg-[var(--background)] pb-40">
       {/* Header */}
@@ -138,7 +162,7 @@ function CompareContent() {
         {/* Project header cards */}
         <div className="grid gap-3" style={{ gridTemplateColumns: `repeat(${projects.length}, 1fr)` }}>
           {projects.map(p => (
-            <Link key={p.id} href={`/projects/${p.slug}`}
+            <div key={p.id}
               className="bg-white border border-[var(--border)] rounded-[var(--radius)] overflow-hidden shadow-[var(--shadow-sm)] block">
               {p.images?.[0] && (
                 <img src={p.images[0]} alt={p.name} className="w-full h-20 object-cover" />
@@ -148,14 +172,14 @@ function CompareContent() {
                 <p className="text-[9px] text-[var(--primary)] font-black mt-0.5">
                   {p.unitConfigs?.length ? formatINR(Math.min(...(p.unitConfigs || []).map(u => u.priceMin))) : '—'}
                 </p>
-                <span className="text-[9px] text-[var(--primary)] font-bold">View →</span>
+                {viewDetailsLink(p)}
               </div>
-            </Link>
+            </div>
           ))}
         </div>
 
-        {/* Attribute rows as cards */}
-        {rows.map(row => (
+        {/* Attribute rows as cards — free rows */}
+        {freeRows.map(row => (
           <div key={row.label}
             className="bg-white border border-[var(--border)] rounded-[var(--radius)] overflow-hidden shadow-[var(--shadow-sm)]">
             <div className="px-4 py-2 bg-[var(--surface-raised)] border-b border-[var(--border)]">
@@ -176,6 +200,37 @@ function CompareContent() {
             </div>
           </div>
         ))}
+
+        {/* Locked rows in GuestGate */}
+        {lockedRows.length > 0 && (
+          <GuestGate
+            isGuest={true}
+            label={`${lockedRows.length} more comparison rows — sign up to unlock`}
+            blur={true}
+          >
+            {lockedRows.map(row => (
+              <div key={row.label}
+                className="bg-white border border-[var(--border)] rounded-[var(--radius)] overflow-hidden shadow-[var(--shadow-sm)]">
+                <div className="px-4 py-2 bg-[var(--surface-raised)] border-b border-[var(--border)]">
+                  <p className="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-wider">
+                    {row.label}
+                  </p>
+                </div>
+                <div className="grid divide-x divide-[var(--border)]"
+                  style={{ gridTemplateColumns: `repeat(${projects.length}, 1fr)` }}>
+                  {projects.map(p => (
+                    <div key={p.id} className="p-3 flex flex-col items-center gap-1 text-center">
+                      <p className="text-[9px] font-bold text-[var(--text-muted)] truncate w-full text-center">
+                        {p.name.split(' ').slice(0, 2).join(' ')}
+                      </p>
+                      <div className="flex justify-center">{row.render(p)}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </GuestGate>
+        )}
       </div>
 
       {/* ── DESKTOP: standard table ───────────────────────── */}
@@ -198,17 +253,14 @@ function CompareContent() {
                     )}
                     <p className="font-bold text-sm text-[var(--text-primary)] line-clamp-2">{p.name}</p>
                     <p className="text-[10px] text-[var(--text-muted)]">{p.location}</p>
-                    <Link href={`/projects/${p.slug}`}
-                      className="inline-block text-[10px] font-black text-[var(--primary)]">
-                      View Details →
-                    </Link>
+                    {viewDetailsLink(p)}
                   </div>
                 </th>
               ))}
             </tr>
           </thead>
           <tbody>
-            {rows.map((row, i) => (
+            {freeRows.map((row, i) => (
               <tr key={row.label}
                 className={i % 2 === 0 ? 'bg-white' : 'bg-[var(--surface-raised)]/40'}>
                 <td className="p-3 text-xs font-bold text-[var(--text-muted)] border border-[var(--border)]
@@ -222,6 +274,34 @@ function CompareContent() {
                 ))}
               </tr>
             ))}
+            {lockedRows.length > 0 && (
+              <tr>
+                <td colSpan={projects.length + 1} className="p-0">
+                  <GuestGate
+                    isGuest={true}
+                    label={`${lockedRows.length} more comparison rows — sign up to unlock`}
+                    blur={true}
+                  >
+                    <table className="w-full border-collapse pointer-events-none">
+                      <tbody>
+                        {lockedRows.map((row, i) => (
+                          <tr key={row.label} className={i % 2 === 0 ? 'bg-white' : 'bg-[var(--surface-raised)]/40'}>
+                            <td className="p-3 text-xs font-bold text-[var(--text-muted)] border border-[var(--border)] w-36 uppercase tracking-wider whitespace-nowrap">
+                              {row.label}
+                            </td>
+                            {projects.map(p => (
+                              <td key={p.id} className="p-3 text-center border border-[var(--border)]">
+                                <div className="flex items-center justify-center">{row.render(p)}</div>
+                              </td>
+                            ))}
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </GuestGate>
+                </td>
+              </tr>
+            )}
           </tbody>
         </table>
       </div>

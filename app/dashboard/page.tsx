@@ -10,64 +10,8 @@ import Link from 'next/link';
 import Skeleton from '@/components/ui/Skeleton';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
+import { getMatchPercent } from '@/lib/match-score';
 import { storage, STORAGE_KEYS } from '@/lib/storage';
-
-function getMatchPercent(project: Project, intent: any): number {
-  if (!intent) return 0;
-  let score = 0;
-  const MAX = 90;
-
-  if (intent.subLocations?.length > 0) {
-    const pLoc = (project.location || '').toLowerCase();
-    const match = intent.subLocations.some((sl: string) => {
-      const s = sl.toLowerCase();
-      return pLoc.includes(s) || s.includes(pLoc);
-    });
-    score += match ? 30 : 5;
-  } else {
-    score += 15;
-  }
-
-  if (intent.propertyType?.length > 0) {
-    const types = (project.unitConfigs || []).map((u: any) => (u.type || '').toLowerCase());
-    const match = intent.propertyType.some((sel: string) => {
-      const s = sel.toLowerCase();
-      if (s === 'apartment') return types.some((t: string) => /^\d/.test(t) || t.includes('bhk'));
-      if (s === 'villa') return types.some((t: string) => t.includes('villa') || t.includes('row house'));
-      if (s === 'plot') return types.some((t: string) => t.includes('plot'));
-      return false;
-    });
-    score += match ? 20 : 3;
-  } else {
-    score += 10;
-  }
-
-  if (intent.bhkType?.length > 0) {
-    const types = (project.unitConfigs || []).map((u: any) => (u.type || '').toLowerCase());
-    const match = intent.bhkType.some((bhk: string) => {
-      const b = bhk.toLowerCase();
-      return types.some((t: string) => t === b || t.includes(b));
-    });
-    score += match ? 20 : 3;
-  } else {
-    score += 10;
-  }
-
-  if (intent.budget?.min > 0 || intent.budget?.max > 0) {
-    const uMin = intent.budget.min || 0;
-    const uMax = intent.budget.isOpenMax ? Infinity : (intent.budget.max || Infinity);
-    const prices = (project.unitConfigs || []).map((u: any) => u.priceMin).filter(Boolean);
-    if (prices.length > 0) {
-      const pMin = Math.min(...prices);
-      const pMax = Math.max(...(project.unitConfigs || []).map((u: any) => u.priceMax || u.priceMin).filter(Boolean));
-      score += (pMin <= uMax && pMax >= uMin) ? 20 : 2;
-    }
-  } else {
-    score += 10;
-  }
-
-  return Math.min(100, Math.round((score / MAX) * 100));
-}
 
 function getSmartMatchLabel(project: Project, intent: any): string | null {
   if (!intent) return null;
@@ -221,13 +165,11 @@ export default function DashboardPage() {
 
     loadFromStorage();
 
-    // When Explorer fires the event (both pages mounted in same tab)
     const handleCuratedUpdate = () => {
       const curated = storage.get<string[]>(STORAGE_KEYS.CURATED_IDS, []);
       setCuratedIds(curated);
     };
 
-    // When user tabs back or navigates back — always re-read from localStorage
     const handleFocus = () => loadFromStorage();
     const handleVisibility = () => {
       if (document.visibilityState === 'visible') loadFromStorage();
@@ -281,9 +223,7 @@ export default function DashboardPage() {
   };
 
   const displayResults = useMemo(() => {
-    // Gate 1: wait for localStorage to be read
     if (!storageReady) return [];
-    // Gate 2: if curated IDs exist, wait for projects to load before computing
     if (curatedIds.length > 0 && projects.length === 0) return [];
 
     const rejectedSet = new Set(rejectedIds);
@@ -311,8 +251,6 @@ export default function DashboardPage() {
       .slice(0, 12);
   }, [projects, aiRecommended, curatedIds, rejectedIds, storageReady]);
 
-  // Show skeleton while: projects loading, storage not ready, or curated IDs exist
-  // but projects haven't arrived yet (prevents the empty state flash)
   const showSkeleton =
     isLoading ||
     !storageReady ||

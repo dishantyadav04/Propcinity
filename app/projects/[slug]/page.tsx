@@ -11,11 +11,14 @@ import ConsultationCTA from "@/components/conversion/ConsultationCTA";
 import LeadQualificationSheet from "@/components/conversion/LeadQualificationSheet";
 import AskAIModal from "@/components/ai/AskAIModal";
 import PageLoader from "@/components/ui/PageLoader";
+import { useGuestMode } from "@/hooks/useGuestMode";
+import { GUEST_LIMITS } from "@/lib/guest-config";
+import GuestGate from "@/components/ui/GuestGate";
 import { formatINR } from "@/lib/finance-calculations";
 import {
-  MapPin, Share2, Heart, ShieldCheck, Download,
+  MapPin, Share2, Heart, ShieldCheck, Download, Sparkles,
   Play, ChevronRight, CheckCircle2, XCircle, X, ZoomIn,
-  Building2, Home, CalendarDays, Layers, ArrowLeft, LayoutDashboard
+  Building2, Home, CalendarDays, Layers, ArrowLeft, LayoutDashboard, Lock
 } from "lucide-react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
@@ -59,8 +62,10 @@ export default function ProjectDetailPage() {
   const params = useParams();
   const router = useRouter();
   const slug = params?.slug as string;
+  const { isGuest } = useGuestMode();
   const [project, setProject] = useState<Project | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [notFound, setNotFound] = useState(false);
   const [isQualificationOpen, setIsQualificationOpen] = useState(false);
   const [isAIModalOpen, setIsAIModalOpen] = useState(false);
   const [selectedUnit, setSelectedUnit] = useState<UnitConfig | undefined>();
@@ -84,6 +89,7 @@ export default function ProjectDetailPage() {
         setProject(await res.json());
       } catch {
         setProject(null);
+        setNotFound(true);
       } finally {
         setIsLoading(false);
       }
@@ -114,7 +120,13 @@ export default function ProjectDetailPage() {
     }
   }, [project]);
 
-  const scrollToTab = (tabId: string) => {
+  const handleTabClick = (tabId: string) => {
+    if (isGuest && GUEST_LIMITS.project.lockedTabs.includes(tabId as any)) {
+      toast('Sign up to access full project details', {
+        action: { label: 'Get Started', onClick: () => router.push('/onboarding') }
+      });
+      return;
+    }
     setActiveTab(tabId);
     const el = document.getElementById(`section-${tabId}`);
     if (el) {
@@ -128,6 +140,12 @@ export default function ProjectDetailPage() {
 
   const handleSaveToShortlist = () => {
     if (!project) return;
+    if (isGuest) {
+      toast('Sign up to save projects', {
+        action: { label: 'Get Started', onClick: () => router.push('/onboarding') }
+      });
+      return;
+    }
     const saved = storage.get<string[]>(STORAGE_KEYS.SAVED_IDS, []);
     const isAlready = saved.includes(project.id);
     const next = isAlready ? saved.filter(id => id !== project.id) : [...saved, project.id];
@@ -138,6 +156,12 @@ export default function ProjectDetailPage() {
 
   const handleAddToDashboard = () => {
     if (!project) return;
+    if (isGuest) {
+      toast('Sign up to save projects to your Dashboard', {
+        action: { label: 'Get Started', onClick: () => router.push('/onboarding') }
+      });
+      return;
+    }
     const curated = storage.get<string[]>(STORAGE_KEYS.CURATED_IDS, []);
     const isAlready = curated.includes(project.id);
     const next = isAlready
@@ -285,6 +309,22 @@ export default function ProjectDetailPage() {
   }
 
   if (isLoading) return <PageLoader />;
+  if (!isLoading && notFound) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center gap-4 text-center px-6">
+        <div className="text-5xl">🏗️</div>
+        <h2 className="text-2xl font-black text-[var(--text-primary)]" style={{ fontFamily: 'var(--font-display)' }}>
+          Project not found
+        </h2>
+        <p className="text-[var(--text-secondary)] max-w-sm">
+          This project may have been removed or the link is incorrect.
+        </p>
+        <Link href="/explore" className="px-6 py-3 bg-[var(--primary)] text-white font-bold rounded-[var(--radius)]">
+          Browse Projects
+        </Link>
+      </div>
+    );
+  }
   if (!project) return (
     <div className="min-h-screen flex flex-col items-center justify-center gap-5 px-6 text-center">
       <div className="text-6xl">🏗️</div>
@@ -345,21 +385,25 @@ export default function ProjectDetailPage() {
         <div className="max-w-6xl mx-auto px-4 sm:px-6">
           <div ref={tabsRef}
             className="flex gap-0 overflow-x-auto scrollbar-hide">
-            {TABS.map(tab => (
-              <button
-                key={tab.id}
-                data-tab={tab.id}
-                onClick={() => scrollToTab(tab.id)}
-                className={`flex-shrink-0 px-4 py-3.5 text-xs font-bold uppercase tracking-wider
-                  border-b-2 transition-colors whitespace-nowrap ${
-                  activeTab === tab.id
-                    ? 'border-[var(--primary)] text-[var(--primary)]'
-                    : 'border-transparent text-[var(--text-muted)] hover:text-[var(--text-primary)]'
-                }`}
-              >
-                {tab.label}
-              </button>
-            ))}
+            {TABS.map(tab => {
+              const isLocked = isGuest && GUEST_LIMITS.project.lockedTabs.includes(tab.id as any);
+              return (
+                <button
+                  key={tab.id}
+                  data-tab={tab.id}
+                  onClick={() => handleTabClick(tab.id)}
+                  className={`flex-shrink-0 px-4 py-3.5 text-xs font-bold uppercase tracking-wider
+                    border-b-2 transition-colors whitespace-nowrap ${
+                    activeTab === tab.id
+                      ? 'border-[var(--primary)] text-[var(--primary)]'
+                      : 'border-transparent text-[var(--text-muted)] hover:text-[var(--text-primary)]'
+                  } ${isLocked ? 'opacity-60' : ''}`}
+                >
+                  {tab.label}
+                  {isLocked && <Lock className="w-3 h-3 ml-1 inline-block" />}
+                </button>
+              );
+            })}
           </div>
         </div>
       </div>
@@ -517,63 +561,68 @@ export default function ProjectDetailPage() {
                 style={{ fontFamily: 'var(--font-display)' }}>
                 Master & Floor Plans
               </h2>
-
-              {/* Master Plan sub-section */}
-              <div className="mb-8">
-                <h3 className="text-xs font-black text-[var(--text-muted)] uppercase tracking-widest mb-4">
-                  Master Plan
-                </h3>
-                {project.masterPlanImages && project.masterPlanImages.length > 0 ? (
-                  <PlanImageGallery images={project.masterPlanImages} label="Master Plan" />
-                ) : (
-                  <div className="h-32 bg-[var(--surface-raised)] border border-[var(--border)] rounded-[var(--radius)] flex flex-col items-center justify-center text-[var(--text-muted)] gap-2">
-                    <div className="w-10 h-10 bg-[var(--border)] rounded-lg flex items-center justify-center">
-                      <Layers className="w-5 h-5" />
+              <GuestGate
+                isGuest={isGuest}
+                label="Sign up to view floor plans for this project"
+                blur={true}
+              >
+                {/* Master Plan sub-section */}
+                <div className="mb-8">
+                  <h3 className="text-xs font-black text-[var(--text-muted)] uppercase tracking-widest mb-4">
+                    Master Plan
+                  </h3>
+                  {project.masterPlanImages && project.masterPlanImages.length > 0 ? (
+                    <PlanImageGallery images={project.masterPlanImages} label="Master Plan" />
+                  ) : (
+                    <div className="h-32 bg-[var(--surface-raised)] border border-[var(--border)] rounded-[var(--radius)] flex flex-col items-center justify-center text-[var(--text-muted)] gap-2">
+                      <div className="w-10 h-10 bg-[var(--border)] rounded-lg flex items-center justify-center">
+                        <Layers className="w-5 h-5" />
+                      </div>
+                      <p className="text-[10px] font-bold uppercase tracking-wider">Master Plan TBA</p>
                     </div>
-                    <p className="text-[10px] font-bold uppercase tracking-wider">Master Plan TBA</p>
-                  </div>
-                )}
-              </div>
+                  )}
+                </div>
 
-              {/* Floor Plans sub-section — per-unit images */}
-              <div>
-                <h3 className="text-xs font-black text-[var(--text-muted)] uppercase tracking-widest mb-4">
-                  Floor Plans
-                </h3>
-                {(() => {
-                  const unitsWithPlans = (project.unitConfigs || []).filter(u => u.floorPlan);
-                  if (unitsWithPlans.length === 0) {
-                    return (
-                      <div className="h-32 bg-[var(--surface-raised)] border border-[var(--border)] rounded-[var(--radius)] flex flex-col items-center justify-center text-[var(--text-muted)] gap-2">
-                        <div className="w-10 h-10 bg-[var(--border)] rounded-lg flex items-center justify-center">
-                          <Home className="w-5 h-5" />
+                {/* Floor Plans sub-section — per-unit images */}
+                <div>
+                  <h3 className="text-xs font-black text-[var(--text-muted)] uppercase tracking-widest mb-4">
+                    Floor Plans
+                  </h3>
+                  {(() => {
+                    const unitsWithPlans = (project.unitConfigs || []).filter(u => u.floorPlan);
+                    if (unitsWithPlans.length === 0) {
+                      return (
+                        <div className="h-32 bg-[var(--surface-raised)] border border-[var(--border)] rounded-[var(--radius)] flex flex-col items-center justify-center text-[var(--text-muted)] gap-2">
+                          <div className="w-10 h-10 bg-[var(--border)] rounded-lg flex items-center justify-center">
+                            <Home className="w-5 h-5" />
+                          </div>
+                          <p className="text-[10px] font-bold uppercase tracking-wider">Floor Plans TBA</p>
                         </div>
-                        <p className="text-[10px] font-bold uppercase tracking-wider">Floor Plans TBA</p>
+                      );
+                    }
+                    const groups = new Map<string, typeof unitsWithPlans>();
+                    unitsWithPlans.forEach(u => {
+                      const base = u.type.split(/[-–(]/)[0].trim();
+                      if (!groups.has(base)) groups.set(base, []);
+                      groups.get(base)!.push(u);
+                    });
+                    return (
+                      <div className="space-y-6">
+                        {Array.from(groups.entries()).map(([baseType, units]) => (
+                          <div key={baseType}>
+                            <p className="text-xs font-bold text-[var(--text-secondary)] mb-3">{baseType}</p>
+                            <PlanImageGallery
+                              images={units.map(u => u.floorPlan!)}
+                              labels={units.map(u => `${u.type} · ${u.area} sqft`)}
+                              label={`${baseType} Floor Plan`}
+                            />
+                          </div>
+                        ))}
                       </div>
                     );
-                  }
-                  const groups = new Map<string, typeof unitsWithPlans>();
-                  unitsWithPlans.forEach(u => {
-                    const base = u.type.split(/[-–(]/)[0].trim();
-                    if (!groups.has(base)) groups.set(base, []);
-                    groups.get(base)!.push(u);
-                  });
-                  return (
-                    <div className="space-y-6">
-                      {Array.from(groups.entries()).map(([baseType, units]) => (
-                        <div key={baseType}>
-                          <p className="text-xs font-bold text-[var(--text-secondary)] mb-3">{baseType}</p>
-                          <PlanImageGallery
-                            images={units.map(u => u.floorPlan!)}
-                            labels={units.map(u => `${u.type} · ${u.area} sqft`)}
-                            label={`${baseType} Floor Plan`}
-                          />
-                        </div>
-                      ))}
-                    </div>
-                  );
-                })()}
-              </div>
+                  })()}
+                </div>
+              </GuestGate>
             </div>
 
             {/* ── PRICING ──────────────────────────────── */}
@@ -582,165 +631,170 @@ export default function ProjectDetailPage() {
                 style={{ fontFamily: 'var(--font-display)' }}>
                 Pricing & Unit Plans
               </h2>
+              <GuestGate
+                isGuest={isGuest}
+                label="Sign up to see detailed pricing & unit plans"
+                blur={true}
+              >
+                {(() => {
+                  const typeGroups = pricingTypeGroups;
+                  const activeUnits = typeGroups.find(([key]) => key === activePricingType)?.[1]
+                    || typeGroups[0]?.[1] || [];
 
-              {(() => {
-                const typeGroups = pricingTypeGroups;
-                const activeUnits = typeGroups.find(([key]) => key === activePricingType)?.[1]
-                  || typeGroups[0]?.[1] || [];
+                  return (
+                    <div className="space-y-4">
+                      {/* BHK type tabs */}
+                      {typeGroups.length > 1 && (
+                        <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-1">
+                          {typeGroups.map(([base]) => (
+                            <button key={base} onClick={() => setActivePricingType(base)}
+                              className={`flex-shrink-0 px-4 py-2 rounded-full text-xs font-bold border transition-all ${
+                                activePricingType === base
+                                  ? 'bg-[var(--primary)] text-white border-[var(--primary)]'
+                                  : 'bg-[var(--surface-raised)] text-[var(--text-secondary)] border-[var(--border)] hover:border-[var(--primary)]'
+                              }`}>
+                              {base}
+                            </button>
+                          ))}
+                        </div>
+                      )}
 
-                return (
-                  <div className="space-y-4">
-                    {/* BHK type tabs */}
-                    {typeGroups.length > 1 && (
-                      <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-1">
-                        {typeGroups.map(([base]) => (
-                          <button key={base} onClick={() => setActivePricingType(base)}
-                            className={`flex-shrink-0 px-4 py-2 rounded-full text-xs font-bold border transition-all ${
-                              activePricingType === base
-                                ? 'bg-[var(--primary)] text-white border-[var(--primary)]'
-                                : 'bg-[var(--surface-raised)] text-[var(--text-secondary)] border-[var(--border)] hover:border-[var(--primary)]'
-                            }`}>
-                            {base}
-                          </button>
-                        ))}
-                      </div>
-                    )}
-
-                    {/* Table */}
-                    <div className="overflow-x-auto rounded-[var(--radius)] border border-[var(--border)]">
-                      <table className="w-full text-sm">
-                        <thead>
-                          <tr className="bg-[var(--surface-raised)] border-b border-[var(--border)]">
-                            {['Carpet Area', 'All Inc. Price', 'Min Downpayment', 'Parking', 'Unit Plan'].map(h => (
-                              <th key={h} className="px-4 py-3 text-left font-black text-[var(--text-muted)] text-[10px] uppercase tracking-wider whitespace-nowrap">
-                                {h}
-                              </th>
-                            ))}
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-[var(--border)]">
-                          {activeUnits.map(unit => {
-                            const downpayment = Math.round(unit.priceMin * 0.15);
-                            const isExpanded = expandedEMIRow === unit.id;
-                            return (
-                              <React.Fragment key={unit.id}>
-                                <tr className="hover:bg-[var(--surface-raised)]/50 transition-colors align-top">
-                                  {/* Carpet Area */}
-                                  <td className="px-4 py-3 font-bold text-[var(--text-primary)] whitespace-nowrap">
-                                    {unit.area} sqft
-                                  </td>
-                                  {/* All Inc. Price */}
-                                  <td className="px-4 py-3 font-bold text-[var(--primary)] whitespace-nowrap">
-                                    {formatINR(unit.priceMin)}
-                                    {unit.priceMax > unit.priceMin && (
-                                      <span className="text-[var(--text-muted)] font-normal"> – {formatINR(unit.priceMax)}</span>
-                                    )}
-                                  </td>
-                                  {/* Min Downpayment + EMI button */}
-                                  <td className="px-4 py-3 whitespace-nowrap">
-                                    <div className="flex items-center gap-2 flex-wrap">
-                                      <span className="text-[var(--text-secondary)] font-medium">{formatINR(downpayment)}</span>
-                                      <button
-                                        onClick={() => setExpandedEMIRow(isExpanded ? null : unit.id)}
-                                        className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-black border transition-all uppercase tracking-wider ${
-                                          isExpanded
-                                            ? 'bg-[var(--primary)] text-white border-[var(--primary)]'
-                                            : 'bg-[var(--surface-raised)] text-[var(--primary)] border-[var(--primary)]/40 hover:bg-[var(--primary)] hover:text-white'
-                                        }`}
-                                      >
-                                        EMI <ChevronRight className={`w-2.5 h-2.5 transition-transform ${isExpanded ? 'rotate-90' : ''}`} />
-                                      </button>
-                                    </div>
-                                  </td>
-                                  {/* Parking */}
-                                  <td className="px-4 py-3 text-[var(--text-secondary)] whitespace-nowrap">
-                                    {unit.parking != null ? (
-                                      <span className="flex items-center gap-1.5 text-sm font-medium">
-                                        🚗 {unit.parking}
-                                      </span>
-                                    ) : (
-                                      <span className="text-[var(--text-muted)] text-xs">—</span>
-                                    )}
-                                  </td>
-                                  {/* Unit Plan thumbnail */}
-                                  <td className="px-4 py-3">
-                                    {unit.floorPlan ? (
-                                      <button
-                                        onClick={() => {
-                                          setExpandedFloorPlan({ src: unit.floorPlan!, label: `${unit.type} · ${unit.area} sqft` });
-                                        }}
-                                        className="w-14 h-14 bg-[var(--surface-raised)] border border-[var(--border)] rounded-lg
-                                          overflow-hidden group relative hover:border-[var(--primary)] transition-colors"
-                                      >
-                                        <img src={unit.floorPlan} alt="unit plan"
-                                          className="w-full h-full object-contain p-1" />
-                                        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors
-                                          flex items-center justify-center">
-                                          <ZoomIn className="w-3 h-3 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
-                                        </div>
-                                      </button>
-                                    ) : (
-                                      <span className="text-[var(--text-muted)] text-xs">—</span>
-                                    )}
-                                  </td>
-                                </tr>
-                                {/* EMI calculator row */}
-                                {isExpanded && (
-                                  <tr>
-                                    <td colSpan={5} className="px-4 pb-4 bg-[var(--surface-raised)]/40">
-                                      <div className="p-4 bg-white border border-[var(--border)] rounded-[var(--radius-sm)] space-y-3 mt-1">
-                                        <div className="flex items-center justify-between mb-2">
-                                          <p className="text-xs font-black text-[var(--text-primary)] uppercase tracking-wider">EMI Calculator</p>
-                                          <p className="text-lg font-black text-[var(--primary)]">
-                                            {formatINR(calcEMI(unit.priceMin * 0.85, emiRate, emiTenure))}/mo
-                                          </p>
-                                        </div>
-                                        <div className="grid grid-cols-2 gap-4">
-                                          <div className="space-y-1">
-                                            <div className="flex justify-between text-[10px] text-[var(--text-muted)] uppercase font-bold">
-                                              <span>Interest Rate</span><span>{emiRate}%</span>
-                                            </div>
-                                            <input type="range" min={6.5} max={14} step={0.25}
-                                              value={emiRate} onChange={e => setEmiRate(Number(e.target.value))}
-                                              className="w-full h-1.5 accent-[var(--primary)] cursor-pointer rounded-full" />
-                                          </div>
-                                          <div className="space-y-1">
-                                            <div className="flex justify-between text-[10px] text-[var(--text-muted)] uppercase font-bold">
-                                              <span>Tenure</span><span>{emiTenure} yrs</span>
-                                            </div>
-                                            <input type="range" min={5} max={30} step={1}
-                                              value={emiTenure} onChange={e => setEmiTenure(Number(e.target.value))}
-                                              className="w-full h-1.5 accent-[var(--primary)] cursor-pointer rounded-full" />
-                                          </div>
-                                        </div>
-                                        <div className="grid grid-cols-3 gap-2 pt-1">
-                                          {[
-                                            { label: 'Loan Amount', value: formatINR(Math.round(unit.priceMin * 0.85)) },
-                                            { label: 'Down Payment', value: formatINR(Math.round(unit.priceMin * 0.15)) },
-                                            { label: 'Total Interest', value: formatINR(Math.max(0, calcEMI(unit.priceMin * 0.85, emiRate, emiTenure) * emiTenure * 12 - Math.round(unit.priceMin * 0.85))) },
-                                          ].map(item => (
-                                            <div key={item.label} className="bg-[var(--surface-raised)] p-2 rounded-[var(--radius-xs)]">
-                                              <p className="text-[9px] text-[var(--text-muted)] uppercase font-bold">{item.label}</p>
-                                              <p className="text-xs font-bold text-[var(--text-primary)]">{item.value}</p>
-                                            </div>
-                                          ))}
-                                        </div>
-                                        <p className="text-[9px] text-[var(--text-muted)] italic">
-                                          * Estimate only. 85% loan assumed. Actual terms may vary.
-                                        </p>
+                      {/* Table */}
+                      <div className="overflow-x-auto rounded-[var(--radius)] border border-[var(--border)]">
+                        <table className="w-full text-sm">
+                          <thead>
+                            <tr className="bg-[var(--surface-raised)] border-b border-[var(--border)]">
+                              {['Carpet Area', 'All Inc. Price', 'Min Downpayment', 'Parking', 'Unit Plan'].map(h => (
+                                <th key={h} className="px-4 py-3 text-left font-black text-[var(--text-muted)] text-[10px] uppercase tracking-wider whitespace-nowrap">
+                                  {h}
+                                </th>
+                              ))}
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-[var(--border)]">
+                            {activeUnits.map(unit => {
+                              const downpayment = Math.round(unit.priceMin * 0.15);
+                              const isExpanded = expandedEMIRow === unit.id && !isGuest;
+                              return (
+                                <React.Fragment key={unit.id}>
+                                  <tr className="hover:bg-[var(--surface-raised)]/50 transition-colors align-top">
+                                    {/* Carpet Area */}
+                                    <td className="px-4 py-3 font-bold text-[var(--text-primary)] whitespace-nowrap">
+                                      {unit.area} sqft
+                                    </td>
+                                    {/* All Inc. Price */}
+                                    <td className="px-4 py-3 font-bold text-[var(--primary)] whitespace-nowrap">
+                                      {formatINR(unit.priceMin)}
+                                      {unit.priceMax > unit.priceMin && (
+                                        <span className="text-[var(--text-muted)] font-normal"> – {formatINR(unit.priceMax)}</span>
+                                      )}
+                                    </td>
+                                    {/* Min Downpayment + EMI button */}
+                                    <td className="px-4 py-3 whitespace-nowrap">
+                                      <div className="flex items-center gap-2 flex-wrap">
+                                        <span className="text-[var(--text-secondary)] font-medium">{formatINR(downpayment)}</span>
+                                        <button
+                                          onClick={() => setExpandedEMIRow(isExpanded ? null : unit.id)}
+                                          className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-black border transition-all uppercase tracking-wider ${
+                                            isExpanded
+                                              ? 'bg-[var(--primary)] text-white border-[var(--primary)]'
+                                              : 'bg-[var(--surface-raised)] text-[var(--primary)] border-[var(--primary)]/40 hover:bg-[var(--primary)] hover:text-white'
+                                          }`}
+                                        >
+                                          EMI <ChevronRight className={`w-2.5 h-2.5 transition-transform ${isExpanded ? 'rotate-90' : ''}`} />
+                                        </button>
                                       </div>
                                     </td>
+                                    {/* Parking */}
+                                    <td className="px-4 py-3 text-[var(--text-secondary)] whitespace-nowrap">
+                                      {unit.parking != null ? (
+                                        <span className="flex items-center gap-1.5 text-sm font-medium">
+                                          🚗 {unit.parking}
+                                        </span>
+                                      ) : (
+                                        <span className="text-[var(--text-muted)] text-xs">—</span>
+                                      )}
+                                    </td>
+                                    {/* Unit Plan thumbnail */}
+                                    <td className="px-4 py-3">
+                                      {unit.floorPlan ? (
+                                        <button
+                                          onClick={() => {
+                                            setExpandedFloorPlan({ src: unit.floorPlan!, label: `${unit.type} · ${unit.area} sqft` });
+                                          }}
+                                          className="w-14 h-14 bg-[var(--surface-raised)] border border-[var(--border)] rounded-lg
+                                            overflow-hidden group relative hover:border-[var(--primary)] transition-colors"
+                                        >
+                                          <img src={unit.floorPlan} alt="unit plan"
+                                            className="w-full h-full object-contain p-1" />
+                                          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors
+                                            flex items-center justify-center">
+                                            <ZoomIn className="w-3 h-3 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
+                                          </div>
+                                        </button>
+                                      ) : (
+                                        <span className="text-[var(--text-muted)] text-xs">—</span>
+                                      )}
+                                    </td>
                                   </tr>
-                                )}
-                              </React.Fragment>
-                            );
-                          })}
-                        </tbody>
-                      </table>
+                                  {/* EMI calculator row */}
+                                  {isExpanded && (
+                                    <tr>
+                                      <td colSpan={5} className="px-4 pb-4 bg-[var(--surface-raised)]/40">
+                                        <div className="p-4 bg-white border border-[var(--border)] rounded-[var(--radius-sm)] space-y-3 mt-1">
+                                          <div className="flex items-center justify-between mb-2">
+                                            <p className="text-xs font-black text-[var(--text-primary)] uppercase tracking-wider">EMI Calculator</p>
+                                            <p className="text-lg font-black text-[var(--primary)]">
+                                              {formatINR(calcEMI(unit.priceMin * 0.85, emiRate, emiTenure))}/mo
+                                            </p>
+                                          </div>
+                                          <div className="grid grid-cols-2 gap-4">
+                                            <div className="space-y-1">
+                                              <div className="flex justify-between text-[10px] text-[var(--text-muted)] uppercase font-bold">
+                                                <span>Interest Rate</span><span>{emiRate}%</span>
+                                              </div>
+                                              <input type="range" min={6.5} max={14} step={0.25}
+                                                value={emiRate} onChange={e => setEmiRate(Number(e.target.value))}
+                                                className="w-full h-1.5 accent-[var(--primary)] cursor-pointer rounded-full" />
+                                            </div>
+                                            <div className="space-y-1">
+                                              <div className="flex justify-between text-[10px] text-[var(--text-muted)] uppercase font-bold">
+                                                <span>Tenure</span><span>{emiTenure} yrs</span>
+                                              </div>
+                                              <input type="range" min={5} max={30} step={1}
+                                                value={emiTenure} onChange={e => setEmiTenure(Number(e.target.value))}
+                                                className="w-full h-1.5 accent-[var(--primary)] cursor-pointer rounded-full" />
+                                            </div>
+                                          </div>
+                                          <div className="grid grid-cols-3 gap-2 pt-1">
+                                            {[
+                                              { label: 'Loan Amount', value: formatINR(Math.round(unit.priceMin * 0.85)) },
+                                              { label: 'Down Payment', value: formatINR(Math.round(unit.priceMin * 0.15)) },
+                                              { label: 'Total Interest', value: formatINR(Math.max(0, calcEMI(unit.priceMin * 0.85, emiRate, emiTenure) * emiTenure * 12 - Math.round(unit.priceMin * 0.85))) },
+                                            ].map(item => (
+                                              <div key={item.label} className="bg-[var(--surface-raised)] p-2 rounded-[var(--radius-xs)]">
+                                                <p className="text-[9px] text-[var(--text-muted)] uppercase font-bold">{item.label}</p>
+                                                <p className="text-xs font-bold text-[var(--text-primary)]">{item.value}</p>
+                                              </div>
+                                            ))}
+                                          </div>
+                                          <p className="text-[9px] text-[var(--text-muted)] italic">
+                                            * Estimate only. 85% loan assumed. Actual terms may vary.
+                                          </p>
+                                        </div>
+                                      </td>
+                                    </tr>
+                                  )}
+                                </React.Fragment>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
                     </div>
-                  </div>
-                );
-              })()}
+                  );
+                })()}
+              </GuestGate>
             </div>
 
             {/* ── PROS & CONS ───────────────────────── */}
@@ -752,50 +806,56 @@ export default function ProjectDetailPage() {
                 >
                   Pros & Cons
                 </h2>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-                  {/* Pros */}
-                  {project.pros && project.pros.length > 0 && (
-                    <div className="bg-[var(--success-light)] border border-[var(--success)]/20 rounded-[var(--radius)] p-5">
-                      <div className="flex items-center gap-2 mb-4">
-                        <div className="w-6 h-6 rounded-full bg-[var(--success)] flex items-center justify-center flex-shrink-0">
-                          <CheckCircle2 className="w-3.5 h-3.5 text-white" />
+                <GuestGate
+                  isGuest={isGuest}
+                  label="Sign up to see honest pros & cons for this project"
+                  blur={true}
+                >
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                    {/* Pros */}
+                    {project.pros && project.pros.length > 0 && (
+                      <div className="bg-[var(--success-light)] border border-[var(--success)]/20 rounded-[var(--radius)] p-5">
+                        <div className="flex items-center gap-2 mb-4">
+                          <div className="w-6 h-6 rounded-full bg-[var(--success)] flex items-center justify-center flex-shrink-0">
+                            <CheckCircle2 className="w-3.5 h-3.5 text-white" />
+                          </div>
+                          <h3 className="text-xs font-black text-[var(--success)] uppercase tracking-widest">
+                            Pros
+                          </h3>
                         </div>
-                        <h3 className="text-xs font-black text-[var(--success)] uppercase tracking-widest">
-                          Pros
-                        </h3>
+                        <ul className="space-y-2.5">
+                          {project.pros.map((pro, i) => (
+                            <li key={i} className="flex items-start gap-2.5">
+                              <CheckCircle2 className="w-4 h-4 text-[var(--success)] flex-shrink-0 mt-0.5" />
+                              <span className="text-sm text-[var(--text-secondary)] leading-snug">{pro}</span>
+                            </li>
+                          ))}
+                        </ul>
                       </div>
-                      <ul className="space-y-2.5">
-                        {project.pros.map((pro, i) => (
-                          <li key={i} className="flex items-start gap-2.5">
-                            <CheckCircle2 className="w-4 h-4 text-[var(--success)] flex-shrink-0 mt-0.5" />
-                            <span className="text-sm text-[var(--text-secondary)] leading-snug">{pro}</span>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-                  {/* Cons */}
-                  {project.cons && project.cons.length > 0 && (
-                    <div className="bg-[var(--danger-light)] border border-[var(--danger)]/20 rounded-[var(--radius)] p-5">
-                      <div className="flex items-center gap-2 mb-4">
-                        <div className="w-6 h-6 rounded-full bg-[var(--danger)] flex items-center justify-center flex-shrink-0">
-                          <XCircle className="w-3.5 h-3.5 text-white" />
+                    )}
+                    {/* Cons */}
+                    {project.cons && project.cons.length > 0 && (
+                      <div className="bg-[var(--danger-light)] border border-[var(--danger)]/20 rounded-[var(--radius)] p-5">
+                        <div className="flex items-center gap-2 mb-4">
+                          <div className="w-6 h-6 rounded-full bg-[var(--danger)] flex items-center justify-center flex-shrink-0">
+                            <XCircle className="w-3.5 h-3.5 text-white" />
+                          </div>
+                          <h3 className="text-xs font-black text-[var(--danger)] uppercase tracking-widest">
+                            Cons
+                          </h3>
                         </div>
-                        <h3 className="text-xs font-black text-[var(--danger)] uppercase tracking-widest">
-                          Cons
-                        </h3>
+                        <ul className="space-y-2.5">
+                          {project.cons.map((con, i) => (
+                            <li key={i} className="flex items-start gap-2.5">
+                              <XCircle className="w-4 h-4 text-[var(--danger)] flex-shrink-0 mt-0.5" />
+                              <span className="text-sm text-[var(--text-secondary)] leading-snug">{con}</span>
+                            </li>
+                          ))}
+                        </ul>
                       </div>
-                      <ul className="space-y-2.5">
-                        {project.cons.map((con, i) => (
-                          <li key={i} className="flex items-start gap-2.5">
-                            <XCircle className="w-4 h-4 text-[var(--danger)] flex-shrink-0 mt-0.5" />
-                            <span className="text-sm text-[var(--text-secondary)] leading-snug">{con}</span>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-                </div>
+                    )}
+                  </div>
+                </GuestGate>
               </div>
             )}
 
@@ -805,28 +865,34 @@ export default function ProjectDetailPage() {
                 style={{ fontFamily: 'var(--font-display)' }}>
                 Legal
               </h2>
-              <div className={`flex items-start gap-4 p-5 rounded-[var(--radius-sm)] border ${
-                !project.litigation
-                  ? 'bg-[var(--success-light)] border-[var(--success)]/20'
-                  : 'bg-[var(--danger-light)] border-[var(--danger)]/20'
-              }`}>
-                {!project.litigation
-                  ? <CheckCircle2 className="w-6 h-6 text-[var(--success)] flex-shrink-0 mt-0.5" />
-                  : <XCircle className="w-6 h-6 text-[var(--danger)] flex-shrink-0 mt-0.5" />
-                }
-                <div>
-                  <p className={`font-black text-base ${!project.litigation ? 'text-[var(--success)]' : 'text-[var(--danger)]'}`}>
-                    {!project.litigation
-                      ? 'No Litigation'
-                      : 'Litigation Exists'}
-                  </p>
-                  <p className="text-sm text-[var(--text-secondary)] mt-1">
-                    {project.litigation
-                      ? (project.litigationDetails || 'This project has pending litigation. Verify with a legal expert before purchase.')
-                      : 'There is no pending litigation on this project at the time of last verification.'}
-                  </p>
+              <GuestGate
+                isGuest={isGuest}
+                label="Sign up to view legal details"
+                blur={true}
+              >
+                <div className={`flex items-start gap-4 p-5 rounded-[var(--radius-sm)] border ${
+                  !project.litigation
+                    ? 'bg-[var(--success-light)] border-[var(--success)]/20'
+                    : 'bg-[var(--danger-light)] border-[var(--danger)]/20'
+                }`}>
+                  {!project.litigation
+                    ? <CheckCircle2 className="w-6 h-6 text-[var(--success)] flex-shrink-0 mt-0.5" />
+                    : <XCircle className="w-6 h-6 text-[var(--danger)] flex-shrink-0 mt-0.5" />
+                  }
+                  <div>
+                    <p className={`font-black text-base ${!project.litigation ? 'text-[var(--success)]' : 'text-[var(--danger)]'}`}>
+                      {!project.litigation
+                        ? 'No Litigation'
+                        : 'Litigation Exists'}
+                    </p>
+                    <p className="text-sm text-[var(--text-secondary)] mt-1">
+                      {project.litigation
+                        ? (project.litigationDetails || 'This project has pending litigation. Verify with a legal expert before purchase.')
+                        : 'There is no pending litigation on this project at the time of last verification.'}
+                    </p>
+                  </div>
                 </div>
-              </div>
+              </GuestGate>
             </div>
 
             {/* ── RERA ─────────────────────────────────── */}
@@ -835,59 +901,64 @@ export default function ProjectDetailPage() {
                 style={{ fontFamily: 'var(--font-display)' }}>
                 RERA Registration
               </h2>
+              <GuestGate
+                isGuest={isGuest}
+                label="Sign up to view RERA registration details"
+                blur={true}
+              >
+                {(() => {
+                  const regs = project.reraRegistrations?.length
+                    ? project.reraRegistrations
+                    : project.reraId
+                      ? [{ id: 'legacy', reraId: project.reraId, reraLink: project.reraLink, description: undefined }]
+                      : [];
 
-              {(() => {
-                const regs = project.reraRegistrations?.length
-                  ? project.reraRegistrations
-                  : project.reraId
-                    ? [{ id: 'legacy', reraId: project.reraId, reraLink: project.reraLink, description: undefined }]
-                    : [];
+                  if (regs.length === 0) {
+                    return <p className="text-sm text-[var(--text-muted)] italic">RERA details not available.</p>;
+                  }
 
-                if (regs.length === 0) {
-                  return <p className="text-sm text-[var(--text-muted)] italic">RERA details not available.</p>;
-                }
-
-                return (
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-5">
-                    {regs.map(reg => (
-                      <div key={reg.id} className="flex flex-col items-center gap-3 p-4
-                        bg-[var(--surface-raised)] border border-[var(--border)] rounded-[var(--radius-sm)]">
-                        {reg.reraLink ? (
-                          <a href={reg.reraLink} target="_blank" rel="noopener noreferrer"
-                            className="group flex flex-col items-center gap-1">
-                            <div className="w-28 h-28 bg-white border border-[var(--border)] rounded-lg overflow-hidden
-                              group-hover:shadow-md transition-shadow p-1.5">
-                              <img
-                                src={`https://api.qrserver.com/v1/create-qr-code/?data=${encodeURIComponent(reg.reraLink)}&size=160x160&margin=0`}
-                                alt={`QR for ${reg.reraId}`}
-                                className="w-full h-full object-contain"
-                              />
+                  return (
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-5">
+                      {regs.map(reg => (
+                        <div key={reg.id} className="flex flex-col items-center gap-3 p-4
+                          bg-[var(--surface-raised)] border border-[var(--border)] rounded-[var(--radius-sm)]">
+                          {reg.reraLink ? (
+                            <a href={reg.reraLink} target="_blank" rel="noopener noreferrer"
+                              className="group flex flex-col items-center gap-1">
+                              <div className="w-28 h-28 bg-white border border-[var(--border)] rounded-lg overflow-hidden
+                                group-hover:shadow-md transition-shadow p-1.5">
+                                <img
+                                  src={`https://api.qrserver.com/v1/create-qr-code/?data=${encodeURIComponent(reg.reraLink)}&size=160x160&margin=0`}
+                                  alt={`QR for ${reg.reraId}`}
+                                  className="w-full h-full object-contain"
+                                />
+                              </div>
+                              <p className="text-[9px] text-[var(--primary)] font-bold group-hover:underline uppercase tracking-wider">
+                                Scan / Click
+                              </p>
+                            </a>
+                          ) : (
+                            <div className="w-28 h-28 bg-[var(--border)] rounded-lg flex items-center justify-center">
+                              <p className="text-[9px] text-[var(--text-muted)] text-center px-2">No RERA link</p>
                             </div>
-                            <p className="text-[9px] text-[var(--primary)] font-bold group-hover:underline uppercase tracking-wider">
-                              Scan / Click
-                            </p>
-                          </a>
-                        ) : (
-                          <div className="w-28 h-28 bg-[var(--border)] rounded-lg flex items-center justify-center">
-                            <p className="text-[9px] text-[var(--text-muted)] text-center px-2">No RERA link</p>
-                          </div>
-                        )}
-                        <div className="text-center">
-                          <p className="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-wider">
-                            RERA No.
-                          </p>
-                          <p className="text-sm font-bold text-[var(--text-primary)] mt-0.5 break-all">
-                            {reg.reraId}
-                          </p>
-                          {reg.description && (
-                            <p className="text-[10px] text-[var(--text-muted)] mt-0.5">{reg.description}</p>
                           )}
+                          <div className="text-center">
+                            <p className="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-wider">
+                              RERA No.
+                            </p>
+                            <p className="text-sm font-bold text-[var(--text-primary)] mt-0.5 break-all">
+                              {reg.reraId}
+                            </p>
+                            {reg.description && (
+                              <p className="text-[10px] text-[var(--text-muted)] mt-0.5">{reg.description}</p>
+                            )}
+                          </div>
                         </div>
-                      </div>
-                    ))}
-                  </div>
-                );
-              })()}
+                      ))}
+                    </div>
+                  );
+                })()}
+              </GuestGate>
             </div>
 
             {/* ── BANK APPROVALS ───────────────────────── */}
@@ -918,51 +989,57 @@ export default function ProjectDetailPage() {
                 style={{ fontFamily: 'var(--font-display)' }}>
                 About {project.builderName}
               </h2>
-              <div className="p-5 bg-[var(--surface-raised)] border border-[var(--border)] rounded-[var(--radius)]">
-                <div className="flex items-center gap-4 mb-4">
-                  {project.builderLogo && (
-                    <img src={project.builderLogo} alt={project.builderName}
-                      className="w-16 h-16 object-contain rounded-lg border border-[var(--border)] bg-white p-1" />
-                  )}
-                  <div>
-                    <p className="font-black text-[var(--text-primary)] text-lg">{project.builderName}</p>
-                    <div className="flex flex-wrap gap-3 mt-1">
-                      {project.builderYearsExperience && (
-                        <p className="text-xs text-[var(--text-muted)]">
-                          {project.builderYearsExperience}+ years experience
-                        </p>
-                      )}
-                      {project.builderCompletedProjects && (
-                        <p className="text-xs text-[var(--text-muted)]">
-                          {project.builderCompletedProjects}+ completed projects
-                        </p>
-                      )}
+              <GuestGate
+                isGuest={isGuest}
+                label="Sign up to see builder details & track record"
+                blur={true}
+              >
+                <div className="p-5 bg-[var(--surface-raised)] border border-[var(--border)] rounded-[var(--radius)]">
+                  <div className="flex items-center gap-4 mb-4">
+                    {project.builderLogo && (
+                      <img src={project.builderLogo} alt={project.builderName}
+                        className="w-16 h-16 object-contain rounded-lg border border-[var(--border)] bg-white p-1" />
+                    )}
+                    <div>
+                      <p className="font-black text-[var(--text-primary)] text-lg">{project.builderName}</p>
+                      <div className="flex flex-wrap gap-3 mt-1">
+                        {project.builderYearsExperience && (
+                          <p className="text-xs text-[var(--text-muted)]">
+                            {project.builderYearsExperience}+ years experience
+                          </p>
+                        )}
+                        {project.builderCompletedProjects && (
+                          <p className="text-xs text-[var(--text-muted)]">
+                            {project.builderCompletedProjects}+ completed projects
+                          </p>
+                        )}
+                      </div>
                     </div>
                   </div>
-                </div>
 
-                {project.builderDescription && (
-                  <p className="text-sm text-[var(--text-secondary)] leading-relaxed mb-4">
-                    {project.builderDescription}
-                  </p>
-                )}
-
-                {project.builderTopProjects && project.builderTopProjects.length > 0 && (
-                  <div>
-                    <p className="text-xs font-black text-[var(--text-muted)] uppercase tracking-wider mb-2">
-                      Notable Projects
+                  {project.builderDescription && (
+                    <p className="text-sm text-[var(--text-secondary)] leading-relaxed mb-4">
+                      {project.builderDescription}
                     </p>
-                    <ul className="space-y-1">
-                      {project.builderTopProjects.slice(0, 5).map((p, i) => (
-                        <li key={i} className="text-sm text-[var(--text-secondary)] flex items-center gap-1.5">
-                          <span className="w-1 h-1 rounded-full bg-[var(--primary)] flex-shrink-0" />
-                          {p.name} — {p.location}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-              </div>
+                  )}
+
+                  {project.builderTopProjects && project.builderTopProjects.length > 0 && (
+                    <div>
+                      <p className="text-xs font-black text-[var(--text-muted)] uppercase tracking-wider mb-2">
+                        Notable Projects
+                      </p>
+                      <ul className="space-y-1">
+                        {project.builderTopProjects.slice(0, 5).map((p, i) => (
+                          <li key={i} className="text-sm text-[var(--text-secondary)] flex items-center gap-1.5">
+                            <span className="w-1 h-1 rounded-full bg-[var(--primary)] flex-shrink-0" />
+                            {p.name} — {p.location}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </div>
+              </GuestGate>
             </div>
 
           </div>
@@ -995,6 +1072,26 @@ export default function ProjectDetailPage() {
                 </div>
 
                 <ConsultationCTA project={project} variant="primary" triggerSource="project_detail_sidebar" />
+
+                {/* Ask AI button */}
+                <button
+                  onClick={() => {
+                    if (isGuest && GUEST_LIMITS.project.aiLocked) {
+                      toast('Sign up to ask AI questions about this project', {
+                        action: { label: 'Get Started', onClick: () => router.push('/onboarding') }
+                      });
+                      return;
+                    }
+                    setIsAIModalOpen(true);
+                  }}
+                  className="w-full flex items-center justify-center gap-2 mt-4 py-2.5
+                    border border-[var(--primary)]/40 rounded-[var(--radius-xs)] text-sm
+                    font-semibold text-[var(--primary)] hover:bg-[var(--primary-light)] transition-colors"
+                >
+                  <Sparkles className="w-4 h-4" />
+                  Ask AI
+                  {isGuest && <Lock className="w-3.5 h-3.5 ml-1" />}
+                </button>
               </div>
 
               {/* Quick facts */}
