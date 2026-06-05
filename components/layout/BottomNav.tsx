@@ -2,15 +2,23 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, Compass, Sparkles, GitCompareArrows } from "lucide-react";
+import { Home, Compass, Sparkles, GitCompareArrows, User, LogIn } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useGuestMode } from "@/hooks/useGuestMode";
 
-const NAV_ITEMS = [
+const GUEST_NAV_ITEMS = [
+  { label: 'Sign Up', href: '/onboarding', icon: LogIn },
+  { label: 'Explore', href: '/explore', icon: Compass },
+  { label: 'AI Chat', href: '/ai-chat', icon: Sparkles },
+  { label: 'Compare', href: '/compare', icon: GitCompareArrows },
+];
+
+const USER_NAV_ITEMS = [
   { label: 'Home', href: '/dashboard', icon: Home },
   { label: 'Explore', href: '/explore', icon: Compass },
   { label: 'AI Chat', href: '/ai-chat', icon: Sparkles },
   { label: 'Compare', href: '/compare', icon: GitCompareArrows },
+  { label: 'Profile', href: '/profile', icon: User },
 ];
 
 export default function BottomNav() {
@@ -18,11 +26,7 @@ export default function BottomNav() {
   const { isGuest } = useGuestMode();
   if (pathname.startsWith('/admin') || pathname === '/' || pathname === '/onboarding' || pathname === '/auth') return null;
 
-  const resolvedItems = NAV_ITEMS.map(item => ({
-    ...item,
-    href: isGuest && item.href === '/dashboard' ? '/onboarding' : item.href,
-    label: isGuest && item.href === '/dashboard' ? 'Set Up' : item.label,
-  }));
+  const resolvedItems = isGuest ? GUEST_NAV_ITEMS : USER_NAV_ITEMS;
 
   return (
     <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-[var(--surface)] border-t border-[var(--border)] pb-[env(safe-area-inset-bottom)]">

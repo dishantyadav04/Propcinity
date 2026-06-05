@@ -7,9 +7,24 @@ import SectionContainer from "@/components/layout/SectionContainer";
 import { toast } from "sonner";
 
 import { storage, STORAGE_KEYS } from "@/lib/storage";
+import { useGuestMode } from "@/hooks/useGuestMode";
 
 export default function PersonalInfoPage() {
   const router = useRouter();
+  const { isGuest } = useGuestMode();
+
+  useEffect(() => {
+    if (isGuest) router.replace('/onboarding');
+  }, [isGuest, router]);
+
+  if (isGuest) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="w-8 h-8 border-2 border-[var(--primary)] border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
+
   const [isEditing, setIsEditing] = useState(false);
   const [form, setForm] = useState({
     name: '',

@@ -8,9 +8,24 @@ import { UserIntent } from "@/types/user";
 import { toast } from "sonner";
 
 import { storage, STORAGE_KEYS } from "@/lib/storage";
+import { useGuestMode } from "@/hooks/useGuestMode";
 
 export default function PreferencesPage() {
   const router = useRouter();
+  const { isGuest } = useGuestMode();
+
+  useEffect(() => {
+    if (isGuest) router.replace('/onboarding');
+  }, [isGuest, router]);
+
+  if (isGuest) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="w-8 h-8 border-2 border-[var(--primary)] border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
+
   const [intent, setIntent] = useState<UserIntent | null>(null);
 
   useEffect(() => {

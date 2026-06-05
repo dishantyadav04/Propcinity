@@ -13,7 +13,13 @@ export default function TopHeader() {
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
 
-  if (pathname.startsWith('/admin') || pathname === '/' || pathname === '/onboarding') return null;
+  if (
+    pathname.startsWith('/admin') ||
+    pathname === '/' ||
+    pathname === '/onboarding' ||
+    pathname === '/ai-chat' ||
+    pathname.startsWith('/profile')
+  ) return null;
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -23,6 +29,19 @@ export default function TopHeader() {
       setSearchQuery('');
     }
   };
+
+  const navItems = isGuest
+    ? [
+        { label: 'Explore', href: '/explore' },
+        { label: 'AI Chat', href: '/ai-chat' },
+        { label: 'Compare', href: '/compare' },
+      ]
+    : [
+        { label: 'Dashboard', href: '/dashboard' },
+        { label: 'Explore', href: '/explore' },
+        { label: 'AI Chat', href: '/ai-chat' },
+        { label: 'Compare', href: '/compare' },
+      ];
 
   return (
     <header className="sticky top-0 z-40 bg-[var(--surface)]/95 backdrop-blur-xl border-b border-[var(--border)]">
@@ -38,12 +57,7 @@ export default function TopHeader() {
 
         {/* Desktop Nav */}
         <nav className="hidden md:flex items-center gap-1">
-          {[
-            { label: 'Dashboard', href: '/dashboard' },
-            { label: 'Explore', href: '/explore' },
-            { label: 'AI Chat', href: '/ai-chat' },
-            { label: 'Compare', href: '/compare' },
-          ].map(item => (
+          {navItems.map(item => (
             <Link key={item.href} href={item.href}
               className={`px-4 py-2 rounded-[var(--radius-xs)] text-sm font-semibold transition-colors ${
                 pathname === item.href
@@ -82,7 +96,7 @@ export default function TopHeader() {
               href="/onboarding"
               className="px-4 py-2 bg-[var(--primary)] text-white text-sm font-bold rounded-[var(--radius-xs)] hover:opacity-90 transition-opacity shadow-[var(--shadow-primary)]"
             >
-              Get Started
+              Sign Up / Login
             </Link>
           ) : (
             <Link

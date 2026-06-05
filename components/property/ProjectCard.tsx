@@ -4,19 +4,21 @@ import { Project, UnitConfig } from "@/types/project";
 import InsightsPanel from "./InsightsPanel";
 import WhyThisFitsYou from "./WhyThisFitsYou";
 import { formatINR } from "@/lib/finance-calculations";
-import { MapPin, ChevronRight, ShieldCheck } from "lucide-react";
+import { MapPin, ChevronRight, ShieldCheck, Plus, Check } from "lucide-react";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { useEffect, useState } from "react";
 import { addToCompare } from "@/lib/utils";
 import { storage, STORAGE_KEYS } from "@/lib/storage";
 import { toast } from "sonner";
+import { useGuestMode } from "@/hooks/useGuestMode";
+import { useRouter } from "next/navigation";
 
 interface ProjectCardProps {
   project: Project;
   matchedUnit?: UnitConfig;
   index?: number;
-  hideRiskBadge?: boolean; // Kept for prop compatibility but logic removed
+  hideRiskBadge?: boolean;
 }
 
 export default function ProjectCard({
@@ -27,16 +29,29 @@ export default function ProjectCard({
     ? Math.min(...project.unitConfigs.map(u => u.priceMin))
     : 0;
 
+  const { isGuest } = useGuestMode();
+  const router = useRouter();
+
   const [isComparing, setIsComparing] = useState(false);
+  const [isCurated, setIsCurated] = useState(false);
 
   useEffect(() => {
     const checkCompare = () => {
       const current = storage.get<any[]>(STORAGE_KEYS.COMPARE_ITEMS, []);
       setIsComparing(!!current.find(p => p.id === project.id));
     };
+    const checkCurated = () => {
+      const curated = storage.get<string[]>(STORAGE_KEYS.CURATED_IDS, []);
+      setIsCurated(curated.includes(project.id));
+    };
     checkCompare();
+    checkCurated();
     window.addEventListener('compareUpdated', checkCompare);
-    return () => window.removeEventListener('compareUpdated', checkCompare);
+    window.addEventListener('curatedUpdated', checkCurated);
+    return () => {
+      window.removeEventListener('compareUpdated', checkCompare);
+      window.removeEventListener('curatedUpdated', checkCurated);
+    };
   }, [project.id]);
 
   const handleCompare = (e: React.MouseEvent) => {
@@ -51,15 +66,56 @@ export default function ProjectCard({
     addToCompare(project);
   };
 
+  const toggleCurated = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const curated = storage.get<string[]>(STORAGE_KEYS.CURATED_IDS, []);
+    const exists = curated.includes(project.id);
+    const updated = exists
+      ? curated.filter((id: string) => id !== project.id)
+      : [...curated, project.id];
+    storage.set(STORAGE_KEYS.CURATED_IDS, updated);
+    setIsCurated(!exists);
+    window.dispatchEvent(new Event('curatedUpdated'));
+  };
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true }}
       transition={{ delay: index * 0.05 }}
-      className="group bg-[var(--surface)] border border-[var(--border)] rounded-[var(--radius)] shadow-[var(--shadow-sm)] card-hover overflow-hidden flex flex-col"
+      className="group bg-[var(--surface)] border border-[var(--border)] rounded-[var(--radius)] shadow-[var(--shadow-sm)] card-hover overflow-hidden flex flex-col relative"
       style={{ minHeight: '360px' }}
     >
+      {/* Dashboard + / ✓ button */}
+      <button
+        onClick={e => {
+          if (isGuest) {
+            toast('Sign up to save projects to your Dashboard', {
+              action: { label: 'Get Started — Free', onClick: () => router.push('/onboarding') }
+            });
+            return;
+          }
+          toggleCurated(e);
+        }}
+        title={isCurated ? 'Remove from Dashboard' : 'Add to Dashboard'}
+        className={`absolute top-3 right-3 z-30 w-7 h-7 rounded-full
+          flex items-center justify-center
+          opacity-0 group-hover:opacity-100
+          transition-all duration-150 shadow-sm backdrop-blur-sm
+          hover:scale-110 ${
+            isCurated
+              ? 'bg-[var(--primary)] text-white'
+              : 'bg-black/30 text-white hover:bg-[var(--primary)]'
+          }`}
+      >
+        {isCurated
+          ? <Check className="w-3.5 h-3.5" />
+          : <Plus className="w-3.5 h-3.5" />
+        }
+      </button>
+
       <Link href={`/projects/${project.slug}`} className="block flex flex-col flex-1">
         {/* Image */}
         <div className="relative h-48 overflow-hidden bg-[var(--surface-raised)]">

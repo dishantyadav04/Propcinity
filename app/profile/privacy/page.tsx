@@ -1,13 +1,29 @@
 'use client';
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { ArrowLeft, ShieldCheck, Eye, Bell, Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import SectionContainer from "@/components/layout/SectionContainer";
 import { toast } from "sonner";
 
+import { useGuestMode } from "@/hooks/useGuestMode";
+
 export default function PrivacyPage() {
   const router = useRouter();
+  const { isGuest } = useGuestMode();
+
+  useEffect(() => {
+    if (isGuest) router.replace('/onboarding');
+  }, [isGuest, router]);
+
+  if (isGuest) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="w-8 h-8 border-2 border-[var(--primary)] border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
+
   const [notifications, setNotifications] = useState({ email: true, whatsapp: false, updates: true });
 
   const handleDeleteAccount = () => {

@@ -8,12 +8,29 @@ import {
   Wallet, Scale
 } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import SectionContainer from "@/components/layout/SectionContainer";
 import { motion } from "framer-motion";
 
 import { storage, STORAGE_KEYS } from "@/lib/storage";
+import { useGuestMode } from "@/hooks/useGuestMode";
 
 export default function ProfilePage() {
+  const router = useRouter();
+  const { isGuest } = useGuestMode();
+
+  useEffect(() => {
+    if (isGuest) router.replace('/onboarding');
+  }, [isGuest, router]);
+
+  if (isGuest) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="w-8 h-8 border-2 border-[var(--primary)] border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
+
   const [intent, setIntent] = useState<UserIntent | null>(null);
   const [curatedCount, setCuratedCount] = useState(0);
 

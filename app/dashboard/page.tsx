@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState, useMemo } from 'react';
+import { useRouter } from 'next/navigation';
 import SectionContainer from '@/components/layout/SectionContainer';
 import ProjectCard from '@/components/property/ProjectCard';
 import { Project } from '@/types/project';
@@ -12,6 +13,7 @@ import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
 import { getMatchPercent } from '@/lib/match-score';
 import { storage, STORAGE_KEYS } from '@/lib/storage';
+import { useGuestMode } from '@/hooks/useGuestMode';
 
 function getSmartMatchLabel(project: Project, intent: any): string | null {
   if (!intent) return null;
@@ -136,6 +138,21 @@ function smartRankProjects(projects: Project[], intent: any): string[] {
 const RECO_CACHE_KEY = 'propcinity_reco_cache';
 
 export default function DashboardPage() {
+  const router = useRouter();
+  const { isGuest } = useGuestMode();
+
+  useEffect(() => {
+    if (isGuest) router.replace('/onboarding');
+  }, [isGuest, router]);
+
+  if (isGuest) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="w-8 h-8 border-2 border-[var(--primary)] border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
+
   const [projects, setProjects] = useState<Project[]>([]);
   const [userIntent, setUserIntent] = useState<UserIntent | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -355,7 +372,7 @@ export default function DashboardPage() {
                     <button
                       onClick={() => handleRemove(project.id)}
                       title="Remove from dashboard"
-                      className="absolute top-3 right-3 z-30 w-7 h-7 rounded-full
+                      className="absolute top-3 left-3 z-30 w-7 h-7 rounded-full
                         bg-black/30 text-white backdrop-blur-sm
                         flex items-center justify-center
                         opacity-0 group-hover:opacity-100
