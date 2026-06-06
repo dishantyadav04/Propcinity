@@ -11,6 +11,7 @@ import { useGuestMode } from "@/hooks/useGuestMode";
 export default function PrivacyPage() {
   const router = useRouter();
   const { isGuest } = useGuestMode();
+  const [notifications, setNotifications] = useState({ email: true, whatsapp: false, updates: true });
 
   useEffect(() => {
     if (isGuest) router.replace('/onboarding');
@@ -23,8 +24,6 @@ export default function PrivacyPage() {
       </div>
     );
   }
-
-  const [notifications, setNotifications] = useState({ email: true, whatsapp: false, updates: true });
 
   const handleDeleteAccount = () => {
     if (confirm('Are you sure you want to delete your account? This will permanently remove all your preferences and saved data. This action cannot be undone.')) {

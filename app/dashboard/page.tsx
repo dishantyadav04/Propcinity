@@ -141,18 +141,6 @@ export default function DashboardPage() {
   const router = useRouter();
   const { isGuest } = useGuestMode();
 
-  useEffect(() => {
-    if (isGuest) router.replace('/onboarding');
-  }, [isGuest, router]);
-
-  if (isGuest) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="w-8 h-8 border-2 border-[var(--primary)] border-t-transparent rounded-full animate-spin" />
-      </div>
-    );
-  }
-
   const [projects, setProjects] = useState<Project[]>([]);
   const [userIntent, setUserIntent] = useState<UserIntent | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -163,6 +151,10 @@ export default function DashboardPage() {
   const [curatedIds, setCuratedIds] = useState<string[]>([]);
   const [rejectedIds, setRejectedIds] = useState<string[]>([]);
   const [userName, setUserName] = useState<string>('');
+
+  useEffect(() => {
+    if (isGuest) router.replace('/onboarding');
+  }, [isGuest, router]);
 
   useEffect(() => {
     const loadFromStorage = () => {
@@ -267,6 +259,14 @@ export default function DashboardPage() {
       .sort((a, b) => (b.constructionPercent || 0) - (a.constructionPercent || 0))
       .slice(0, 12);
   }, [projects, aiRecommended, curatedIds, rejectedIds, storageReady]);
+
+  if (isGuest) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="w-8 h-8 border-2 border-[var(--primary)] border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
 
   const showSkeleton =
     isLoading ||

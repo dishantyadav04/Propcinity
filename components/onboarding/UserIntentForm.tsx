@@ -75,6 +75,7 @@ export default function UserIntentForm() {
   const [socialAuthUsed, setSocialAuthUsed] = useState(false);
   const [subInput, setSubInput] = useState('');
   const [showMoreSubLocs, setShowMoreSubLocs] = useState(false);
+  const [consentGiven, setConsentGiven] = useState(false);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -118,7 +119,7 @@ export default function UserIntentForm() {
     if (step === 4) return form.propertyType.length > 0;
     if (step === 5) return form.bhkType.length > 0;
     if (step === 6) return true;
-    if (step === 7) return !!form.timeline;
+    if (step === 7) return !!form.timeline && consentGiven;
     return true;
   };
 
@@ -633,6 +634,56 @@ export default function UserIntentForm() {
                       </button>
                     ))}
                   </div>
+                </div>
+
+                {/* Privacy & Terms consent */}
+                <div className="pt-2">
+                  <label className="flex items-start gap-3 cursor-pointer group">
+                    <div className="relative mt-0.5 flex-shrink-0">
+                      <input
+                        type="checkbox"
+                        checked={consentGiven}
+                        onChange={e => setConsentGiven(e.target.checked)}
+                        className="sr-only"
+                      />
+                      <div
+                        onClick={() => setConsentGiven(v => !v)}
+                        className={cn(
+                          "w-5 h-5 rounded border-2 flex items-center justify-center transition-all cursor-pointer",
+                          consentGiven
+                            ? "bg-[var(--primary)] border-[var(--primary)]"
+                            : "bg-white border-[var(--border-strong)] group-hover:border-[var(--primary)]"
+                        )}
+                      >
+                        {consentGiven && (
+                          <Check className="w-3 h-3 text-white" />
+                        )}
+                      </div>
+                    </div>
+                    <p className="text-xs text-[var(--text-secondary)] leading-relaxed">
+                      I agree to Propcinity's{' '}
+                      <a
+                        href="/terms"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-[var(--primary)] font-semibold underline underline-offset-2"
+                        onClick={e => e.stopPropagation()}
+                      >
+                        Terms & Conditions
+                      </a>
+                      {' '}and{' '}
+                      <a
+                        href="/privacy"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-[var(--primary)] font-semibold underline underline-offset-2"
+                        onClick={e => e.stopPropagation()}
+                      >
+                        Privacy Policy
+                      </a>
+                      . I consent to sharing my contact details with builders for properties I enquire about.
+                    </p>
+                  </label>
                 </div>
               </div>
             )}

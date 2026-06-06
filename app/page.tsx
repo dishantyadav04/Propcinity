@@ -1,9 +1,11 @@
 'use client';
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { ArrowRight, ShieldCheck, Star, Building2, MapPin, TrendingUp, CheckCircle2 } from "lucide-react";
 import { motion } from "framer-motion";
 import { useEffect, useState } from "react";
+import { useGuestMode } from "@/hooks/useGuestMode";
 
 // Inline SVG background — architectural city silhouette
 function CitySilhouette() {
@@ -130,7 +132,15 @@ function StatCard({ icon: Icon, value, label, delay }: {
 }
 
 export default function LandingPage() {
+  const router = useRouter();
+  const { isGuest } = useGuestMode();
   const [projectCount, setProjectCount] = useState(0);
+
+  useEffect(() => {
+    if (!isGuest) {
+      router.replace('/explore');
+    }
+  }, [isGuest, router]);
 
   useEffect(() => {
     fetch('/api/projects')
@@ -140,15 +150,17 @@ export default function LandingPage() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-[var(--background)] overflow-x-hidden">
+    <div className="min-h-screen bg-[var(--background)] overflow-x-hidden md:-mt-16">
 
       {/* ── Nav ─────────────────────────────────────────────── */}
       <nav className="sticky top-0 z-50 bg-white/90 backdrop-blur-xl border-b border-[var(--border)]">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
-          <span className="text-xl font-black text-[var(--text-primary)] tracking-tight"
-            style={{ fontFamily: 'var(--font-display)' }}>
-            Prop<span className="text-[var(--primary)]">cinity</span>
-          </span>
+          <Link href={isGuest ? '/' : '/explore'}>
+            <span className="text-xl font-black text-[var(--text-primary)] tracking-tight"
+              style={{ fontFamily: 'var(--font-display)' }}>
+              Prop<span className="text-[var(--primary)]">cinity</span>
+            </span>
+          </Link>
           <div className="flex items-center gap-3">
             <span className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5
               bg-[var(--success-light)] text-[var(--success)] text-xs font-bold rounded-full">

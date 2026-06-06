@@ -18,7 +18,9 @@ export default function TopHeader() {
     pathname === '/' ||
     pathname === '/onboarding' ||
     pathname === '/ai-chat' ||
-    pathname.startsWith('/profile')
+    pathname.startsWith('/profile') ||
+    pathname === '/privacy' ||
+    pathname === '/terms'
   ) return null;
 
   const handleSearch = (e: React.FormEvent) => {

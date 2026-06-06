@@ -18,10 +18,19 @@ import { useGuestMode } from "@/hooks/useGuestMode";
 export default function ProfilePage() {
   const router = useRouter();
   const { isGuest } = useGuestMode();
+  const [intent, setIntent] = useState<UserIntent | null>(null);
+  const [curatedCount, setCuratedCount] = useState(0);
 
   useEffect(() => {
     if (isGuest) router.replace('/onboarding');
   }, [isGuest, router]);
+
+  useEffect(() => {
+    const saved = storage.get<UserIntent | null>(STORAGE_KEYS.USER_INTENT, null);
+    if (saved) setIntent(saved);
+    const ids = storage.get<string[]>(STORAGE_KEYS.CURATED_IDS, []);
+    setCuratedCount(ids.length);
+  }, []);
 
   if (isGuest) {
     return (
@@ -30,16 +39,6 @@ export default function ProfilePage() {
       </div>
     );
   }
-
-  const [intent, setIntent] = useState<UserIntent | null>(null);
-  const [curatedCount, setCuratedCount] = useState(0);
-
-  useEffect(() => {
-    const saved = storage.get<UserIntent | null>(STORAGE_KEYS.USER_INTENT, null);
-    if (saved) setIntent(saved);
-    const ids = storage.get<string[]>(STORAGE_KEYS.CURATED_IDS, []);
-    setCuratedCount(ids.length);
-  }, []);
 
   const formatBudget = (val: number) => {
     if (val >= 10000000) return `₹${(val / 10000000).toFixed(1)} Cr`;
@@ -198,6 +197,34 @@ export default function ProfilePage() {
           <span className="font-bold text-[var(--danger)]">Log Out</span>
         </button>
       </SectionContainer>
+
+      {/* Legal links footer */}
+      <div className="mt-8 pb-2">
+        <SectionContainer>
+          <div className="flex items-center justify-center gap-6 py-4 border-t border-[var(--border)]">
+            <Link
+              href="/privacy"
+              className="text-xs text-[var(--text-muted)] hover:text-[var(--primary)] transition-colors font-semibold"
+            >
+              Privacy Policy
+            </Link>
+            <span className="text-[var(--border-strong)]">·</span>
+            <Link
+              href="/terms"
+              className="text-xs text-[var(--text-muted)] hover:text-[var(--primary)] transition-colors font-semibold"
+            >
+              Terms & Conditions
+            </Link>
+            <span className="text-[var(--border-strong)]">·</span>
+            <a
+              href="mailto:hello@propcinity.in"
+              className="text-xs text-[var(--text-muted)] hover:text-[var(--primary)] transition-colors font-semibold"
+            >
+              Contact Us
+            </a>
+          </div>
+        </SectionContainer>
+      </div>
     </div>
   );
 }
