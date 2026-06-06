@@ -40,7 +40,8 @@ const SORT_OPTIONS: { value: SortOption; label: string; icon: string }[] = [
 
 export default function ExplorePage() {
   const router = useRouter();
-  const { isGuest } = useGuestMode();
+  const { isGuest: isGuestRaw, isChecking } = useGuestMode();
+  const isGuest = !isChecking && isGuestRaw;
   const [projects, setProjects] = useState<Project[]>([]);
   const [filtered, setFiltered] = useState<Project[]>([]);
   const [isLoading, setIsLoading] = useState(true);

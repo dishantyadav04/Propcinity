@@ -14,7 +14,8 @@ import { storage, STORAGE_KEYS } from "@/lib/storage";
 
 function CompareContent() {
   const router = useRouter();
-  const { isGuest } = useGuestMode();
+  const { isGuest: isGuestRaw, isChecking } = useGuestMode();
+  const isGuest = !isChecking && isGuestRaw;
   const [projects, setProjects] = useState<Project[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const searchParams = useSearchParams();

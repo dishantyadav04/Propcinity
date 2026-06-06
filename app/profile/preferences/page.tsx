@@ -12,12 +12,13 @@ import { useGuestMode } from "@/hooks/useGuestMode";
 
 export default function PreferencesPage() {
   const router = useRouter();
-  const { isGuest } = useGuestMode();
+  const { isGuest, isChecking } = useGuestMode();
   const [intent, setIntent] = useState<UserIntent | null>(null);
 
   useEffect(() => {
+    if (isChecking) return;
     if (isGuest) router.replace('/onboarding');
-  }, [isGuest, router]);
+  }, [isGuest, isChecking, router]);
 
   useEffect(() => {
     const saved = storage.get<UserIntent | null>(STORAGE_KEYS.USER_INTENT, null);

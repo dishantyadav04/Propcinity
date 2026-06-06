@@ -23,7 +23,8 @@ const USER_NAV_ITEMS = [
 
 export default function BottomNav() {
   const pathname = usePathname();
-  const { isGuest } = useGuestMode();
+  const { isGuest: isGuestRaw, isChecking } = useGuestMode();
+  const isGuest = !isChecking && isGuestRaw;
   if (pathname.startsWith('/admin') || pathname === '/' || pathname === '/onboarding' || pathname === '/auth') return null;
 
   const resolvedItems = isGuest ? GUEST_NAV_ITEMS : USER_NAV_ITEMS;

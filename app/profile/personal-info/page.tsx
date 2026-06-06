@@ -11,7 +11,7 @@ import { useGuestMode } from "@/hooks/useGuestMode";
 
 export default function PersonalInfoPage() {
   const router = useRouter();
-  const { isGuest } = useGuestMode();
+  const { isGuest, isChecking } = useGuestMode();
   const [isEditing, setIsEditing] = useState(false);
   const [form, setForm] = useState({
     name: '',
@@ -21,8 +21,9 @@ export default function PersonalInfoPage() {
   });
 
   useEffect(() => {
+    if (isChecking) return;
     if (isGuest) router.replace('/onboarding');
-  }, [isGuest, router]);
+  }, [isGuest, isChecking, router]);
 
   useEffect(() => {
     const saved = storage.get<any>(STORAGE_KEYS.USER_INTENT, null);

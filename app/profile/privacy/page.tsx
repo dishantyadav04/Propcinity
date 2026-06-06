@@ -10,14 +10,15 @@ import { useGuestMode } from "@/hooks/useGuestMode";
 
 export default function PrivacyPage() {
   const router = useRouter();
-  const { isGuest } = useGuestMode();
+  const { isGuest, isChecking } = useGuestMode();
   const [notifications, setNotifications] = useState({ email: true, whatsapp: false, updates: true });
 
   useEffect(() => {
+    if (isChecking) return;
     if (isGuest) router.replace('/onboarding');
-  }, [isGuest, router]);
+  }, [isGuest, isChecking, router]);
 
-  if (isGuest) {
+  if (isChecking || isGuest) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="w-8 h-8 border-2 border-[var(--primary)] border-t-transparent rounded-full animate-spin" />

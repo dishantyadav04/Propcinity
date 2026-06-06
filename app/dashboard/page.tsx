@@ -139,7 +139,7 @@ const RECO_CACHE_KEY = 'propcinity_reco_cache';
 
 export default function DashboardPage() {
   const router = useRouter();
-  const { isGuest } = useGuestMode();
+  const { isGuest, isChecking } = useGuestMode();
 
   const [projects, setProjects] = useState<Project[]>([]);
   const [userIntent, setUserIntent] = useState<UserIntent | null>(null);
@@ -153,8 +153,9 @@ export default function DashboardPage() {
   const [userName, setUserName] = useState<string>('');
 
   useEffect(() => {
+    if (isChecking) return;
     if (isGuest) router.replace('/onboarding');
-  }, [isGuest, router]);
+  }, [isGuest, isChecking, router]);
 
   useEffect(() => {
     const loadFromStorage = () => {
@@ -260,7 +261,7 @@ export default function DashboardPage() {
       .slice(0, 12);
   }, [projects, aiRecommended, curatedIds, rejectedIds, storageReady]);
 
-  if (isGuest) {
+  if (isChecking || isGuest) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="w-8 h-8 border-2 border-[var(--primary)] border-t-transparent rounded-full animate-spin" />

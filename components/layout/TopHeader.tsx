@@ -9,7 +9,8 @@ import { useGuestMode } from "@/hooks/useGuestMode";
 export default function TopHeader() {
   const pathname = usePathname();
   const router = useRouter();
-  const { isGuest } = useGuestMode();
+  const { isGuest: isGuestRaw, isChecking } = useGuestMode();
+  const isGuest = !isChecking && isGuestRaw;
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
 

@@ -62,7 +62,8 @@ export default function ProjectDetailPage() {
   const params = useParams();
   const router = useRouter();
   const slug = params?.slug as string;
-  const { isGuest } = useGuestMode();
+  const { isGuest: isGuestRaw, isChecking } = useGuestMode();
+  const isGuest = !isChecking && isGuestRaw;
   const [project, setProject] = useState<Project | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);

@@ -29,7 +29,8 @@ export default function ProjectCard({
     ? Math.min(...project.unitConfigs.map(u => u.priceMin))
     : 0;
 
-  const { isGuest } = useGuestMode();
+  const { isGuest: isGuestRaw, isChecking } = useGuestMode();
+  const isGuest = !isChecking && isGuestRaw;
   const router = useRouter();
 
   const [isComparing, setIsComparing] = useState(false);
