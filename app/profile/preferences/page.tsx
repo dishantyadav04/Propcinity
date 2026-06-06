@@ -58,19 +58,20 @@ export default function PreferencesPage() {
   ] : [];
 
   return (
-    <div className="min-h-screen bg-[var(--background)] pb-24">
-      <div className="bg-white border-b border-[var(--border)] sticky top-16 z-30">
-        <div className="max-w-3xl mx-auto px-4 sm:px-6 h-14 flex items-center gap-4">
-          <button onClick={() => router.back()}
-            className="p-2 hover:bg-[var(--surface-raised)] rounded-[var(--radius-xs)] transition-colors">
-            <ArrowLeft className="w-5 h-5 text-[var(--text-secondary)]" />
-          </button>
-          <h1 className="font-black text-[var(--text-primary)] text-lg flex-1"
-            style={{ fontFamily: 'var(--font-display)' }}>Preferences</h1>
-        </div>
-      </div>
-
+    <div className="min-h-screen bg-[var(--background)]">
       <SectionContainer className="max-w-3xl">
+        {/* Back button */}
+        <button
+          onClick={() => router.back()}
+          className="inline-flex items-center gap-2 text-sm text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors -ml-1 mt-4"
+        >
+          <ArrowLeft className="w-4 h-4" />
+          Back
+        </button>
+
+        <h1 className="font-black text-[var(--text-primary)] text-lg mt-3 mb-6"
+          style={{ fontFamily: 'var(--font-display)' }}>Preferences</h1>
+
         {intent ? (
           <div className="space-y-4">
             <div className="bg-white border border-[var(--border)] rounded-[var(--radius)]

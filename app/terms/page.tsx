@@ -1,25 +1,24 @@
 'use client'
 
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { ArrowLeft, Scale } from 'lucide-react'
 
 export default function TermsPage() {
+  const router = useRouter()
+
   return (
     <div className="min-h-screen bg-[var(--background)]">
-      {/* Mini header */}
-      <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-xl border-b border-[var(--border)]">
-        <div className="max-w-3xl mx-auto px-4 sm:px-6 h-14 flex items-center gap-3">
-          <Link href="javascript:history.back()" className="p-2 -ml-2 text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors">
-            <ArrowLeft className="w-5 h-5" />
-          </Link>
-          <span className="text-base font-black text-[var(--text-primary)]"
-            style={{ fontFamily: 'var(--font-display)' }}>
-            Terms & Conditions
-          </span>
-        </div>
-      </header>
+      <main className="max-w-3xl mx-auto px-4 sm:px-6 py-10 space-y-10">
+        {/* Back button */}
+        <button
+          onClick={() => router.back()}
+          className="inline-flex items-center gap-2 text-sm text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors -ml-1"
+        >
+          <ArrowLeft className="w-4 h-4" />
+          Back
+        </button>
 
-      <main className="max-w-3xl mx-auto px-4 sm:px-6 py-10 pb-24 space-y-10">
         {/* Header */}
         <div className="space-y-3">
           <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-[var(--primary-light)]

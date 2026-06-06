@@ -8,7 +8,7 @@ import { toast } from "sonner";
 
 import { useGuestMode } from "@/hooks/useGuestMode";
 
-export default function PrivacyPage() {
+export default function ProfilePrivacyPage() {
   const router = useRouter();
   const { isGuest, isChecking } = useGuestMode();
   const [notifications, setNotifications] = useState({ email: true, whatsapp: false, updates: true });
@@ -37,20 +37,20 @@ export default function PrivacyPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[var(--background)] pb-24">
-      {/* Header */}
-      <div className="bg-white border-b border-[var(--border)] sticky top-16 z-30">
-        <div className="max-w-3xl mx-auto px-4 sm:px-6 h-14 flex items-center gap-4">
-          <button onClick={() => router.back()}
-            className="p-2 hover:bg-[var(--surface-raised)] rounded-[var(--radius-xs)] transition-colors">
-            <ArrowLeft className="w-5 h-5 text-[var(--text-secondary)]" />
-          </button>
-          <h1 className="font-black text-[var(--text-primary)] text-lg flex-1"
-            style={{ fontFamily: 'var(--font-display)' }}>Privacy & Security</h1>
-        </div>
-      </div>
-
+    <div className="min-h-screen bg-[var(--background)]">
       <SectionContainer className="max-w-3xl space-y-6">
+        {/* Back button */}
+        <button
+          onClick={() => router.back()}
+          className="inline-flex items-center gap-2 text-sm text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors -ml-1 mt-4"
+        >
+          <ArrowLeft className="w-4 h-4" />
+          Back
+        </button>
+
+        <h1 className="font-black text-[var(--text-primary)] text-lg"
+          style={{ fontFamily: 'var(--font-display)' }}>Privacy & Security</h1>
+
         {/* Trust badge */}
         <div className="flex items-center gap-3 p-4 bg-[var(--success-light)]
           border border-[var(--success)]/20 rounded-[var(--radius)]">

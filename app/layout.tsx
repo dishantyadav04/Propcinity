@@ -53,7 +53,7 @@ export default function RootLayout({
     <html lang="en" className={`${syne.variable} ${jakarta.variable}`} suppressHydrationWarning data-scroll-behavior="smooth">
       <body className="font-sans bg-[var(--background)] text-[var(--text-primary)] antialiased">
         <TopHeader />
-        <main className="min-h-screen pb-24 md:pb-6 md:pt-16">
+        <main className="min-h-screen pb-24 md:pb-6 pt-0 md:pt-16">
           <PageTransition>
             {children}
           </PageTransition>

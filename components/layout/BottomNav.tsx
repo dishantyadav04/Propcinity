@@ -25,7 +25,13 @@ export default function BottomNav() {
   const pathname = usePathname();
   const { isGuest: isGuestRaw, isChecking } = useGuestMode();
   const isGuest = !isChecking && isGuestRaw;
-  if (pathname.startsWith('/admin') || pathname === '/' || pathname === '/onboarding' || pathname === '/auth') return null;
+  if (
+    pathname.startsWith('/admin') ||
+    pathname === '/' ||
+    pathname === '/onboarding' ||
+    pathname === '/privacy' ||
+    pathname === '/terms'
+  ) return null;
 
   const resolvedItems = isGuest ? GUEST_NAV_ITEMS : USER_NAV_ITEMS;
 

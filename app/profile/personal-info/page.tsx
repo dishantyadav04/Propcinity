@@ -65,15 +65,20 @@ export default function PersonalInfoPage() {
   ] as const;
 
   return (
-    <div className="min-h-screen bg-[var(--background)] pb-24">
-      {/* Header */}
-      <div className="bg-white border-b border-[var(--border)] sticky top-16 z-30">
-        <div className="max-w-3xl mx-auto px-4 sm:px-6 h-14 flex items-center gap-4">
-          <button onClick={() => router.back()}
-            className="p-2 hover:bg-[var(--surface-raised)] rounded-[var(--radius-xs)] transition-colors">
-            <ArrowLeft className="w-5 h-5 text-[var(--text-secondary)]" />
-          </button>
-          <h1 className="font-black text-[var(--text-primary)] text-lg flex-1"
+    <div className="min-h-screen bg-[var(--background)]">
+      <SectionContainer className="max-w-3xl">
+        {/* Back button */}
+        <button
+          onClick={() => router.back()}
+          className="inline-flex items-center gap-2 text-sm text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors -ml-1 mt-4"
+        >
+          <ArrowLeft className="w-4 h-4" />
+          Back
+        </button>
+
+        {/* Page header */}
+        <div className="flex items-center justify-between mt-3 mb-6">
+          <h1 className="font-black text-[var(--text-primary)] text-lg"
             style={{ fontFamily: 'var(--font-display)' }}>Personal Information</h1>
           <button onClick={isEditing ? handleSave : () => setIsEditing(true)}
             className={`px-4 py-1.5 rounded-[var(--radius-xs)] text-sm font-bold transition-colors ${
@@ -84,11 +89,9 @@ export default function PersonalInfoPage() {
             {isEditing ? 'Save' : 'Edit'}
           </button>
         </div>
-      </div>
 
-      <SectionContainer className="max-w-3xl">
         {/* Avatar */}
-        <div className="flex flex-col items-center py-8 space-y-4">
+        <div className="flex flex-col items-center py-6 space-y-4">
           <div className="relative">
             <div className="w-24 h-24 bg-gradient-to-br from-[var(--primary)] to-orange-400
               rounded-full flex items-center justify-center text-white text-3xl font-black">
