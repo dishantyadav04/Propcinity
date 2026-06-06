@@ -54,7 +54,7 @@ export default function ProfilePage() {
   return (
     <div className="min-h-screen bg-[var(--background)] pb-24">
       {/* Identity Header */}
-      <div className="bg-white border-b border-[var(--border)] pt-12 pb-12">
+      <div className="bg-white border-b border-[var(--border)] pt-6 pb-8">
         <SectionContainer className="max-w-3xl text-center flex flex-col items-center">
           <motion.div
             initial={{ scale: 0.8, opacity: 0 }}

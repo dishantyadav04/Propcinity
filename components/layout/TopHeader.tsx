@@ -18,8 +18,6 @@ export default function TopHeader() {
     pathname.startsWith('/admin') ||
     pathname === '/' ||
     pathname === '/onboarding' ||
-    pathname === '/ai-chat' ||
-    pathname.startsWith('/profile') ||
     pathname === '/privacy' ||
     pathname === '/terms'
   ) return null;

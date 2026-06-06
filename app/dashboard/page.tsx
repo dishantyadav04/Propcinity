@@ -289,7 +289,7 @@ export default function DashboardPage() {
 
   return (
     <div className="min-h-screen pb-28">
-      <div className="bg-white border-b border-[var(--border)] pt-12 pb-8">
+      <div className="bg-white border-b border-[var(--border)] pt-6 pb-8">
         <SectionContainer wide>
           <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
             <div className="space-y-2">

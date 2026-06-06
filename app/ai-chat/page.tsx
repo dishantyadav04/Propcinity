@@ -167,7 +167,7 @@ export default function AIChatPage() {
   ];
 
   return (
-    <div className="flex flex-col h-[calc(100vh-120px)] md:h-[calc(100vh-64px)]">
+    <div className="flex flex-col h-[calc(100vh-64px)]">
       {/* Header */}
       <div className="flex-shrink-0 bg-white border-b border-[var(--border)] py-4">
         <SectionContainer wide>
