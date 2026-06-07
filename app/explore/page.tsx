@@ -104,15 +104,35 @@ export default function ExplorePage() {
 
   // Fetch projects
   useEffect(() => {
-    fetch('/api/projects')
-      .then(r => r.json())
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 10000);
+
+    fetch('/api/projects', { signal: controller.signal })
+      .then(r => {
+        if (!r.ok) throw new Error('HTTP ' + r.status);
+        return r.json();
+      })
       .then((data: Project[]) => {
         setProjects(data);
         setFiltered(data);
         if (data.length > 0) setSelectedProject(data[0]);
       })
-      .catch(console.error)
-      .finally(() => setIsLoading(false));
+      .catch(err => {
+        if (err.name !== 'AbortError') {
+          console.error('Projects fetch failed:', err);
+          setProjects([]);
+          setFiltered([]);
+        }
+      })
+      .finally(() => {
+        clearTimeout(timeout);
+        setIsLoading(false);
+      });
+
+    return () => {
+      clearTimeout(timeout);
+      controller.abort();
+    };
   }, []);
 
   const applyFilters = useCallback(() => {

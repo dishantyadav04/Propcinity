@@ -299,3 +299,29 @@ create policy "Service role full access users"
 
 -- Add builder_id FK to projects table
 alter table projects add column if not exists builder_id uuid references builders;
+
+-- Contact form messages
+create table if not exists contact_messages (
+  id uuid primary key default gen_random_uuid(),
+  name text not null,
+  email text,
+  phone text,
+  subject text,
+  message text not null,
+  status text default 'new', -- new | read | replied
+  created_at timestamptz default now()
+);
+
+-- Only admins can read; anyone can insert
+alter table contact_messages enable row level security;
+
+create policy "Anyone can submit contact message"
+  on contact_messages for insert with check (true);
+
+create policy "Admins can read contact messages"
+  on contact_messages for select
+  using (auth.role() = 'service_role');
+
+create policy "Admins can update contact messages"
+  on contact_messages for update
+  using (auth.role() = 'service_role');

@@ -54,7 +54,7 @@ export default function ProfilePage() {
   return (
     <div className="min-h-screen bg-[var(--background)]">
       {/* Identity Header */}
-      <div className="bg-white border-b border-[var(--border)] pt-4 pb-8">
+      <div className="bg-white border-b border-[var(--border)] pb-8">
         <SectionContainer className="max-w-3xl text-center flex flex-col items-center">
           <motion.div
             initial={{ scale: 0.8, opacity: 0 }}
@@ -216,12 +216,12 @@ export default function ProfilePage() {
               Terms & Conditions
             </Link>
             <span className="text-[var(--border-strong)]">·</span>
-            <a
-              href="mailto:hello@propcinity.in"
+            <Link
+              href="/contact"
               className="text-xs text-[var(--text-muted)] hover:text-[var(--primary)] transition-colors font-semibold"
             >
               Contact Us
-            </a>
+            </Link>
           </div>
         </SectionContainer>
       </div>

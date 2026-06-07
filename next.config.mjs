@@ -4,10 +4,11 @@ const nextConfig = {
 
   serverExternalPackages: ['@anthropic-ai/sdk', 'openai', 'posthog-node'],
 
+  allowedDevOrigins: ['192.168.1.33', 'localhost'],
 
   images: {
     remotePatterns: [
-      { protocol: 'https', hostname: 'images.propiq.in' },
+      { protocol: 'https', hostname: 'images.propicinity.in' },
     ],
   },
 

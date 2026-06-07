@@ -92,14 +92,24 @@ You can also clear your local preference data at any time by clearing your brows
           </section>
         ))}
 
-        {/* Footer links */}
-        <div className="pt-6 border-t border-[var(--border)] flex flex-col sm:flex-row items-center justify-between gap-4">
-          <p className="text-xs text-[var(--text-muted)]">© 2025 Propcinity · Zero brokerage, always.</p>
-          <div className="flex items-center gap-4 text-xs">
-            <Link href="/terms" className="text-[var(--primary)] font-semibold hover:underline">
-              Terms & Conditions →
-            </Link>
+        {/* Footer */}
+        <div className="pt-8 border-t border-[var(--border)] space-y-4">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
+            <p className="text-xs text-[var(--text-muted)]">
+              &copy; {new Date().getFullYear()} Propcinity. All rights reserved.
+            </p>
+            <div className="flex items-center gap-4 text-xs font-semibold">
+              <Link href="/terms" className="text-[var(--primary)] hover:underline">
+                Terms &amp; Conditions
+              </Link>
+              <Link href="/contact" className="text-[var(--text-secondary)] hover:text-[var(--primary)] transition-colors">
+                Contact Us
+              </Link>
+            </div>
           </div>
+          <p className="text-xs text-[var(--text-muted)] text-center sm:text-left">
+            Propcinity, Pune, Maharashtra, India &middot; hello@propcinity.in
+          </p>
         </div>
       </main>
     </div>

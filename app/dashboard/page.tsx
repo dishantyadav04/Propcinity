@@ -197,11 +197,30 @@ export default function DashboardPage() {
   }, []);
 
   useEffect(() => {
-    fetch('/api/projects')
-      .then(r => r.json())
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 10000);
+
+    fetch('/api/projects', { signal: controller.signal })
+      .then(r => {
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        return r.json();
+      })
       .then(data => setProjects(Array.isArray(data) ? data : []))
-      .catch(() => setProjects([]))
-      .finally(() => setIsLoading(false));
+      .catch(err => {
+        if (err.name !== 'AbortError') {
+          console.error('Projects fetch failed:', err);
+          setProjects([]);
+        }
+      })
+      .finally(() => {
+        clearTimeout(timeout);
+        setIsLoading(false);
+      });
+
+    return () => {
+      clearTimeout(timeout);
+      controller.abort();
+    };
   }, []);
 
   useEffect(() => {
@@ -289,7 +308,7 @@ export default function DashboardPage() {
 
   return (
     <div className="min-h-screen pb-28">
-      <div className="bg-white border-b border-[var(--border)] pt-4 pb-8">
+      <div className="bg-white border-b border-[var(--border)] pb-8">
         <SectionContainer wide>
           <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
             <div className="space-y-2">

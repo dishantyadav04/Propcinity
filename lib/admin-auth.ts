@@ -8,12 +8,20 @@ function hash(value: string): string {
   return createHash('sha256').update(value).digest('hex')
 }
 
+function getAdminPassword(): string {
+  const password = process.env.ADMIN_PASSWORD
+  if (!password) {
+    throw new Error('ADMIN_PASSWORD environment variable is not set')
+  }
+  return password
+}
+
 export function checkAdminPassword(password: string): boolean {
-  return hash(password) === hash(process.env.ADMIN_PASSWORD!)
+  return hash(password) === hash(getAdminPassword())
 }
 
 export function getAdminSessionValue(): string {
-  return hash(process.env.ADMIN_PASSWORD!)
+  return hash(getAdminPassword())
 }
 
 export function isAdminAuthenticated(request: NextRequest): boolean {

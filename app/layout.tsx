@@ -4,6 +4,7 @@ import { Toaster } from 'sonner'
 import './globals.css'
 import TopHeader from '@/components/layout/TopHeader'
 import BottomNav from '@/components/layout/BottomNav'
+import Footer from '@/components/layout/Footer'
 import PageTransition from '@/components/ui/PageTransition'
 import ClientLayoutExtras from '@/components/layout/ClientLayoutExtras'
 
@@ -53,12 +54,13 @@ export default function RootLayout({
     <html lang="en" className={`${syne.variable} ${jakarta.variable}`} suppressHydrationWarning data-scroll-behavior="smooth">
       <body className="font-sans bg-[var(--background)] text-[var(--text-primary)] antialiased">
         <TopHeader />
-        <main className="min-h-screen pb-24 md:pb-6 pt-0 md:pt-16">
+        <main className="min-h-screen pb-24 md:pb-0 pt-0">
           <PageTransition>
             {children}
           </PageTransition>
         </main>
         <BottomNav />
+        <Footer />
         <ClientLayoutExtras />
         <Toaster
           position="bottom-center"
