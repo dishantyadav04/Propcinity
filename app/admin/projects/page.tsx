@@ -37,14 +37,14 @@ export default function AdminProjectsPage() {
         </div>
         <Link 
           href="/admin/projects/new"
-          className="flex items-center gap-2 bg-[var(--primary)] text-white font-bold py-3 px-6 rounded-xl shadow-lg shadow-[var(--primary)]/20 hover:scale-[1.02] transition-all"
+          className="flex items-center gap-2 px-4 py-2 bg-[var(--primary)] text-white text-sm font-bold rounded-[var(--radius)] hover:opacity-90 transition-opacity"
         >
           <Plus className="w-5 h-5" />
           <span>New Project</span>
         </Link>
       </div>
 
-      <div className="bg-[var(--surface)] border border-[var(--border)] rounded-2xl overflow-hidden">
+      <div className="bg-[var(--surface)] border border-[var(--border)] rounded-2xl overflow-x-auto">
         <table className="w-full text-left border-collapse">
           <thead>
             <tr className="border-b border-[var(--border)] bg-[var(--surface-raised)]">

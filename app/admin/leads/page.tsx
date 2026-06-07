@@ -71,7 +71,7 @@ export default function AdminLeadsPage() {
   };
 
   return (
-    <div className="p-6 sm:p-8 space-y-6 max-w-7xl">
+    <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>

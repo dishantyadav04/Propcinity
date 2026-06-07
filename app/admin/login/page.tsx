@@ -1,33 +1,33 @@
-'use client';
+'use client'
 
-import { Suspense, useState } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
-import { Loader2 } from 'lucide-react';
+import { Suspense, useState } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
+import { Loader2 } from 'lucide-react'
 
 function LoginForm() {
-  const router = useRouter();
-  const searchParams = useSearchParams();
-  const from = searchParams?.get('from') || '/admin';
-  const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
+  const router = useRouter()
+  const searchParams = useSearchParams()
+  const from = searchParams?.get('from') || '/admin'
+  const [password, setPassword] = useState('')
+  const [error, setError] = useState('')
+  const [loading, setLoading] = useState(false)
 
   const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    setError('');
+    e.preventDefault()
+    setLoading(true)
+    setError('')
     const res = await fetch('/api/admin/auth', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ password }),
-    });
+    })
     if (res.ok) {
-      router.replace(from);
+      router.replace(from)
     } else {
-      setError('Incorrect password. Try again.');
-      setLoading(false);
+      setError('Incorrect password. Try again.')
+      setLoading(false)
     }
-  };
+  }
 
   return (
     <div className="min-h-screen bg-[var(--background)] flex items-center justify-center px-6">
@@ -46,13 +46,14 @@ function LoginForm() {
           </p>
         </div>
 
-        <form onSubmit={handleLogin} className="space-y-4">
+        <form onSubmit={handleLogin} className="space-y-4" suppressHydrationWarning>
           <input
             type="password"
             value={password}
             onChange={e => setPassword(e.target.value)}
             placeholder="Admin password"
             autoFocus
+            suppressHydrationWarning
             className="w-full px-4 py-3 bg-[var(--surface-raised)] border border-[var(--border)]
               rounded-[var(--radius)] text-[var(--text-primary)]
               placeholder:text-[var(--text-muted)] focus:outline-none focus:border-[var(--primary)]
@@ -74,13 +75,13 @@ function LoginForm() {
         </form>
       </div>
     </div>
-  );
+  )
 }
 
 export default function AdminLoginPage() {
   return (
-    <Suspense>
+    <Suspense fallback={null}>
       <LoginForm />
     </Suspense>
-  );
+  )
 }

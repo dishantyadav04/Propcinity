@@ -214,7 +214,7 @@ export default function ProjectForm({ initialData }: ProjectFormProps) {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-8 max-w-4xl">
+    <form onSubmit={handleSubmit} className="space-y-8 max-w-6xl">
       {/* Basic Info */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-[var(--surface)] p-6 rounded-2xl border border-[var(--border)]">
         <div className="space-y-4">

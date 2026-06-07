@@ -1,7 +1,13 @@
-import Link from 'next/link';
+'use client'
+
+import Link from 'next/link'
+import { usePathname } from 'next/navigation'
 
 export default function Footer() {
-  const year = new Date().getFullYear();
+  const pathname = usePathname()
+  const year = new Date().getFullYear()
+
+  if (pathname.startsWith('/admin')) return null
 
   return (
     <footer className="hidden md:block border-t border-[var(--border)] bg-[var(--surface)]">
@@ -35,5 +41,5 @@ export default function Footer() {
         </div>
       </div>
     </footer>
-  );
+  )
 }

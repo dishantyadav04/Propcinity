@@ -29,7 +29,7 @@ export default function AdminHeader({ onToggleSidebar }: { onToggleSidebar: () =
       <div className="flex items-center gap-3">
         <button
           onClick={onToggleSidebar}
-          className="p-1.5 text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--surface-raised)] rounded-lg transition-colors"
+          className="p-1.5 text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--surface-raised)] rounded-lg transition-colors md:hidden"
           aria-label="Toggle sidebar"
         >
           <Menu className="w-5 h-5" />
