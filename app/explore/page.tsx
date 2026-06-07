@@ -547,7 +547,7 @@ export default function ExplorePage() {
                 transition={{ delay: Math.min(index * 0.04, 0.3) }}
                 className="relative group"
               >
-                <ProjectCard project={project} index={index} />
+                <ProjectCard project={project} index={index} hideCuratedButton={true} />
 
                 {/* % Matched badge — top-left */}
                 {userIntent && (() => {

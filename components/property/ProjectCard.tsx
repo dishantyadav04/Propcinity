@@ -19,10 +19,11 @@ interface ProjectCardProps {
   matchedUnit?: UnitConfig;
   index?: number;
   hideRiskBadge?: boolean;
+  hideCuratedButton?: boolean;
 }
 
 export default function ProjectCard({
-  project, matchedUnit, index = 0
+  project, matchedUnit, index = 0, hideCuratedButton
 }: ProjectCardProps) {
   const displayUnit = matchedUnit || project.unitConfigs[0];
   const minPrice = project.unitConfigs.length > 0
@@ -90,32 +91,34 @@ export default function ProjectCard({
       style={{ minHeight: '360px' }}
     >
       {/* Dashboard + / ✓ button */}
-      <button
-        onClick={e => {
-          if (isGuest) {
-            toast('Sign up to save projects to your Dashboard', {
-              action: { label: 'Get Started — Free', onClick: () => router.push('/onboarding') }
-            });
-            return;
+      {!hideCuratedButton && (
+        <button
+          onClick={e => {
+            if (isGuest) {
+              toast('Sign up to save projects to your Dashboard', {
+                action: { label: 'Get Started — Free', onClick: () => router.push('/onboarding') }
+              });
+              return;
+            }
+            toggleCurated(e);
+          }}
+          title={isCurated ? 'Remove from Dashboard' : 'Add to Dashboard'}
+          className={`absolute top-3 right-3 z-30 w-7 h-7 rounded-full
+            flex items-center justify-center
+            opacity-0 group-hover:opacity-100
+            transition-all duration-150 shadow-sm backdrop-blur-sm
+            hover:scale-110 ${
+              isCurated
+                ? 'bg-[var(--primary)] text-white'
+                : 'bg-black/30 text-white hover:bg-[var(--primary)]'
+            }`}
+        >
+          {isCurated
+            ? <Check className="w-3.5 h-3.5" />
+            : <Plus className="w-3.5 h-3.5" />
           }
-          toggleCurated(e);
-        }}
-        title={isCurated ? 'Remove from Dashboard' : 'Add to Dashboard'}
-        className={`absolute top-3 right-3 z-30 w-7 h-7 rounded-full
-          flex items-center justify-center
-          opacity-0 group-hover:opacity-100
-          transition-all duration-150 shadow-sm backdrop-blur-sm
-          hover:scale-110 ${
-            isCurated
-              ? 'bg-[var(--primary)] text-white'
-              : 'bg-black/30 text-white hover:bg-[var(--primary)]'
-          }`}
-      >
-        {isCurated
-          ? <Check className="w-3.5 h-3.5" />
-          : <Plus className="w-3.5 h-3.5" />
-        }
-      </button>
+        </button>
+      )}
 
       <Link href={`/projects/${project.slug}`} className="block flex flex-col flex-1">
         {/* Image */}

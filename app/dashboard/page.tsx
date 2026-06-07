@@ -365,7 +365,7 @@ export default function DashboardPage() {
                     exit={{ opacity: 0, scale: 0.9 }}
                     className="relative group"
                   >
-                    <ProjectCard project={project} index={index} hideRiskBadge={true} />
+                    <ProjectCard project={project} index={index} hideRiskBadge={true} hideCuratedButton={true} />
 
                     {userIntent && (() => {
                       const pct = getMatchPercent(project, userIntent);
@@ -392,7 +392,7 @@ export default function DashboardPage() {
                     <button
                       onClick={() => handleRemove(project.id)}
                       title="Remove from dashboard"
-                      className="absolute top-3 left-3 z-30 w-7 h-7 rounded-full
+                      className="absolute top-3 right-3 z-30 w-7 h-7 rounded-full
                         bg-black/30 text-white backdrop-blur-sm
                         flex items-center justify-center
                         opacity-0 group-hover:opacity-100
