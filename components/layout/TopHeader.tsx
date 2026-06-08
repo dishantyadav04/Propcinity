@@ -1,10 +1,11 @@
 'use client';
 
-import { Search, Bell, X } from "lucide-react";
+import { Search, Bell, X, LogOut } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
 import { useState } from "react";
 import { useGuestMode } from "@/hooks/useGuestMode";
+import { signOut } from "@/lib/supabase-auth";
 
 export default function TopHeader() {
   const pathname = usePathname();
@@ -19,6 +20,11 @@ export default function TopHeader() {
     pathname === '/' ||
     pathname === '/onboarding'
   ) return null;
+
+  const handleSignOut = async () => {
+    await signOut();
+    router.push('/');
+  };
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -67,6 +73,17 @@ export default function TopHeader() {
             </Link>
           ))}
         </nav>
+
+        {/* Sign Out for authenticated users */}
+        {!isGuest && (
+          <button
+            onClick={handleSignOut}
+            className="hidden md:flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold
+              text-[var(--text-muted)] hover:text-[var(--danger)] transition-colors"
+          >
+            <LogOut className="w-3.5 h-3.5" /> Sign out
+          </button>
+        )}
 
         {/* Search + Actions */}
         <div className="flex items-center gap-2">

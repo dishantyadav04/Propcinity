@@ -2,21 +2,43 @@
 
 import { useEffect, useState } from 'react'
 import { storage, STORAGE_KEYS } from '@/lib/storage'
+import { createClient } from '@/lib/supabase'
 
 export function useGuestMode() {
-  // null = not yet checked (first render, localStorage not read yet)
-  // true = confirmed guest (onboarding not done)
-  // false = confirmed registered (onboarding done)
   const [isGuest, setIsGuest] = useState<boolean | null>(null)
 
   useEffect(() => {
-    const done = storage.get<boolean>(STORAGE_KEYS.ONBOARDING_DONE, false)
-    setIsGuest(!done)
+    let cancelled = false
+
+    const check = async () => {
+      const localDone = storage.get<boolean>(STORAGE_KEYS.ONBOARDING_DONE, false)
+      if (localDone) {
+        if (!cancelled) setIsGuest(false)
+        return
+      }
+
+      try {
+        const supabase = createClient()
+        const { data: { session } } = await supabase.auth.getSession()
+        if (session) {
+          storage.set(STORAGE_KEYS.ONBOARDING_DONE, true)
+          if (!cancelled) setIsGuest(false)
+          return
+        }
+      } catch {
+        // Supabase unavailable — fall through to guest
+      }
+
+      if (!cancelled) setIsGuest(true)
+    }
+
+    check()
+    return () => { cancelled = true }
   }, [])
 
   return {
-    isGuest: isGuest === true,        // only true AFTER confirmed as guest
-    isRegistered: isGuest === false,  // only true AFTER confirmed as registered
-    isChecking: isGuest === null,     // true during the first render window
+    isGuest: isGuest === true,
+    isRegistered: isGuest === false,
+    isChecking: isGuest === null,
   }
 }

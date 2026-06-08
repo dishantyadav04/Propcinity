@@ -1,12 +1,13 @@
 'use client';
 
 import { useState, useEffect } from "react";
-import { ArrowLeft, ShieldCheck, Eye, Bell, Trash2 } from "lucide-react";
+import { ArrowLeft, ShieldCheck, Eye, Bell, Trash2, LogOut } from "lucide-react";
 import { useRouter } from "next/navigation";
 import SectionContainer from "@/components/layout/SectionContainer";
 import { toast } from "sonner";
 
 import { useGuestMode } from "@/hooks/useGuestMode";
+import { signOut } from "@/lib/supabase-auth";
 
 export default function ProfilePrivacyPage() {
   const router = useRouter();
@@ -26,13 +27,29 @@ export default function ProfilePrivacyPage() {
     );
   }
 
-  const handleDeleteAccount = () => {
+  const handleSignOut = async () => {
+    await signOut();
+    router.push('/');
+  };
+
+  const handleDeleteAccount = async () => {
     if (confirm('Are you sure you want to delete your account? This will permanently remove all your preferences and saved data. This action cannot be undone.')) {
-      if (typeof window !== 'undefined') {
-        localStorage.clear();
+      try {
+        const supabase = (await import('@/lib/supabase')).createClient()
+        const { data: { user } } = await supabase.auth.getUser()
+        if (user) {
+          const { createAdminSupabaseClient } = await import('@/lib/supabase-server')
+          const admin = createAdminSupabaseClient()
+          if (admin) await admin.auth.admin.deleteUser(user.id)
+        }
+        await signOut();
+        toast.success('Account deleted');
+        router.push('/');
+      } catch (err) {
+        await signOut();
+        toast.success('Signed out. Contact support to fully delete your account.');
+        router.push('/');
       }
-      toast.success('Account deleted successfully');
-      router.push('/');
     }
   };
 
@@ -124,6 +141,16 @@ export default function ProfilePrivacyPage() {
               <li>Store financial or payment information</li>
             </ul>
           </div>
+          <button onClick={handleSignOut}
+            className="w-full flex items-center gap-3 px-4 sm:px-5 py-4
+              hover:bg-[var(--surface-raised)] transition-colors text-left
+              border-b border-[var(--border)]">
+            <LogOut className="w-4 h-4 text-[var(--text-secondary)]" />
+            <div>
+              <p className="text-sm font-bold text-[var(--text-primary)]">Sign Out</p>
+              <p className="text-xs text-[var(--text-muted)]">Sign out of your account on this device</p>
+            </div>
+          </button>
           <button onClick={handleDeleteAccount}
             className="w-full flex items-center gap-3 px-4 sm:px-5 py-4
               hover:bg-[var(--danger-light)] transition-colors text-left">
