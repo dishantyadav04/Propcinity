@@ -4,10 +4,11 @@ import { askOpenAI } from '@/lib/openai'
 const TIMEOUT_MS = 5000
 
 function withTimeout<T>(promise: Promise<T>, timeoutMs: number, label: string): Promise<T> {
+  let timer: ReturnType<typeof setTimeout>  // Bug 4 fixed: clear timer when promise wins
   return Promise.race([
-    promise,
+    promise.finally(() => clearTimeout(timer)),
     new Promise<never>((_, reject) => {
-      setTimeout(() => reject(new Error(`${label} timeout`)), timeoutMs)
+      timer = setTimeout(() => reject(new Error(`${label} timeout`)), timeoutMs)
     }),
   ])
 }

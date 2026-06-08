@@ -115,8 +115,8 @@ export default function ProjectDetailPage() {
       setSavedToShortlist(saved.includes(project.id));
       const curated = storage.get<string[]>(STORAGE_KEYS.CURATED_IDS, []);
       setAddedToDashboard(curated.includes(project.id));
-      if (!activePricingType && pricingTypeGroups.length > 0) {
-        setActivePricingType(pricingTypeGroups[0][0]);
+      if (pricingTypeGroups.length > 0) {
+        setActivePricingType(pricingTypeGroups[0][0]); // Bug 5 fixed: always reset on project change
       }
     }
   }, [project]);

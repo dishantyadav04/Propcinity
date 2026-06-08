@@ -120,6 +120,7 @@ export default function ProjectForm({ initialData }: ProjectFormProps) {
       const body: Record<string, unknown> = {
         ...project,
         builder_id: selectedBuilderId || null,
+        builder_name: project.builderName, // Bug 2 fixed: map camelCase to snake_case for Zod
         tagline: project.tagline,
         possession_date: project.possessionDate,
         rera_possession_date: project.reraPossessionDate,
@@ -164,6 +165,7 @@ export default function ProjectForm({ initialData }: ProjectFormProps) {
           floor_plan_url: u.floorPlan?.startsWith('http') ? u.floorPlan : undefined,
           maintenance_cost: u.maintenancePerMonth,
         })),
+        builderName: undefined,  // Bug 2 fixed: prevent camelCase leak through ...project spread
         possessionDate: undefined,
         reraPossessionDate: undefined,
         landParcelAcres: undefined,

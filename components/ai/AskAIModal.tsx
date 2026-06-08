@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Drawer } from "vaul";
-import { Sparkles, X, ArrowRight, Loader2 } from "lucide-react";
+import { Sparkles, X, ArrowRight, Loader2, Building2 } from "lucide-react"; // Bug 6 fixed: imported Building2 for image fallback
 import QuickQuestions from "./QuickQuestions";
 import AIResponse from "./AIResponse";
 import { Project } from "@/types/project";
@@ -34,7 +34,7 @@ export default function AskAIModal({ isOpen, onClose, project, compareProject }:
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           projectId: project.id,
-          compareProjectId: compareProject?.id,
+          compareProjectIds: compareProject?.id ? [compareProject.id] : undefined, // Bug 1 fixed: API expects array
           question: q
         })
       });
@@ -72,7 +72,13 @@ export default function AskAIModal({ isOpen, onClose, project, compareProject }:
 
             {/* Context Pill */}
             <div className="flex items-center gap-3 bg-[var(--surface-raised)] p-3 rounded-xl border border-[var(--border)]">
-              <img src={project.images[0]} className="w-10 h-10 rounded-lg object-cover" />
+              {project.images?.[0] ? (                          // Bug 6 fixed: guard missing images
+                <img src={project.images[0]} className="w-10 h-10 rounded-lg object-cover" />
+              ) : (
+                <div className="w-10 h-10 rounded-lg bg-[var(--surface-raised)] flex items-center justify-center">
+                  <Building2 className="w-5 h-5 text-[var(--text-muted)]" />
+                </div>
+              )}
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-bold text-[var(--text-primary)] truncate">{project.name}</p>
                 <p className="text-[10px] text-[var(--text-muted)] uppercase tracking-wider">{project.builderName}</p>

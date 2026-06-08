@@ -55,7 +55,7 @@ export default function ExplorePage() {
   const [viewMode, setViewMode] = useState<ViewMode>('grid');
   const [typeFilter, setTypeFilter] = useState('all');
   const [budgetFilter, setBudgetFilter] = useState('all');
-  const [riskFilter, setRiskFilter] = useState('all');
+  // Bug 3 fixed: riskFilter state removed — riskLabel deleted from Project type
 
   // All localStorage state — loaded in useEffect only
   const [curatedIds, setCuratedIds] = useState<string[]>([]);
@@ -148,10 +148,7 @@ export default function ExplorePage() {
       );
     }
 
-    // Risk filter (only if project has riskLabel)
-    if (riskFilter !== 'all') {
-      result = result.filter(p => (p as any).riskLabel === riskFilter);
-    }
+    // Bug 3 fixed: riskLabel removed from Project type and DB view — filter removed
 
     // Type filter
     if (typeFilter !== 'all') {
@@ -221,7 +218,7 @@ export default function ExplorePage() {
       setSelectedProject(result[0]);
     }
   }, [projects, searchQuery, sortBy, typeFilter, budgetFilter,
-      riskFilter, userIntent, showAllProjects]);
+      userIntent, showAllProjects]);
 
   useEffect(() => { applyFilters(); }, [applyFilters]);
 
@@ -265,7 +262,7 @@ export default function ExplorePage() {
 
   const currentSort = SORT_OPTIONS.find(o => o.value === sortBy)!;
   const activeFilterCount = [
-    riskFilter !== 'all', typeFilter !== 'all', budgetFilter !== 'all'
+    typeFilter !== 'all', budgetFilter !== 'all'
   ].filter(Boolean).length;
 
   // Guest card visibility
@@ -497,7 +494,7 @@ export default function ExplorePage() {
                   {activeFilterCount > 0 && (
                     <button
                       onClick={() => {
-                        setRiskFilter('all'); setTypeFilter('all'); setBudgetFilter('all');
+                        setTypeFilter('all'); setBudgetFilter('all');
                       }}
                       className="text-xs font-bold text-[var(--danger)] hover:underline ml-auto">
                       Clear all
@@ -531,7 +528,7 @@ export default function ExplorePage() {
             <button
               onClick={() => {
                 setSearchQuery(''); setTypeFilter('all');
-                setBudgetFilter('all'); setRiskFilter('all');
+                setBudgetFilter('all');
                 setShowAllProjects(true);
               }}
               className="px-5 py-2.5 bg-[var(--primary)] text-white font-bold rounded-[var(--radius)] text-sm">
