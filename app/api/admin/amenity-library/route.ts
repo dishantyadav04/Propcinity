@@ -5,7 +5,7 @@ import { createAdminSupabaseClient } from '@/lib/supabase-server';
 const unauth = () => NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
 export async function GET(req: NextRequest) {
-  if (!await isAdminAuthenticated(req)) return unauth();
+  if (!isAdminAuthenticated(req)) return unauth();
   const supabase = createAdminSupabaseClient();
   if (!supabase) return NextResponse.json({ error: 'Supabase not configured' }, { status: 500 });
   const { data, error } = await supabase
@@ -20,7 +20,7 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
-  if (!await isAdminAuthenticated(req)) return unauth();
+  if (!isAdminAuthenticated(req)) return unauth();
   const body = await req.json();
   const { name, icon, category } = body;
   if (!name || !icon || !category) {

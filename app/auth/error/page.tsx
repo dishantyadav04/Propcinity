@@ -11,6 +11,7 @@ const ERROR_MESSAGES: Record<string, string> = {
   session_failed: 'Could not establish a session. Please try again.',
   invalid_confirmation_link: 'This confirmation link is invalid or has expired.',
   access_denied: "You cancelled sign-in. No problem — try again when you're ready.",
+  password_recovery_expired: 'Your password reset link has expired. Please request a new one.',
 }
 
 function ErrorContent() {
