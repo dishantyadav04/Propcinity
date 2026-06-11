@@ -365,7 +365,7 @@ export default function DashboardPage() {
                     exit={{ opacity: 0, scale: 0.9 }}
                     className="relative group"
                   >
-                    <ProjectCard project={project} index={index} hideRiskBadge={true} hideCuratedButton={true} />
+                    <ProjectCard project={project} index={index} hideRiskBadge={true} hideCuratedButton={true} priority={index === 0} />
 
                     {userIntent && (() => {
                       const pct = getMatchPercent(project, userIntent);

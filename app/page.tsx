@@ -132,15 +132,10 @@ function StatCard({ icon: Icon, value, label, delay }: {
 }
 
 export default function LandingPage() {
-  const router = useRouter();
   const { isGuest } = useGuestMode();
   const [projectCount, setProjectCount] = useState(0);
 
-  useEffect(() => {
-    if (!isGuest) {
-      router.replace('/explore');
-    }
-  }, [isGuest, router]);
+
 
   useEffect(() => {
     fetch('/api/projects')

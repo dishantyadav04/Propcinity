@@ -1,10 +1,11 @@
 'use client';
 
+import Image from 'next/image';
 import { Project, UnitConfig } from "@/types/project";
 import InsightsPanel from "./InsightsPanel";
 import WhyThisFitsYou from "./WhyThisFitsYou";
 import { formatINR } from "@/lib/finance-calculations";
-import { MapPin, ChevronRight, ShieldCheck, Plus, Check } from "lucide-react";
+import { MapPin, ChevronRight, ShieldCheck, Plus, Check, Building2 } from "lucide-react";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { useEffect, useState } from "react";
@@ -20,10 +21,11 @@ interface ProjectCardProps {
   index?: number;
   hideRiskBadge?: boolean;
   hideCuratedButton?: boolean;
+  priority?: boolean;
 }
 
 export default function ProjectCard({
-  project, matchedUnit, index = 0, hideCuratedButton
+  project, matchedUnit, index = 0, hideCuratedButton, priority = false
 }: ProjectCardProps) {
   const displayUnit = matchedUnit || project.unitConfigs[0];
   const minPrice = project.unitConfigs.length > 0
@@ -36,6 +38,7 @@ export default function ProjectCard({
 
   const [isComparing, setIsComparing] = useState(false);
   const [isCurated, setIsCurated] = useState(false);
+  const [imgError, setImgError] = useState(false);
 
   useEffect(() => {
     const checkCompare = () => {
@@ -123,14 +126,22 @@ export default function ProjectCard({
       <Link href={`/projects/${project.slug}`} className="block flex flex-col flex-1">
         {/* Image */}
         <div className="relative h-48 overflow-hidden bg-[var(--surface-raised)]">
-          {project.images?.[0] ? (
-            <img
-              src={project.images[0]}
-              alt={project.name}
-              className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-            />
+          {imgError || !project.images?.[0] ? (
+            <div className="w-full h-full flex items-center justify-center">
+              <Building2 className="w-8 h-8 text-[var(--text-muted)]" />
+            </div>
           ) : (
-            <div className="w-full h-full flex items-center justify-center text-[var(--text-muted)] text-sm">No image</div>
+            <div className="relative w-full h-48">
+              <Image
+                src={project.images[0]}
+                alt={project.name}
+                fill
+                className="object-cover transition-transform duration-500 group-hover:scale-105"
+                onError={() => setImgError(true)}
+                sizes="(max-width: 768px) 100vw, 400px"
+                priority={priority}
+              />
+            </div>
           )}
           <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
 

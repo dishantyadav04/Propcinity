@@ -1,8 +1,9 @@
 'use client';
 
 import { useState } from "react";
+import Image from "next/image";
 import { Drawer } from "vaul";
-import { Sparkles, X, ArrowRight, Loader2, Building2 } from "lucide-react"; // Bug 6 fixed: imported Building2 for image fallback
+import { Sparkles, X, ArrowRight, Loader2, Building2 } from "lucide-react";
 import QuickQuestions from "./QuickQuestions";
 import AIResponse from "./AIResponse";
 import { Project } from "@/types/project";
@@ -18,7 +19,7 @@ interface AskAIModalProps {
 export default function AskAIModal({ isOpen, onClose, project, compareProject }: AskAIModalProps) {
   const [question, setQuestion] = useState("");
   const [answer, setAnswer] = useState("");
-  const [provider, setProvider] = useState<'openai' | 'claude' | 'none'>('none');
+  const [provider, setProvider] = useState<'openai' | 'none'>('none');
   const [isLoading, setIsLoading] = useState(false);
 
   const handleSubmit = async (q: string) => {
@@ -34,7 +35,7 @@ export default function AskAIModal({ isOpen, onClose, project, compareProject }:
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           projectId: project.id,
-          compareProjectIds: compareProject?.id ? [compareProject.id] : undefined, // Bug 1 fixed: API expects array
+          compareProjectIds: compareProject?.id ? [compareProject.id] : undefined,
           question: q
         })
       });
@@ -72,8 +73,16 @@ export default function AskAIModal({ isOpen, onClose, project, compareProject }:
 
             {/* Context Pill */}
             <div className="flex items-center gap-3 bg-[var(--surface-raised)] p-3 rounded-xl border border-[var(--border)]">
-              {project.images?.[0] ? (                          // Bug 6 fixed: guard missing images
-                <img src={project.images[0]} className="w-10 h-10 rounded-lg object-cover" />
+              {project.images?.[0] ? (
+                <div className="relative w-10 h-10 rounded-lg overflow-hidden flex-shrink-0">
+                  <Image
+                    src={project.images[0]}
+                    alt={project.name}
+                    fill
+                    className="object-cover"
+                    sizes="40px"
+                  />
+                </div>
               ) : (
                 <div className="w-10 h-10 rounded-lg bg-[var(--surface-raised)] flex items-center justify-center">
                   <Building2 className="w-5 h-5 text-[var(--text-muted)]" />

@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState, useMemo, Suspense } from "react";
+import Image from "next/image";
 import { useSearchParams, useRouter } from "next/navigation";
 import { Project } from "@/types/project";
 import { formatINR } from "@/lib/finance-calculations";
@@ -166,7 +167,9 @@ function CompareContent() {
             <div key={p.id}
               className="bg-white border border-[var(--border)] rounded-[var(--radius)] overflow-hidden shadow-[var(--shadow-sm)] block">
               {p.images?.[0] && (
-                <img src={p.images[0]} alt={p.name} className="w-full h-20 object-cover" />
+                <div className="relative w-full h-20">
+                  <Image src={p.images[0]} alt={p.name} fill className="object-cover" sizes="200px" />
+                </div>
               )}
               <div className="p-2 text-center">
                 <p className="text-xs font-bold text-[var(--text-primary)] line-clamp-2 leading-tight">{p.name}</p>
@@ -249,8 +252,9 @@ function CompareContent() {
                 <th key={p.id} className="p-3 bg-[var(--surface)] border border-[var(--border)] min-w-[180px]">
                   <div className="space-y-2 text-center">
                     {p.images?.[0] && (
-                      <img src={p.images[0]} alt={p.name}
-                        className="w-full h-24 object-cover rounded-[var(--radius-xs)]" />
+                      <div className="relative w-full h-24">
+                        <Image src={p.images[0]} alt={p.name} fill className="object-cover rounded-[var(--radius-xs)]" sizes="180px" />
+                      </div>
                     )}
                     <p className="font-bold text-sm text-[var(--text-primary)] line-clamp-2">{p.name}</p>
                     <p className="text-[10px] text-[var(--text-muted)]">{p.location}</p>

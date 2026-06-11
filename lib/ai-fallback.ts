@@ -1,10 +1,9 @@
-import { askClaude } from '@/lib/claude'
 import { askOpenAI } from '@/lib/openai'
 
 const TIMEOUT_MS = 5000
 
 function withTimeout<T>(promise: Promise<T>, timeoutMs: number, label: string): Promise<T> {
-  let timer: ReturnType<typeof setTimeout>  // Bug 4 fixed: clear timer when promise wins
+  let timer: ReturnType<typeof setTimeout>
   return Promise.race([
     promise.finally(() => clearTimeout(timer)),
     new Promise<never>((_, reject) => {
@@ -16,7 +15,7 @@ function withTimeout<T>(promise: Promise<T>, timeoutMs: number, label: string): 
 export async function askAI(
   prompt: string,
   systemPrompt: string
-): Promise<{ answer: string; provider: 'openai' | 'claude' | 'none' }> {
+): Promise<{ answer: string; provider: 'openai' | 'none' }> {
   try {
     const answer = await withTimeout(
       askOpenAI(prompt, systemPrompt),
@@ -25,18 +24,7 @@ export async function askAI(
     )
     if (answer) return { answer, provider: 'openai' }
   } catch (error) {
-    console.warn('OpenAI failed, trying Claude', error)
-  }
-
-  try {
-    const answer = await withTimeout(
-      askClaude(prompt, systemPrompt),
-      TIMEOUT_MS,
-      'Claude'
-    )
-    if (answer) return { answer, provider: 'claude' }
-  } catch (error) {
-    console.error('Claude also failed:', error)
+    console.error('OpenAI failed:', error)
   }
 
   return {

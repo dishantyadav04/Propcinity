@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState, useCallback, useRef } from 'react';
+import Image from 'next/image';
 import dynamic from 'next/dynamic';
 import { Project } from '@/types/project';
 import { formatINR } from '@/lib/finance-calculations';
@@ -544,7 +545,7 @@ export default function ExplorePage() {
                 transition={{ delay: Math.min(index * 0.04, 0.3) }}
                 className="relative group"
               >
-                <ProjectCard project={project} index={index} hideCuratedButton={true} />
+                <ProjectCard project={project} index={index} hideCuratedButton={true} priority={index === 0} />
 
                 {/* % Matched badge — top-left */}
                 {userIntent && (() => {
@@ -625,7 +626,7 @@ export default function ExplorePage() {
                   <Link href={`/projects/${project.slug}`} className="flex gap-4 p-4 pr-28">
                     <div className="w-24 h-24 sm:w-32 sm:h-24 flex-shrink-0 rounded-[var(--radius-xs)] overflow-hidden bg-[var(--surface-raised)]">
                       {project.images?.[0]
-                        ? <img src={project.images[0]} alt={project.name} className="w-full h-full object-cover" />
+                        ? <div className="relative w-24 h-24 sm:w-32 sm:h-24"><Image src={project.images[0]} alt={project.name} fill className="object-cover" sizes="128px" /></div>
                         : <div className="w-full h-full flex items-center justify-center">
                             <Building2 className="w-6 h-6 text-[var(--text-muted)]" />
                           </div>
@@ -699,3 +700,4 @@ export default function ExplorePage() {
     </div>
   );
 }
+

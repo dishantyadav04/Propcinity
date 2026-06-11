@@ -1,12 +1,13 @@
 'use client';
 
 import { useState, useEffect, useRef } from "react";
+import Image from "next/image";
 import { Project } from "@/types/project";
 import { X, Scale, ArrowRight, Trash2, ChevronUp, ChevronDown } from "lucide-react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import { formatINR } from "@/lib/finance-calculations";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 
 import { storage, STORAGE_KEYS } from "@/lib/storage";
 
@@ -132,8 +133,16 @@ export default function CompareBar() {
                           exit={{ opacity: 0, scale: 0.8 }}
                           className="flex-shrink-0 flex items-center gap-2 bg-[var(--surface-raised)]
                             border border-[var(--border)] rounded-[var(--radius-xs)] px-2.5 py-1.5 pr-7 relative">
-                          <div className="w-7 h-7 rounded overflow-hidden bg-[var(--border)] flex-shrink-0">
-                            {item.images?.[0] && <img src={item.images[0]} alt={item.name} className="w-full h-full object-cover" />}
+                          <div className="w-7 h-7 rounded overflow-hidden bg-[var(--border)] flex-shrink-0 relative">
+                            {item.images?.[0] && (
+                              <Image
+                                src={item.images[0]}
+                                alt={item.name}
+                                fill
+                                className="object-cover"
+                                sizes="28px"
+                              />
+                            )}
                           </div>
                           <div className="min-w-0">
                             <p className="text-[11px] font-bold text-[var(--text-primary)] truncate max-w-[90px]">{item.name}</p>

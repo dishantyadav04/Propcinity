@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from "react";
+import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
 import { ChevronLeft, ChevronRight, Maximize2 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -18,14 +19,21 @@ export default function GallerySlider({ images }: GallerySliderProps) {
   return (
     <div className="relative aspect-[4/3] w-full overflow-hidden rounded-[var(--radius)] group">
       <AnimatePresence mode="wait">
-        <motion.img
+        <motion.div
           key={index}
-          src={images[index]}
           initial={{ opacity: 0, x: 20 }}
           animate={{ opacity: 1, x: 0 }}
           exit={{ opacity: 0, x: -20 }}
-          className="absolute inset-0 w-full h-full object-cover"
-        />
+          className="absolute inset-0"
+        >
+          <Image
+            src={images[index]}
+            alt={`Gallery image ${index + 1}`}
+            fill
+            className="object-cover"
+            sizes="(max-width: 768px) 100vw, 70vw"
+          />
+        </motion.div>
       </AnimatePresence>
 
       <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent pointer-events-none" />

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { Redis } from '@upstash/redis'
 import { z } from 'zod'
 import { askAI } from '@/lib/ai-fallback'
 import { buildSystemPrompt } from '@/lib/prompts'
@@ -13,7 +14,42 @@ const schema = z.object({
   compareProjectIds: z.array(z.string().uuid()).max(5).optional(),
 })
 
+function getRedis(): Redis | null {
+  const url = process.env.UPSTASH_REDIS_REST_URL
+  const token = process.env.UPSTASH_REDIS_REST_TOKEN
+  if (!url || !token) {
+    console.warn('[AI] Upstash Redis not configured. Daily chat limits will not be enforced.')
+    return null
+  }
+  return new Redis({ url, token })
+}
+
+const DAILY_LIMIT = 5
+
+async function getUserChatCount(userId: string): Promise<number> {
+  const redis = getRedis()
+  if (!redis) return 0
+  const key = `ai_chats:${userId}:${new Date().toISOString().slice(0, 10)}`
+  const count = await redis.get<number>(key)
+  return count ?? 0
+}
+
+async function incrementUserChatCount(userId: string): Promise<number> {
+  const redis = getRedis()
+  if (!redis) return 1
+  const key = `ai_chats:${userId}:${new Date().toISOString().slice(0, 10)}`
+  const newCount = await redis.incr(key)
+  if (newCount === 1) {
+    await redis.expire(key, 25 * 60 * 60)
+  }
+  return newCount
+}
+
 export async function POST(request: NextRequest) {
+  if (process.env.NODE_ENV === 'production' && !process.env.UPSTASH_REDIS_REST_URL) {
+    console.error('[SECURITY] UPSTASH_REDIS_REST_URL is not set in production. Rate limiting is DISABLED.')
+  }
+
   const ip = getClientIp(request)
   if (await checkRateLimit(aiAskLimiter, ip)) {
     return NextResponse.json({ error: 'Too many requests.' }, { status: 429 })
@@ -26,6 +62,21 @@ export async function POST(request: NextRequest) {
   }
 
   const { question, projectId, compareProjectIds } = parsed.data
+
+  const supabase = await createServerSupabaseClient()
+  if (supabase) {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (user) {
+      const count = await getUserChatCount(user.id)
+      if (count >= DAILY_LIMIT) {
+        return NextResponse.json(
+          { error: `You've reached your ${DAILY_LIMIT} daily chat limit. Try again tomorrow.` },
+          { status: 429 }
+        )
+      }
+      await incrementUserChatCount(user.id)
+    }
+  }
 
   // Check cache before hitting AI
   const cacheKey = makeCacheKey(question, projectId)
@@ -54,13 +105,15 @@ export async function POST(request: NextRequest) {
 }
 
 export async function PUT(request: NextRequest) {
-  // ── Rate limiting ────────────────────────────────────────────────────────
+  if (process.env.NODE_ENV === 'production' && !process.env.UPSTASH_REDIS_REST_URL) {
+    console.error('[SECURITY] UPSTASH_REDIS_REST_URL is not set in production. Rate limiting is DISABLED.')
+  }
+
   const ip = getClientIp(request)
   if (await checkRateLimit(aiAskLimiter, ip)) {
     return NextResponse.json({ error: 'Too many requests.' }, { status: 429 })
   }
 
-  // ── Require authenticated session ────────────────────────────────────────
   const supabase = await createServerSupabaseClient()
   if (!supabase) {
     return NextResponse.json({ error: 'Service unavailable' }, { status: 503 })
@@ -70,11 +123,9 @@ export async function PUT(request: NextRequest) {
     return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
   }
 
-  // AI-powered project recommendations endpoint
   try {
     const { userIntent, projects } = await request.json()
 
-    // Build a concise prompt with user preferences + project list
     const projectList = (projects || []).slice(0, 50).map((p: any) => ({
       id: p.id,
       name: p.name,

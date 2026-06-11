@@ -2,13 +2,19 @@
 const nextConfig = {
   reactStrictMode: true,
 
-  serverExternalPackages: ['@anthropic-ai/sdk', 'openai', 'posthog-node'],
+  serverExternalPackages: ['openai', 'posthog-node'],
 
   allowedDevOrigins: ['192.168.1.33', 'localhost'],
 
   images: {
     remotePatterns: [
-      { protocol: 'https', hostname: 'images.propicinity.in' },
+      { protocol: 'https', hostname: 'images.propcinity.in' },
+      { protocol: 'https', hostname: 'pub-*.r2.dev' },
+      { protocol: 'https', hostname: '*.r2.cloudflarestorage.com' },
+      { protocol: 'https', hostname: '*.r2.dev' },
+      { protocol: 'https', hostname: '*.supabase.co' },
+      { protocol: 'https', hostname: '*.supabase.in' },
+      { protocol: 'https', hostname: 'images.unsplash.com' },
     ],
   },
 
@@ -24,15 +30,15 @@ const nextConfig = {
       // Styles: self + inline (Tailwind requires this)
       "style-src 'self' 'unsafe-inline'",
       // Images: self, data URIs, R2 bucket, Supabase storage
-      `img-src 'self' data: blob: ${process.env.NEXT_PUBLIC_R2_PUBLIC_URL || ''} https://*.supabase.co`,
+      `img-src 'self' data: blob: ${process.env.NEXT_PUBLIC_R2_PUBLIC_URL || ''} https://*.supabase.co https://*.supabase.in https://*.r2.dev https://*.r2.cloudflarestorage.com https://images.propcinity.in https://images.unsplash.com https://*.tile.openstreetmap.org https://cdnjs.cloudflare.com`,
       // API connections
       [
         "connect-src 'self'",
         process.env.NEXT_PUBLIC_SUPABASE_URL || '',
         'https://api.openai.com',
-        'https://api.anthropic.com',
         process.env.NEXT_PUBLIC_POSTHOG_HOST || 'https://app.posthog.com',
         'https://overpass-api.de',
+        'https://*.tile.openstreetmap.org',
         isDev ? 'ws://localhost:*' : '',
       ].filter(Boolean).join(' '),
       "font-src 'self' data:",

@@ -1,6 +1,6 @@
 'use client'
 
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import { Menu, LogOut } from 'lucide-react'
 
 const PAGE_TITLES: Record<string, string> = {
@@ -15,6 +15,7 @@ const PAGE_TITLES: Record<string, string> = {
 
 export default function AdminHeader({ onToggleSidebar }: { onToggleSidebar: () => void }) {
   const pathname = usePathname()
+  const router = useRouter()
 
   const title = Object.entries(PAGE_TITLES).reduce<string | undefined>(
     (found, [prefix, label]) => {
@@ -51,8 +52,12 @@ export default function AdminHeader({ onToggleSidebar }: { onToggleSidebar: () =
 
       <button
         onClick={async () => {
-          await fetch('/api/admin/logout', { method: 'POST' })
-          window.location.href = '/admin/login'
+          try {
+            await fetch('/api/admin/logout', { method: 'POST' })
+          } catch {
+            // Proceed with redirect even if the request fails
+          }
+          router.replace('/admin/login')
         }}
         className="flex items-center gap-2 px-3 py-1.5 text-xs font-semibold text-red-400/70
           hover:text-red-400 hover:bg-red-400/5 rounded-lg transition-all"

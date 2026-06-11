@@ -2,7 +2,7 @@
 
 import { useEffect } from "react"
 import Link from "next/link"
-import { usePathname } from "next/navigation"
+import { usePathname, useRouter } from "next/navigation"
 import {
   LayoutDashboard, Building2, HardHat,
   Users, MessageSquare, Settings, LogOut, ExternalLink, Mail, X
@@ -21,13 +21,18 @@ const ADMIN_NAV = [
 
 function SidebarContent({ onNavClick }: { onNavClick?: () => void }) {
   const pathname = usePathname()
+  const router = useRouter()
 
   const isActive = (href: string) =>
     href === '/admin' ? pathname === href : pathname.startsWith(href)
 
   const signOut = async () => {
-    await fetch('/api/admin/logout', { method: 'POST' })
-    window.location.href = '/admin/login'
+    try {
+      await fetch('/api/admin/logout', { method: 'POST' })
+    } catch {
+      // Proceed with redirect even if the request fails
+    }
+    router.replace('/admin/login')
   }
 
   return (

@@ -1,8 +1,12 @@
 'use client';
 
 import React, { useEffect, useState, useRef, useMemo } from "react";
+import dynamic from "next/dynamic";
 import { Project, UnitConfig } from "@/types/project";
-import GallerySlider from "@/components/property/GallerySlider";
+const GallerySlider = dynamic(() => import("@/components/property/GallerySlider"), {
+  ssr: false,
+  loading: () => <div className="aspect-[4/3] w-full bg-[var(--surface-raised)] animate-pulse rounded-[var(--radius)]" />,
+});
 import InsightsPanel from "@/components/property/InsightsPanel";
 import AmenityGrid from "@/components/property/AmenityGrid";
 import LocationSection from "@/components/map/LocationSection";

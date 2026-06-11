@@ -27,21 +27,34 @@ export const viewport: Viewport = {
 }
 
 export const metadata: Metadata = {
-  title: 'Propcinity | Zero Brokerage Real Estate',
-  description: 'Find the right property in Pune. AI-powered matches. Zero brokerage. Verified projects.',
+  title: {
+    default: 'Propcinity — Find the Right Property',
+    template: '%s | Propcinity',
+  },
+  description: 'AI-curated real estate in Pune. Zero brokerage. Free for buyers. Trust scores, RERA verification, and expert advisors.',
   keywords: ['real estate', 'Pune property', 'zero brokerage', 'buy flat Pune'],
   authors: [{ name: 'Propcinity' }],
   creator: 'Propcinity',
-  metadataBase: new URL('https://propcinity.in'),
+  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || 'https://propcinity.in'),
   openGraph: {
-    title: 'Propcinity | Zero Brokerage Real Estate',
-    description: 'Find the right property in Pune. AI-powered matches. Zero brokerage.',
+    siteName: 'Propcinity',
+    title: 'Propcinity — Find the Right Property',
+    description: 'AI-curated real estate in Pune. Zero brokerage. Free for buyers.',
     type: 'website',
     locale: 'en_IN',
+    images: [
+      {
+        url: '/opengraph-image',
+        width: 1200,
+        height: 630,
+        alt: 'Propcinity — Find the Right Property',
+      },
+    ],
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Propcinity | Zero Brokerage Real Estate',
+    title: 'Propcinity — Find the Right Property',
+    images: ['/opengraph-image'],
   },
 }
 

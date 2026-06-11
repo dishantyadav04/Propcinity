@@ -7,7 +7,7 @@ import { Project } from "@/types/project";
 
 interface AIResponseProps {
   answer: string;
-  provider: 'openai' | 'claude' | 'none';
+  provider: 'openai' | 'none';
   project: Project;
   isLoading: boolean;
 }
