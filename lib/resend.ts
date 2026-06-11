@@ -9,6 +9,16 @@ function getResendClient() {
   return new Resend(apiKey)
 }
 
+function e(str: string | undefined | null): string {
+  if (!str) return ''
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+}
+
 export async function sendBuyerConfirmation(data: {
   name: string
   email?: string
@@ -23,16 +33,16 @@ export async function sendBuyerConfirmation(data: {
   await getResendClient().emails.send({
     from: 'Propcinity <hello@propcinity.com>',
     to: data.email,
-    subject: `Consultation Confirmed - ${data.projectName}`,
+    subject: `Consultation Confirmed - ${e(data.projectName)}`,
     html: `
       <div style="font-family:sans-serif;max-width:600px;margin:0 auto;">
-        <h2>Hi ${data.name},</h2>
+        <h2>Hi ${e(data.name)},</h2>
         <p>Your consultation is confirmed.</p>
         <table style="width:100%;border-collapse:collapse;margin:20px 0;">
-          <tr><td style="padding:8px;color:#666;">Project</td><td style="padding:8px;"><strong>${data.projectName}</strong></td></tr>
-          <tr><td style="padding:8px;color:#666;">Date</td><td style="padding:8px;">${data.preferredDate}</td></tr>
-          <tr><td style="padding:8px;color:#666;">Time</td><td style="padding:8px;">${data.preferredTime}</td></tr>
-          <tr><td style="padding:8px;color:#666;">Reference</td><td style="padding:8px;">${data.bookingRef}</td></tr>
+          <tr><td style="padding:8px;color:#666;">Project</td><td style="padding:8px;"><strong>${e(data.projectName)}</strong></td></tr>
+          <tr><td style="padding:8px;color:#666;">Date</td><td style="padding:8px;">${e(data.preferredDate)}</td></tr>
+          <tr><td style="padding:8px;color:#666;">Time</td><td style="padding:8px;">${e(data.preferredTime)}</td></tr>
+          <tr><td style="padding:8px;color:#666;">Reference</td><td style="padding:8px;">${e(data.bookingRef)}</td></tr>
         </table>
         <p>Our advisor will call you within 2 hours to confirm.</p>
         <p style="color:#666;font-size:13px;">No builder contact. No spam. 100% free for buyers.</p>
@@ -66,7 +76,7 @@ export async function sendOpsAlert(data: {
   await getResendClient().emails.send({
     from: 'Propcinity Leads <leads@propcinity.com>',
     to: process.env.OPS_EMAIL!,
-    subject: `[${data.intentLabel.toUpperCase()}] New Lead - ${data.name} - ${data.projectName}`,
+    subject: `[${data.intentLabel.toUpperCase()}] New Lead - ${e(data.name)} - ${e(data.projectName)}`,
     html: `
       <div style="font-family:sans-serif;max-width:600px;margin:0 auto;">
         ${urgency}
@@ -76,17 +86,17 @@ export async function sendOpsAlert(data: {
           </span>
         </div>
         <table style="width:100%;border-collapse:collapse;">
-          <tr><td style="padding:8px;color:#666;">Name</td><td style="padding:8px;"><strong>${data.name}</strong></td></tr>
-          <tr><td style="padding:8px;color:#666;">Phone</td><td style="padding:8px;"><strong>${data.phone}</strong></td></tr>
-          <tr><td style="padding:8px;color:#666;">Project</td><td style="padding:8px;">${data.projectName}</td></tr>
-          <tr><td style="padding:8px;color:#666;">Timeline</td><td style="padding:8px;">${data.timeline}</td></tr>
-          <tr><td style="padding:8px;color:#666;">Budget</td><td style="padding:8px;">${data.budgetReady}</td></tr>
-          <tr><td style="padding:8px;color:#666;">Finance</td><td style="padding:8px;">${data.financeType}</td></tr>
-          <tr><td style="padding:8px;color:#666;">Decision Maker</td><td style="padding:8px;">${data.decisionMaker}</td></tr>
-          <tr><td style="padding:8px;color:#666;">Date</td><td style="padding:8px;">${data.preferredDate || 'Not set'}</td></tr>
-          <tr><td style="padding:8px;color:#666;">Time</td><td style="padding:8px;">${data.preferredTime || 'Not set'}</td></tr>
+          <tr><td style="padding:8px;color:#666;">Name</td><td style="padding:8px;"><strong>${e(data.name)}</strong></td></tr>
+          <tr><td style="padding:8px;color:#666;">Phone</td><td style="padding:8px;"><strong>${e(data.phone)}</strong></td></tr>
+          <tr><td style="padding:8px;color:#666;">Project</td><td style="padding:8px;">${e(data.projectName)}</td></tr>
+          <tr><td style="padding:8px;color:#666;">Timeline</td><td style="padding:8px;">${e(data.timeline)}</td></tr>
+          <tr><td style="padding:8px;color:#666;">Budget</td><td style="padding:8px;">${e(data.budgetReady)}</td></tr>
+          <tr><td style="padding:8px;color:#666;">Finance</td><td style="padding:8px;">${e(data.financeType)}</td></tr>
+          <tr><td style="padding:8px;color:#666;">Decision Maker</td><td style="padding:8px;">${e(data.decisionMaker)}</td></tr>
+          <tr><td style="padding:8px;color:#666;">Date</td><td style="padding:8px;">${e(data.preferredDate || 'Not set')}</td></tr>
+          <tr><td style="padding:8px;color:#666;">Time</td><td style="padding:8px;">${e(data.preferredTime || 'Not set')}</td></tr>
           <tr><td style="padding:8px;color:#666;">Family Joining</td><td style="padding:8px;">${data.familyJoining ? 'Yes' : 'No'}</td></tr>
-          <tr><td style="padding:8px;color:#666;">Ref</td><td style="padding:8px;">${data.bookingRef}</td></tr>
+          <tr><td style="padding:8px;color:#666;">Ref</td><td style="padding:8px;">${e(data.bookingRef)}</td></tr>
         </table>
       </div>
     `,

@@ -1,4 +1,4 @@
-import { createHash } from 'crypto'
+import { createHash, timingSafeEqual } from 'crypto'
 import { NextRequest } from 'next/server'
 
 export const ADMIN_COOKIE_NAME = 'admin_session'
@@ -17,7 +17,10 @@ function getAdminPassword(): string {
 }
 
 export function checkAdminPassword(password: string): boolean {
-  return hash(password) === hash(getAdminPassword())
+  const expected = Buffer.from(hash(getAdminPassword()), 'hex')
+  const provided = Buffer.from(hash(password), 'hex')
+  if (expected.length !== provided.length) return false
+  return timingSafeEqual(expected, provided)
 }
 
 export function getAdminSessionValue(): string {
@@ -27,5 +30,9 @@ export function getAdminSessionValue(): string {
 export function isAdminAuthenticated(request: NextRequest): boolean {
   const cookie = request.cookies.get(ADMIN_COOKIE_NAME)
   if (!cookie) return false
-  return cookie.value === getAdminSessionValue()
+  // Timing-safe comparison for cookie validation too
+  const expected = Buffer.from(getAdminSessionValue(), 'utf8')
+  const provided = Buffer.from(cookie.value, 'utf8')
+  if (expected.length !== provided.length) return false
+  return timingSafeEqual(expected, provided)
 }

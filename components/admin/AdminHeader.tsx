@@ -50,8 +50,8 @@ export default function AdminHeader({ onToggleSidebar }: { onToggleSidebar: () =
       </div>
 
       <button
-        onClick={() => {
-          document.cookie = 'admin_session=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/'
+        onClick={async () => {
+          await fetch('/api/admin/logout', { method: 'POST' })
           window.location.href = '/admin/login'
         }}
         className="flex items-center gap-2 px-3 py-1.5 text-xs font-semibold text-red-400/70

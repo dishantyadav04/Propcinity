@@ -203,8 +203,14 @@ alter table leads enable row level security;
 create policy "Public read published projects"
   on projects for select using (is_published = true);
 
-create policy "Public read unit_configs"
-  on unit_configs for select using (true);
+create policy "Public read unit_configs for published projects"
+  on unit_configs for select
+  using (
+    exists (
+      select 1 from projects p
+      where p.id = project_id and p.is_published = true
+    )
+  );
 
 create policy "Users manage own intent"
   on user_intents for all using (auth.uid() = user_id);
@@ -290,12 +296,15 @@ alter table builders enable row level security;
 alter table builder_project_updates enable row level security;
 alter table user_profiles enable row level security;
 
-create policy "Service role full access builders"
-  on builders for all using (true);
-create policy "Service role full access bpu"
-  on builder_project_updates for all using (true);
-create policy "Service role full access users"
-  on user_profiles for all using (true);
+-- builders: public read of active builders only; service role bypasses RLS for writes
+create policy "Public read active builders"
+  on builders for select using (is_active = true);
+
+-- builder_project_updates: no public access (service role only)
+
+-- user_profiles: users can only access their own row
+create policy "Users access own profile"
+  on user_profiles for all using (auth.uid() = id);
 
 -- Add builder_id FK to projects table
 alter table projects add column if not exists builder_id uuid references builders;

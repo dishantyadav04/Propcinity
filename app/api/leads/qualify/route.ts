@@ -4,6 +4,7 @@ import { createAdminSupabaseClient } from '@/lib/supabase-server'
 import { sendBuyerConfirmation, sendOpsAlert } from '@/lib/resend'
 import { getProjectsByIds } from '@/services/projects'
 import { calculateIntentScore } from '@/services/leads'
+import { leadsLimiter, getClientIp, checkRateLimit } from '@/lib/rate-limit'
 
 const schema = z.object({
   projectId: z.string().uuid(),
@@ -24,28 +25,9 @@ const schema = z.object({
   triggerSource: z.string().trim().max(100).optional(),
 })
 
-const rateLimitMap = new Map<string, { count: number; resetAt: number }>()
-const MAX_REQUESTS_PER_HOUR = 10
-
-function isRateLimited(ip: string): boolean {
-  const now = Date.now()
-  const entry = rateLimitMap.get(ip)
-
-  if (!entry || now > entry.resetAt) {
-    rateLimitMap.set(ip, { count: 1, resetAt: now + 60 * 60 * 1000 })
-    return false
-  }
-
-  if (entry.count >= MAX_REQUESTS_PER_HOUR) return true
-  entry.count += 1
-  return false
-}
-
 export async function POST(request: NextRequest) {
-  const forwardedFor = request.headers.get('x-forwarded-for') || 'unknown'
-  const ip = forwardedFor.split(',')[0]?.trim() || 'unknown'
-
-  if (isRateLimited(ip)) {
+  const ip = getClientIp(request)
+  if (await checkRateLimit(leadsLimiter, ip)) {
     return NextResponse.json({ error: 'Too many requests.' }, { status: 429 })
   }
 

@@ -11,24 +11,23 @@ export function useGuestMode() {
     let cancelled = false
 
     const check = async () => {
-      const localDone = storage.get<boolean>(STORAGE_KEYS.ONBOARDING_DONE, false)
-      if (localDone) {
-        if (!cancelled) setIsGuest(false)
-        return
-      }
-
       try {
         const supabase = createClient()
-        const { data: { session } } = await supabase.auth.getSession()
-        if (session) {
+        // Use getUser() — makes a server-validated network request
+        // Never use getSession() for security decisions (client-side JWT decode only)
+        const { data: { user } } = await supabase.auth.getUser()
+        if (user) {
+          // Only set localStorage AFTER server confirms valid session
           storage.set(STORAGE_KEYS.ONBOARDING_DONE, true)
           if (!cancelled) setIsGuest(false)
           return
         }
       } catch {
-        // Supabase unavailable — fall through to guest
+        // Supabase unavailable — fall through to guest mode
       }
 
+      // Clear stale localStorage flag if session is invalid
+      storage.remove(STORAGE_KEYS.ONBOARDING_DONE)
       if (!cancelled) setIsGuest(true)
     }
 

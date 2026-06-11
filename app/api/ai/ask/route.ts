@@ -4,6 +4,8 @@ import { askAI } from '@/lib/ai-fallback'
 import { buildSystemPrompt } from '@/lib/prompts'
 import { getProjectsByIds } from '@/services/projects'
 import { getChatCache, setChatCache, makeCacheKey } from '@/lib/chat-cache'
+import { createServerSupabaseClient } from '@/lib/supabase-server'
+import { aiAskLimiter, getClientIp, checkRateLimit } from '@/lib/rate-limit'
 
 const schema = z.object({
   question: z.string().trim().min(1).max(500),
@@ -11,28 +13,9 @@ const schema = z.object({
   compareProjectIds: z.array(z.string().uuid()).max(5).optional(),
 })
 
-const rateLimitMap = new Map<string, { count: number; resetAt: number }>()
-const MAX_REQUESTS_PER_HOUR = 20
-
-function isRateLimited(ip: string): boolean {
-  const now = Date.now()
-  const entry = rateLimitMap.get(ip)
-
-  if (!entry || now > entry.resetAt) {
-    rateLimitMap.set(ip, { count: 1, resetAt: now + 60 * 60 * 1000 })
-    return false
-  }
-
-  if (entry.count >= MAX_REQUESTS_PER_HOUR) return true
-  entry.count += 1
-  return false
-}
-
 export async function POST(request: NextRequest) {
-  const forwardedFor = request.headers.get('x-forwarded-for') || 'unknown'
-  const ip = forwardedFor.split(',')[0]?.trim() || 'unknown'
-
-  if (isRateLimited(ip)) {
+  const ip = getClientIp(request)
+  if (await checkRateLimit(aiAskLimiter, ip)) {
     return NextResponse.json({ error: 'Too many requests.' }, { status: 429 })
   }
 
@@ -71,6 +54,22 @@ export async function POST(request: NextRequest) {
 }
 
 export async function PUT(request: NextRequest) {
+  // ── Rate limiting ────────────────────────────────────────────────────────
+  const ip = getClientIp(request)
+  if (await checkRateLimit(aiAskLimiter, ip)) {
+    return NextResponse.json({ error: 'Too many requests.' }, { status: 429 })
+  }
+
+  // ── Require authenticated session ────────────────────────────────────────
+  const supabase = await createServerSupabaseClient()
+  if (!supabase) {
+    return NextResponse.json({ error: 'Service unavailable' }, { status: 503 })
+  }
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) {
+    return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
+  }
+
   // AI-powered project recommendations endpoint
   try {
     const { userIntent, projects } = await request.json()

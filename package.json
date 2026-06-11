@@ -22,6 +22,8 @@
     "@types/node": "^22.15.0",
     "@types/react": "^19.1.0",
     "@types/react-dom": "^19.1.0",
+    "@upstash/ratelimit": "^2.0.8",
+    "@upstash/redis": "^1.38.0",
     "autoprefixer": "^10.4.21",
     "clsx": "^2.1.1",
     "embla-carousel-react": "^8.6.0",

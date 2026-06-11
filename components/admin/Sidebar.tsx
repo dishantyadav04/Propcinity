@@ -25,8 +25,8 @@ function SidebarContent({ onNavClick }: { onNavClick?: () => void }) {
   const isActive = (href: string) =>
     href === '/admin' ? pathname === href : pathname.startsWith(href)
 
-  const signOut = () => {
-    document.cookie = 'admin_session=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/'
+  const signOut = async () => {
+    await fetch('/api/admin/logout', { method: 'POST' })
     window.location.href = '/admin/login'
   }
 

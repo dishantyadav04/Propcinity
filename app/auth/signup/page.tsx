@@ -29,8 +29,7 @@ export default function SignUpPage() {
         name: form.name,
         phone: form.phone,
       })
-      localStorage.setItem('auth_pending_name', form.name)
-      localStorage.setItem('auth_pending_phone', form.phone)
+      // PII no longer stored in localStorage — retreive from supabase user metadata instead
       router.push('/auth/verify-email')
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : 'Sign up failed. Please try again.')
