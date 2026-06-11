@@ -33,10 +33,10 @@ type SortOption = 'relevance' | 'price_asc' | 'price_desc' | 'newest';
 type ViewMode = 'grid' | 'list';
 
 const SORT_OPTIONS: { value: SortOption; label: string; icon: string }[] = [
-  { value: 'relevance',  label: 'Best Match',        icon: '⭐' },
-  { value: 'price_asc',  label: 'Price: Low → High', icon: '↑' },
+  { value: 'relevance', label: 'Best Match', icon: '⭐' },
+  { value: 'price_asc', label: 'Price: Low → High', icon: '↑' },
   { value: 'price_desc', label: 'Price: High → Low', icon: '↓' },
-  { value: 'newest',     label: 'Newest First',       icon: '🆕' },
+  { value: 'newest', label: 'Newest First', icon: '🆕' },
 ];
 
 export default function ExplorePage() {
@@ -169,10 +169,10 @@ export default function ExplorePage() {
     // Budget filter
     if (budgetFilter !== 'all') {
       const ranges: Record<string, [number, number]> = {
-        'under-50':  [0,          5000000],
-        '50-1cr':    [5000000,    10000000],
-        '1cr-2cr':   [10000000,   20000000],
-        '2cr-plus':  [20000000,   Infinity],
+        'under-50': [0, 5000000],
+        '50-1cr': [5000000, 10000000],
+        '1cr-2cr': [10000000, 20000000],
+        '2cr-plus': [20000000, Infinity],
       };
       const [min, max] = ranges[budgetFilter] || [0, Infinity];
       result = result.filter(p => {
@@ -219,7 +219,7 @@ export default function ExplorePage() {
       setSelectedProject(result[0]);
     }
   }, [projects, searchQuery, sortBy, typeFilter, budgetFilter,
-      userIntent, showAllProjects]);
+    userIntent, showAllProjects]);
 
   useEffect(() => { applyFilters(); }, [applyFilters]);
 
@@ -341,11 +341,10 @@ export default function ExplorePage() {
                 setShowFilters(!showFilters);
               }}
               className={`relative flex items-center gap-1.5 px-3 py-2.5 rounded-[var(--radius-xs)]
-                border text-sm font-semibold transition-colors flex-shrink-0 ${
-                showFilters || activeFilterCount > 0
+                border text-sm font-semibold transition-colors flex-shrink-0 ${showFilters || activeFilterCount > 0
                   ? 'border-[var(--primary)] bg-[var(--primary-light)] text-[var(--primary)]'
                   : 'border-[var(--border)] text-[var(--text-secondary)]'
-              }`}>
+                }`}>
               <SlidersHorizontal className="w-4 h-4" />
               <span className="hidden sm:inline">Filter</span>
               {isGuest && <Lock className="w-3 h-3 text-[var(--text-muted)]" />}
@@ -363,11 +362,10 @@ export default function ExplorePage() {
                 onClick={() => setSortOpen(!sortOpen)}
                 className={`flex items-center gap-2 pl-3 pr-2.5 py-2.5
                   bg-[var(--surface-raised)] border rounded-[var(--radius-xs)]
-                  text-sm font-semibold transition-all whitespace-nowrap ${
-                  sortOpen
+                  text-sm font-semibold transition-all whitespace-nowrap ${sortOpen
                     ? 'border-[var(--primary)] text-[var(--text-primary)]'
                     : 'border-[var(--border)] text-[var(--text-secondary)]'
-                }`}>
+                  }`}>
                 <ArrowUpDown className="w-3.5 h-3.5 text-[var(--text-muted)]" />
                 <span className="hidden sm:inline">{currentSort.label}</span>
                 <span className="sm:hidden">{currentSort.icon}</span>
@@ -406,11 +404,10 @@ export default function ExplorePage() {
                               setSortOpen(false);
                             }}
                             className={`w-full flex items-center gap-3 px-3 py-2.5
-                              rounded-[var(--radius-xs)] text-sm font-semibold transition-all text-left ${
-                              sortBy === opt.value
+                              rounded-[var(--radius-xs)] text-sm font-semibold transition-all text-left ${sortBy === opt.value
                                 ? 'bg-[var(--primary-light)] text-[var(--primary)]'
                                 : 'text-[var(--text-secondary)] hover:bg-[var(--surface-raised)]'
-                            } ${locked ? 'opacity-50' : ''}`}>
+                              } ${locked ? 'opacity-50' : ''}`}>
                             <span className="text-base w-5 text-center">{opt.icon}</span>
                             <span className="flex-1">{opt.label}</span>
                             {locked && <Lock className="w-3 h-3 ml-auto text-[var(--text-muted)]" />}
@@ -429,19 +426,17 @@ export default function ExplorePage() {
               <div className="hidden sm:flex items-center bg-[var(--surface-raised)]
                 rounded-[var(--radius-xs)] p-0.5">
                 <button onClick={() => setViewMode('grid')}
-                  className={`p-2 rounded transition-all ${
-                    viewMode === 'grid'
+                  className={`p-2 rounded transition-all ${viewMode === 'grid'
                       ? 'bg-white shadow-sm text-[var(--text-primary)]'
                       : 'text-[var(--text-muted)]'
-                  }`}>
+                    }`}>
                   <LayoutGrid className="w-4 h-4" />
                 </button>
                 <button onClick={() => setViewMode('list')}
-                  className={`p-2 rounded transition-all ${
-                    viewMode === 'list'
+                  className={`p-2 rounded transition-all ${viewMode === 'list'
                       ? 'bg-white shadow-sm text-[var(--text-primary)]'
                       : 'text-[var(--text-muted)]'
-                  }`}>
+                    }`}>
                   <List className="w-4 h-4" />
                 </button>
               </div>
@@ -465,11 +460,10 @@ export default function ExplorePage() {
                     </span>
                     {['all', 'apartment', 'villa', 'plot'].map(t => (
                       <button key={t} onClick={() => setTypeFilter(t)}
-                        className={`min-w-[68px] text-center px-3 py-1 rounded-full text-xs font-bold capitalize transition-all border ${
-                          typeFilter === t
+                        className={`min-w-[68px] text-center px-3 py-1 rounded-full text-xs font-bold capitalize transition-all border ${typeFilter === t
                             ? 'bg-[var(--primary)] text-white border-[var(--primary)]'
                             : 'bg-[var(--surface-raised)] text-[var(--text-secondary)] border-[var(--border)]'
-                        }`}>{t === 'all' ? 'All Types' : t}</button>
+                          }`}>{t === 'all' ? 'All Types' : t}</button>
                     ))}
                   </div>
                   {/* Budget */}
@@ -485,11 +479,10 @@ export default function ExplorePage() {
                       { id: '2cr-plus', label: '₹2Cr+' },
                     ].map(b => (
                       <button key={b.id} onClick={() => setBudgetFilter(b.id)}
-                        className={`min-w-[72px] text-center px-3 py-1 rounded-full text-xs font-bold transition-all border ${
-                          budgetFilter === b.id
+                        className={`min-w-[72px] text-center px-3 py-1 rounded-full text-xs font-bold transition-all border ${budgetFilter === b.id
                             ? 'bg-[var(--primary)] text-white border-[var(--primary)]'
                             : 'bg-[var(--surface-raised)] text-[var(--text-secondary)] border-[var(--border)]'
-                        }`}>{b.label}</button>
+                          }`}>{b.label}</button>
                     ))}
                   </div>
                   {activeFilterCount > 0 && (
@@ -582,10 +575,9 @@ export default function ExplorePage() {
                     flex items-center justify-center
                     opacity-0 group-hover:opacity-100
                     transition-all duration-150 shadow-sm backdrop-blur-sm
-                    hover:scale-110 ${
-                      curatedIds.includes(project.id)
-                        ? 'bg-[var(--primary)] text-white'
-                        : 'bg-black/30 text-white hover:bg-[var(--primary)]'
+                    hover:scale-110 ${curatedIds.includes(project.id)
+                      ? 'bg-[var(--primary)] text-white'
+                      : 'bg-black/30 text-white hover:bg-[var(--primary)]'
                     }`}
                 >
                   {curatedIds.includes(project.id)
@@ -628,8 +620,8 @@ export default function ExplorePage() {
                       {project.images?.[0]
                         ? <div className="relative w-24 h-24 sm:w-32 sm:h-24"><Image src={project.images[0]} alt={project.name} fill className="object-cover" sizes="128px" /></div>
                         : <div className="w-full h-full flex items-center justify-center">
-                            <Building2 className="w-6 h-6 text-[var(--text-muted)]" />
-                          </div>
+                          <Building2 className="w-6 h-6 text-[var(--text-muted)]" />
+                        </div>
                       }
                     </div>
                     <div className="flex-1 min-w-0 space-y-2">
@@ -679,11 +671,10 @@ export default function ExplorePage() {
                         toggleCurated(project.id, e);
                       }}
                       className={`flex items-center gap-1.5 px-3 py-2 rounded-[var(--radius-xs)]
-                        font-bold text-[10px] transition-all border ${
-                        curatedIds.includes(project.id)
+                        font-bold text-[10px] transition-all border ${curatedIds.includes(project.id)
                           ? 'bg-[var(--primary)] text-white border-[var(--primary)]'
                           : 'bg-[var(--surface-raised)] border-[var(--border)] text-[var(--text-muted)] hover:bg-[var(--primary)] hover:text-white hover:border-[var(--primary)]'
-                      }`}
+                        }`}
                     >
                       <LayoutDashboard className="w-3.5 h-3.5" />
                       <span className="hidden sm:inline whitespace-nowrap">

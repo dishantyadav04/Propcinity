@@ -1,11 +1,11 @@
 'use client';
 
-import Image from 'next/image';
 import { Project, UnitConfig } from "@/types/project";
 import InsightsPanel from "./InsightsPanel";
 import WhyThisFitsYou from "./WhyThisFitsYou";
+import ProjectImage from "./ProjectImage";
 import { formatINR } from "@/lib/finance-calculations";
-import { MapPin, ChevronRight, ShieldCheck, Plus, Check, Building2 } from "lucide-react";
+import { MapPin, ChevronRight, ShieldCheck, Plus, Check } from "lucide-react";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { useEffect, useState } from "react";
@@ -38,7 +38,6 @@ export default function ProjectCard({
 
   const [isComparing, setIsComparing] = useState(false);
   const [isCurated, setIsCurated] = useState(false);
-  const [imgError, setImgError] = useState(false);
 
   useEffect(() => {
     const checkCompare = () => {
@@ -126,23 +125,14 @@ export default function ProjectCard({
       <Link href={`/projects/${project.slug}`} className="block flex flex-col flex-1">
         {/* Image */}
         <div className="relative h-48 overflow-hidden bg-[var(--surface-raised)]">
-          {imgError || !project.images?.[0] ? (
-            <div className="w-full h-full flex items-center justify-center">
-              <Building2 className="w-8 h-8 text-[var(--text-muted)]" />
-            </div>
-          ) : (
-            <div className="relative w-full h-48">
-              <Image
-                src={project.images[0]}
-                alt={project.name}
-                fill
-                className="object-cover transition-transform duration-500 group-hover:scale-105"
-                onError={() => setImgError(true)}
-                sizes="(max-width: 768px) 100vw, 400px"
-                priority={priority}
-              />
-            </div>
-          )}
+          <div className="relative w-full h-48 group-hover:scale-105 transition-transform duration-500">
+            <ProjectImage
+              src={project.images?.[0] ?? ''}
+              alt={project.name}
+              priority={priority}
+              sizes="(max-width: 768px) 100vw, 400px"
+            />
+          </div>
           <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
 
           {/* Bottom name */}

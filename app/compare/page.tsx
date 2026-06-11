@@ -79,35 +79,43 @@ function CompareContent() {
   );
 
   const rows: { label: string; render: (p: Project) => React.ReactNode }[] = [
-    { label: 'Price From', render: p => (
-      <span className="font-black text-[var(--primary)]">
-        {p.unitConfigs?.length ? formatINR(Math.min(...(p.unitConfigs || []).map(u => u.priceMin))) : '—'}
-      </span>
-    )},
-    { label: 'Config', render: p => (
-      <span className="text-xs text-[var(--text-secondary)]">
-        {Array.from(new Set((p.unitConfigs || []).map(u => u.type))).join(', ') || '—'}
-      </span>
-    )},
+    {
+      label: 'Price From', render: p => (
+        <span className="font-black text-[var(--primary)]">
+          {p.unitConfigs?.length ? formatINR(Math.min(...(p.unitConfigs || []).map(u => u.priceMin))) : '—'}
+        </span>
+      )
+    },
+    {
+      label: 'Config', render: p => (
+        <span className="text-xs text-[var(--text-secondary)]">
+          {Array.from(new Set((p.unitConfigs || []).map(u => u.type))).join(', ') || '—'}
+        </span>
+      )
+    },
     { label: 'Builder', render: p => <span className="text-sm font-semibold">{p.builderName || '—'}</span> },
-    { label: 'RERA Status', render: p => {
-      switch (p.reraStatus) {
-        case 'registered': return <CheckCircle2 className="w-5 h-5 text-[var(--success)]" />;
-        case 'expired': return <XCircle className="w-5 h-5 text-[var(--danger)]" />;
-        case 'pending': return <span className="text-xs text-amber-500 font-bold">Pending</span>;
-        default: return <XCircle className="w-5 h-5 text-[var(--text-muted)]" />;
+    {
+      label: 'RERA Status', render: p => {
+        switch (p.reraStatus) {
+          case 'registered': return <CheckCircle2 className="w-5 h-5 text-[var(--success)]" />;
+          case 'expired': return <XCircle className="w-5 h-5 text-[var(--danger)]" />;
+          case 'pending': return <span className="text-xs text-amber-500 font-bold">Pending</span>;
+          default: return <XCircle className="w-5 h-5 text-[var(--text-muted)]" />;
+        }
       }
-    }},
+    },
     { label: 'Possession', render: p => <span className="text-xs">{p.possessionDate || '—'}</span> },
-    { label: 'Construction', render: p => (
-      <div className="space-y-1 w-24">
-        <div className="h-1.5 bg-[var(--surface-raised)] rounded-full overflow-hidden">
-          <div className="h-full bg-[var(--primary)] rounded-full"
-            style={{ width: `${p.constructionPercent || 0}%` }} />
+    {
+      label: 'Construction', render: p => (
+        <div className="space-y-1 w-24">
+          <div className="h-1.5 bg-[var(--surface-raised)] rounded-full overflow-hidden">
+            <div className="h-full bg-[var(--primary)] rounded-full"
+              style={{ width: `${p.constructionPercent || 0}%` }} />
+          </div>
+          <span className="text-[10px] text-[var(--text-muted)]">{p.constructionPercent || 0}%</span>
         </div>
-        <span className="text-[10px] text-[var(--text-muted)]">{p.constructionPercent || 0}%</span>
-      </div>
-    )},
+      )
+    },
     ...allAmenities.map(amenity => ({
       label: amenity,
       render: (p: Project) => (p.amenities || []).includes(amenity)

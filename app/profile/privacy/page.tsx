@@ -35,13 +35,8 @@ export default function ProfilePrivacyPage() {
   const handleDeleteAccount = async () => {
     if (confirm('Are you sure you want to delete your account? This will permanently remove all your preferences and saved data. This action cannot be undone.')) {
       try {
-        const supabase = (await import('@/lib/supabase')).createClient()
-        const { data: { user } } = await supabase.auth.getUser()
-        if (user) {
-          const { createAdminSupabaseClient } = await import('@/lib/supabase-server')
-          const admin = createAdminSupabaseClient()
-          if (admin) await admin.auth.admin.deleteUser(user.id)
-        }
+        const { deleteUserAccount } = await import('./actions');
+        await deleteUserAccount();
         await signOut();
         toast.success('Account deleted');
         router.push('/');

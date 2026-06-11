@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from "react";
-import Image from "next/image";
+import ProjectImage from "./ProjectImage";
 import { motion, AnimatePresence } from "framer-motion";
 import { ChevronLeft, ChevronRight, Maximize2 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -26,11 +26,10 @@ export default function GallerySlider({ images }: GallerySliderProps) {
           exit={{ opacity: 0, x: -20 }}
           className="absolute inset-0"
         >
-          <Image
+          <ProjectImage
             src={images[index]}
             alt={`Gallery image ${index + 1}`}
-            fill
-            className="object-cover"
+            priority={index === 0}
             sizes="(max-width: 768px) 100vw, 70vw"
           />
         </motion.div>
