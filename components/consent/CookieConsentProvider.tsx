@@ -1,7 +1,7 @@
 'use client'
 
 import React, { createContext, useContext, useState, useCallback, useEffect } from 'react'
-import { getConsent, setConsent, hasConsented, CookieConsent } from '@/lib/cookie-consent'
+import { getConsent, setConsent, CookieConsent } from '@/lib/cookie-consent'
 import CookieBanner from './CookieBanner'
 
 interface CookieConsentContextValue {

@@ -1,4 +1,4 @@
-import { createHash, timingSafeEqual } from 'crypto'
+import { createHash, timingSafeEqual, createHmac } from 'crypto'
 import { NextRequest } from 'next/server'
 import { Redis } from '@upstash/redis'
 
@@ -24,7 +24,36 @@ export function checkAdminPassword(password: string): boolean {
   return timingSafeEqual(expected, provided)
 }
 
-// ── Random session token management ────────────────────────────
+// ── Self-verifying HMAC session tokens ─────────────────────────
+// Token format: tokenId.timestamp.signature
+// Signature = HMAC-SHA256(tokenId.timestamp, adminPassword)
+// No Redis needed for verification. Redis used only for revocation.
+
+function getSigningKey(): Buffer {
+  return Buffer.from(hash(getAdminPassword()), 'hex')
+}
+
+export function generateSessionToken(): string {
+  const tokenId = crypto.randomUUID()
+  const timestamp = Date.now().toString(36)
+  const payload = `${tokenId}.${timestamp}`
+  const signature = createHmac('sha256', getSigningKey()).update(payload).digest('hex')
+  return `${payload}.${signature}`
+}
+
+function verifyTokenSignature(token: string): boolean {
+  const parts = token.split('.')
+  if (parts.length !== 3) return false
+  const payload = `${parts[0]}.${parts[1]}`
+  const expectedSig = createHmac('sha256', getSigningKey()).update(payload).digest('hex')
+  return timingSafeEqual(Buffer.from(parts[2], 'hex'), Buffer.from(expectedSig, 'hex'))
+}
+
+export function extractTokenId(token: string): string {
+  return token.split('.')[0] || ''
+}
+
+// ── Redis — optional, for token revocation ──────────────────────
 
 let redisClient: Redis | null = null
 
@@ -37,42 +66,41 @@ function getRedis(): Redis | null {
   return redisClient
 }
 
-const sessionFallback = new Set<string>()
-
-export function generateSessionToken(): string {
-  return crypto.randomUUID() + '-' + Date.now().toString(36)
-}
-
 export async function storeSessionToken(token: string): Promise<void> {
+  // Token is self-verifying. Redis is only for revocation support.
   const redis = getRedis()
   if (redis) {
-    await redis.set(`admin_session:${token}`, '1', { ex: ADMIN_COOKIE_MAX_AGE })
-    return
+    const tokenId = extractTokenId(token)
+    await redis.set(`admin_session:${tokenId}`, '1', { ex: ADMIN_COOKIE_MAX_AGE }).catch(() => {})
   }
-  if (process.env.NODE_ENV === 'production') {
-    console.error('[SECURITY] Admin session: Redis unavailable in production — falling back to in-memory storage')
-  } else {
-    console.warn('[admin-auth] Redis not configured — using in-memory session fallback for dev')
-  }
-  sessionFallback.add(token)
 }
 
 export async function verifySessionToken(token: string): Promise<boolean> {
+  // Primary check: HMAC signature
+  if (!verifyTokenSignature(token)) return false
+
+  // Secondary check: if Redis is available, verify token hasn't been revoked
   const redis = getRedis()
   if (redis) {
-    const exists = await redis.get(`admin_session:${token}`)
-    return exists !== null
+    const tokenId = extractTokenId(token)
+    try {
+      const exists = await redis.get(`admin_session:${tokenId}`)
+      if (exists === null) return false
+    } catch {
+      // Redis unreachable — fall through to HMAC-only check
+    }
   }
-  return sessionFallback.has(token)
+
+  return true
 }
 
 export async function deleteSessionToken(token: string): Promise<void> {
   const redis = getRedis()
   if (redis) {
-    await redis.del(`admin_session:${token}`)
-    return
+    const tokenId = extractTokenId(token)
+    await redis.del(`admin_session:${tokenId}`).catch(() => {})
   }
-  sessionFallback.delete(token)
+  // Without Redis, deletion is best-effort — token expires naturally via cookie maxAge
 }
 
 export async function isAdminAuthenticated(request: NextRequest): Promise<boolean> {
