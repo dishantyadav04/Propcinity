@@ -7,6 +7,7 @@ import BottomNav from '@/components/layout/BottomNav'
 import Footer from '@/components/layout/Footer'
 import PageTransition from '@/components/ui/PageTransition'
 import ClientLayoutExtras from '@/components/layout/ClientLayoutExtras'
+import CookieConsentProvider from '@/components/consent/CookieConsentProvider'
 
 const syne = Syne({ 
   subsets: ['latin'],
@@ -66,31 +67,33 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${syne.variable} ${jakarta.variable}`} suppressHydrationWarning data-scroll-behavior="smooth">
       <body className="font-sans bg-[var(--background)] text-[var(--text-primary)] antialiased">
-        <TopHeader />
-        <main className="min-h-screen pb-24 md:pb-0 pt-0">
-          <PageTransition>
-            {children}
-          </PageTransition>
-        </main>
-        <BottomNav />
-        <Footer />
-        <ClientLayoutExtras />
-        <Toaster
-          position="bottom-center"
-          closeButton={true}
-          duration={4000}
-          toastOptions={{
-            style: {
-              borderRadius: 'var(--radius)',
-              fontSize: '13px',
-              fontWeight: '600',
-              padding: '12px 16px',
-            },
-            classNames: {
-              closeButton: 'bg-transparent border-none text-current opacity-60 hover:opacity-100',
-            },
-          }}
-        />
+        <CookieConsentProvider>
+          <TopHeader />
+          <main className="min-h-screen pb-24 md:pb-0 pt-0">
+            <PageTransition>
+              {children}
+            </PageTransition>
+          </main>
+          <BottomNav />
+          <Footer />
+          <ClientLayoutExtras />
+          <Toaster
+            position="bottom-center"
+            closeButton={true}
+            duration={4000}
+            toastOptions={{
+              style: {
+                borderRadius: 'var(--radius)',
+                fontSize: '13px',
+                fontWeight: '600',
+                padding: '12px 16px',
+              },
+              classNames: {
+                closeButton: 'bg-transparent border-none text-current opacity-60 hover:opacity-100',
+              },
+            }}
+          />
+        </CookieConsentProvider>
       </body>
     </html>
   )

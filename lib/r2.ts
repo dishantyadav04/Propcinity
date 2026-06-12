@@ -16,8 +16,8 @@ export function getPublicUrl(key: string): string {
   return `${R2_PUBLIC_URL}/${key}`
 }
 
-export function generateFileKey(originalName: string): string {
-  const ext = originalName.split('.').pop()?.toLowerCase() || 'jpg'
+export function generateFileKey(originalName: string, extOverride?: string): string {
+  const ext = extOverride || originalName.split('.').pop()?.toLowerCase() || 'jpg'
   const uuid = crypto.randomUUID()
   const sanitized = originalName
     .replace(/\.[^.]+$/, '')

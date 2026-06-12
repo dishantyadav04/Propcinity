@@ -3,7 +3,7 @@ import { isAdminAuthenticated } from '@/lib/admin-auth'
 import { createAdminSupabaseClient } from '@/lib/supabase-server'
 
 export async function GET(req: NextRequest) {
-  if (!isAdminAuthenticated(req)) {
+  if (!await isAdminAuthenticated(req)) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
   const { searchParams } = new URL(req.url)
@@ -22,13 +22,16 @@ export async function GET(req: NextRequest) {
   if (status) query = query.eq('status', status)
 
   const { data, count, error } = await query
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) {
+    console.error('[admin/contact] DB error:', error)
+    return NextResponse.json({ error: 'Database operation failed' }, { status: 500 })
+  }
 
   return NextResponse.json({ messages: data, total: count })
 }
 
 export async function PATCH(req: NextRequest) {
-  if (!isAdminAuthenticated(req)) {
+  if (!await isAdminAuthenticated(req)) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
   const { searchParams } = new URL(req.url)
@@ -44,6 +47,9 @@ export async function PATCH(req: NextRequest) {
     .update({ status: body.status })
     .eq('id', id)
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) {
+    console.error('[admin/contact] DB error:', error)
+    return NextResponse.json({ error: 'Database operation failed' }, { status: 500 })
+  }
   return NextResponse.json({ success: true })
 }

@@ -6,7 +6,7 @@ export async function POST(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  if (!isAdminAuthenticated(req)) {
+  if (!await isAdminAuthenticated(req)) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
   const { id } = await params
@@ -14,7 +14,6 @@ export async function POST(
   const supabase = createAdminSupabaseClient()
   if (!supabase) return NextResponse.json({ error: 'Config error' }, { status: 500 })
 
-  // Insert project update record
   const { data, error } = await supabase
     .from('builder_project_updates')
     .upsert({
@@ -33,9 +32,11 @@ export async function POST(
     .select()
     .single()
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) {
+    console.error('[admin/builders/project-update] DB error:', error)
+    return NextResponse.json({ error: 'Database operation failed' }, { status: 500 })
+  }
 
-  // Trigger builder score recalculation via PUT
   await fetch(`${req.nextUrl.origin}/api/admin/builders?id=${id}`, {
     method: 'PUT',
     headers: {

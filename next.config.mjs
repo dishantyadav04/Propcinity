@@ -4,7 +4,7 @@ const nextConfig = {
 
   serverExternalPackages: ['openai', 'posthog-node'],
 
-  allowedDevOrigins: ['192.168.1.33', 'localhost'],
+  allowedDevOrigins: (process.env.ALLOWED_DEV_ORIGINS?.split(',') ?? ['localhost']).map(s => s.trim()),
 
   images: {
     remotePatterns: [
@@ -24,8 +24,9 @@ const nextConfig = {
 
     const cspDirectives = [
       "default-src 'self'",
-      // Scripts: self + inline (needed for Next.js hydration) — tighten with nonces post-launch
-      "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
+      // TODO: Replace 'unsafe-inline' with nonce-based CSP post-launch
+      // See: https://nextjs.org/docs/app/building-your-application/configuring/content-security-policy
+      `script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ''}`,
       // Styles: self + inline (Tailwind requires this)
       "style-src 'self' 'unsafe-inline'",
       // Images: self, data URIs, R2 bucket, Supabase storage

@@ -11,7 +11,7 @@ export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  if (!isAdminAuthenticated(request)) return unauth()
+  if (!await isAdminAuthenticated(request)) return unauth()
 
   const { id } = await params
   if (!z.string().uuid().safeParse(id).success) {
@@ -36,7 +36,7 @@ export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  if (!isAdminAuthenticated(request)) return unauth()
+  if (!await isAdminAuthenticated(request)) return unauth()
 
   const { id } = await params
   if (!z.string().uuid().safeParse(id).success) {
@@ -46,7 +46,8 @@ export async function PATCH(
   const body = await request.json().catch(() => null)
   const parsed = projectSchema.safeParse(body)
   if (!parsed.success) {
-    return NextResponse.json({ error: 'Invalid project payload', details: parsed.error.flatten() }, { status: 400 })
+    console.warn('[admin/projects] Validation failed:', JSON.stringify(parsed.error.flatten()))
+    return NextResponse.json({ error: 'Invalid project payload' }, { status: 400 })
   }
 
   await adminUpdateProject(id, parsed.data)
@@ -57,7 +58,7 @@ export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  if (!isAdminAuthenticated(request)) return unauth()
+  if (!await isAdminAuthenticated(request)) return unauth()
 
   const { id } = await params
   if (!z.string().uuid().safeParse(id).success) {

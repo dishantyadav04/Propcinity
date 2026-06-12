@@ -34,10 +34,8 @@ export async function POST(request: NextRequest) {
   const body = await request.json().catch(() => null)
   const parsed = schema.safeParse(body)
   if (!parsed.success) {
-    return NextResponse.json(
-      { error: 'Invalid form data', details: parsed.error.flatten() },
-      { status: 400 }
-    )
+    console.warn('[leads/qualify] Validation failed:', JSON.stringify(parsed.error.flatten()))
+    return NextResponse.json({ error: 'Invalid form data' }, { status: 400 })
   }
 
   const leadData = parsed.data

@@ -16,6 +16,20 @@ const cache = new Map<string, { data: { places: Awaited<ReturnType<typeof fetchN
 
 const CACHE_TTL = 60 * 60 * 1000
 const ERROR_CACHE_TTL = 5 * 60 * 1000
+const MAX_CACHE_SIZE = 200
+
+function evictIfNeeded() {
+  if (cache.size > MAX_CACHE_SIZE) {
+    const now = Date.now()
+    for (const [key, val] of cache.entries()) {
+      if (now >= val.expiresAt) cache.delete(key)
+    }
+    if (cache.size > MAX_CACHE_SIZE) {
+      const oldest = [...cache.entries()].sort((a, b) => a[1].expiresAt - b[1].expiresAt)[0]
+      if (oldest) cache.delete(oldest[0])
+    }
+  }
+}
 
 export async function GET(request: NextRequest) {
   const ip = getClientIp(request)
@@ -46,6 +60,7 @@ export async function GET(request: NextRequest) {
     const places = await fetchNearbyPlaces(lat, lng, radius)
     const data = { places }
     cache.set(cacheKey, { data, expiresAt: Date.now() + CACHE_TTL })
+    evictIfNeeded()
 
     return NextResponse.json(data, {
       headers: {
@@ -57,6 +72,7 @@ export async function GET(request: NextRequest) {
     console.error('Overpass error:', error)
     const data = { places: [], error: 'Could not fetch nearby places' }
     cache.set(cacheKey, { data, expiresAt: Date.now() + ERROR_CACHE_TTL })
+    evictIfNeeded()
 
     return NextResponse.json(
       data,

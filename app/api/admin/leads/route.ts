@@ -1,9 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { z } from 'zod'
 import { isAdminAuthenticated } from '@/lib/admin-auth'
 import { createAdminSupabaseClient } from '@/lib/supabase-server'
 
+const patchSchema = z.object({
+  status: z.enum(['new', 'contacted', 'site_visit_scheduled', 'site_visit_done', 'qualified', 'negotiating', 'closed_won', 'closed_lost', 'rejected'])
+})
+
 export async function GET(req: NextRequest) {
-  if (!isAdminAuthenticated(req)) {
+  if (!await isAdminAuthenticated(req)) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
   const { searchParams } = new URL(req.url)
@@ -27,13 +32,16 @@ export async function GET(req: NextRequest) {
   if (intentLabel) query = query.eq('intent_label', intentLabel)
 
   const { data, count, error } = await query
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) {
+    console.error('[admin/leads] DB error:', error)
+    return NextResponse.json({ error: 'Database operation failed' }, { status: 500 })
+  }
 
   return NextResponse.json({ leads: data, total: count, page, limit })
 }
 
 export async function PATCH(req: NextRequest) {
-  if (!isAdminAuthenticated(req)) {
+  if (!await isAdminAuthenticated(req)) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
   const { searchParams } = new URL(req.url)
@@ -41,15 +49,23 @@ export async function PATCH(req: NextRequest) {
   if (!id) return NextResponse.json({ error: 'Missing id' }, { status: 400 })
 
   const body = await req.json()
+  const parsed = patchSchema.safeParse(body)
+  if (!parsed.success) {
+    return NextResponse.json({ error: 'Invalid status value' }, { status: 400 })
+  }
+
   const supabase = createAdminSupabaseClient()
   if (!supabase) return NextResponse.json({ error: 'Config error' }, { status: 500 })
   const { data, error } = await supabase
     .from('leads')
-    .update({ status: body.status })
+    .update({ status: parsed.data.status })
     .eq('id', id)
     .select()
     .single()
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) {
+    console.error('[admin/leads] DB error:', error)
+    return NextResponse.json({ error: 'Database operation failed' }, { status: 500 })
+  }
   return NextResponse.json({ lead: data })
 }

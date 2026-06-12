@@ -21,25 +21,31 @@ const publishSchema = z.object({
 })
 
 export async function GET(request: NextRequest) {
-  if (!isAdminAuthenticated(request)) return unauth()
+  if (!await isAdminAuthenticated(request)) return unauth()
   return NextResponse.json({ projects: await adminGetAllProjects() })
 }
 
 export async function POST(request: NextRequest) {
-  if (!isAdminAuthenticated(request)) return unauth()
+  if (!await isAdminAuthenticated(request)) return unauth()
 
   const body = await request.json().catch(() => null)
   const parsed = projectSchema.safeParse(body)
   if (!parsed.success) {
-    return NextResponse.json({ error: 'Invalid project payload', details: parsed.error.flatten() }, { status: 400 })
+    console.warn('[admin/projects] Validation failed:', JSON.stringify(parsed.error.flatten()))
+    return NextResponse.json({ error: 'Invalid project payload' }, { status: 400 })
   }
 
-  const id = await adminCreateProject(parsed.data)
-  return NextResponse.json({ success: true, id })
+  try {
+    const id = await adminCreateProject(parsed.data)
+    return NextResponse.json({ success: true, id })
+  } catch (err) {
+    console.error('[admin/projects] Create error:', err)
+    return NextResponse.json({ error: 'Database operation failed' }, { status: 500 })
+  }
 }
 
 export async function PUT(request: NextRequest) {
-  if (!isAdminAuthenticated(request)) return unauth()
+  if (!await isAdminAuthenticated(request)) return unauth()
 
   const idParsed = idSchema.safeParse({
     id: new URL(request.url).searchParams.get('id'),
@@ -51,7 +57,8 @@ export async function PUT(request: NextRequest) {
   const body = await request.json().catch(() => null)
   const parsed = projectSchema.safeParse(body)
   if (!parsed.success) {
-    return NextResponse.json({ error: 'Invalid project payload', details: parsed.error.flatten() }, { status: 400 })
+    console.warn('[admin/projects] Validation failed:', JSON.stringify(parsed.error.flatten()))
+    return NextResponse.json({ error: 'Invalid project payload' }, { status: 400 })
   }
 
   await adminUpdateProject(idParsed.data.id, parsed.data)
@@ -59,7 +66,7 @@ export async function PUT(request: NextRequest) {
 }
 
 export async function DELETE(request: NextRequest) {
-  if (!isAdminAuthenticated(request)) return unauth()
+  if (!await isAdminAuthenticated(request)) return unauth()
 
   const parsed = idSchema.safeParse({
     id: new URL(request.url).searchParams.get('id'),
@@ -73,7 +80,7 @@ export async function DELETE(request: NextRequest) {
 }
 
 export async function PATCH(request: NextRequest) {
-  if (!isAdminAuthenticated(request)) return unauth()
+  if (!await isAdminAuthenticated(request)) return unauth()
 
   const idParsed = idSchema.safeParse({
     id: new URL(request.url).searchParams.get('id'),

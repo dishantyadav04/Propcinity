@@ -3,7 +3,7 @@ import { isAdminAuthenticated } from '@/lib/admin-auth'
 import { createAdminSupabaseClient } from '@/lib/supabase-server'
 
 export async function GET(req: NextRequest) {
-  if (!isAdminAuthenticated(req)) {
+  if (!await isAdminAuthenticated(req)) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
   const supabase = createAdminSupabaseClient()
@@ -14,6 +14,9 @@ export async function GET(req: NextRequest) {
     .select('*')
     .order('updated_at', { ascending: false })
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) {
+    console.error('[admin/users] DB error:', error)
+    return NextResponse.json({ error: 'Database operation failed' }, { status: 500 })
+  }
   return NextResponse.json({ users: intents })
 }

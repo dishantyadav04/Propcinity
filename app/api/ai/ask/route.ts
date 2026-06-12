@@ -64,19 +64,22 @@ export async function POST(request: NextRequest) {
   const { question, projectId, compareProjectIds } = parsed.data
 
   const supabase = await createServerSupabaseClient()
-  if (supabase) {
-    const { data: { user } } = await supabase.auth.getUser()
-    if (user) {
-      const count = await getUserChatCount(user.id)
-      if (count >= DAILY_LIMIT) {
-        return NextResponse.json(
-          { error: `You've reached your ${DAILY_LIMIT} daily chat limit. Try again tomorrow.` },
-          { status: 429 }
-        )
-      }
-      await incrementUserChatCount(user.id)
-    }
+  if (!supabase) {
+    return NextResponse.json({ error: 'Service unavailable' }, { status: 503 })
   }
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) {
+    return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
+  }
+
+  const count = await getUserChatCount(user.id)
+  if (count >= DAILY_LIMIT) {
+    return NextResponse.json(
+      { error: `You've reached your ${DAILY_LIMIT} daily chat limit. Try again tomorrow.` },
+      { status: 429 }
+    )
+  }
+  await incrementUserChatCount(user.id)
 
   // Check cache before hitting AI
   const cacheKey = makeCacheKey(question, projectId)
@@ -124,16 +127,27 @@ export async function PUT(request: NextRequest) {
   }
 
   try {
-    const { userIntent, projects } = await request.json()
+    const body = await request.json()
+    const { userIntent, projects } = body
 
-    const projectList = (projects || []).slice(0, 50).map((p: any) => ({
+    const projectIds = (projects || []).slice(0, 50)
+      .map((p: any) => typeof p?.id === 'string' ? p.id : null)
+      .filter((id: string | null): id is string => id !== null && /^[0-9a-f-]{36}$/.test(id))
+
+    if (!projectIds.length) {
+      return NextResponse.json({ error: 'No valid projects provided' }, { status: 400 })
+    }
+
+    const dbProjects = await getProjectsByIds(projectIds)
+
+    const projectList = dbProjects.map((p) => ({
       id: p.id,
       name: p.name,
       location: p.location,
       unitTypes: (p.unitConfigs || []).map((u: any) => u.type).join(', '),
       priceMin: p.unitConfigs?.[0]?.priceMin || 0,
       possession: p.possessionDate,
-      reraStatus: p.reraStatus || 'not_registered',
+      reraStatus: (p as any).reraStatus || 'not_registered',
       pros: (p.pros || []).slice(0, 2).join('; '),
       cons: (p.cons || []).slice(0, 1).join('; '),
     }))

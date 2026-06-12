@@ -1,5 +1,6 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextRequest, NextResponse } from 'next/server'
+import { isAdminAuthenticated } from '@/lib/admin-auth'
 
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl
@@ -44,8 +45,7 @@ export async function proxy(request: NextRequest) {
       return NextResponse.next()
     }
 
-    const sessionCookie = request.cookies.get('admin_session')
-    if (!sessionCookie?.value) {
+    if (!await isAdminAuthenticated(request)) {
       const loginUrl = new URL('/admin/login', request.url)
       loginUrl.searchParams.set('from', pathname)
       return NextResponse.redirect(loginUrl)

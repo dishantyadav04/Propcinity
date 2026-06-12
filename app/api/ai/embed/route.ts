@@ -11,6 +11,7 @@ const RECO_CACHE_KEY = 'propcinity_reco_cache';
 // Simple in-memory cache for embeddings (resets on server restart, that's fine)
 const embeddingCache = new Map<string, { embedding: number[]; ts: number }>();
 const CACHE_TTL = 24 * 60 * 60 * 1000; // 24 hours
+const MAX_EMBEDDING_CACHE_SIZE = 100;
 
 export async function POST(request: NextRequest) {
   try {
@@ -35,6 +36,10 @@ export async function POST(request: NextRequest) {
       intentEmbedding = await generateEmbedding(intentText);
       if (intentEmbedding) {
         embeddingCache.set(intentHash, { embedding: intentEmbedding, ts: Date.now() });
+        if (embeddingCache.size > MAX_EMBEDDING_CACHE_SIZE) {
+          const oldest = [...embeddingCache.entries()].sort((a, b) => a[1].ts - b[1].ts)[0];
+          if (oldest) embeddingCache.delete(oldest[0]);
+        }
       }
     }
 

@@ -133,3 +133,19 @@ html, body { overflow-x: hidden; }
 [data-sonner-toaster] [data-close-button]:hover {
   opacity: 1;
 }
+
+/* --- Cookie consent banner animation --- */
+@keyframes slide-up {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+
+.animate-slide-up {
+  animation: slide-up 0.4s ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-slide-up {
+    animation: none;
+  }
+}

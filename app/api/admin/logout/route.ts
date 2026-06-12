@@ -1,7 +1,12 @@
-import { NextResponse } from 'next/server'
-import { ADMIN_COOKIE_NAME } from '@/lib/admin-auth'
+import { NextRequest, NextResponse } from 'next/server'
+import { ADMIN_COOKIE_NAME, deleteSessionToken } from '@/lib/admin-auth'
 
-export async function POST() {
+export async function POST(request: NextRequest) {
+  const cookieValue = request.cookies.get(ADMIN_COOKIE_NAME)?.value
+  if (cookieValue) {
+    await deleteSessionToken(cookieValue)
+  }
+
   const response = NextResponse.json({ success: true })
   response.cookies.set(ADMIN_COOKIE_NAME, '', {
     httpOnly: true,

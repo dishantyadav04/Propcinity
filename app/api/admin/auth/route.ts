@@ -1,9 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { checkAdminPassword, ADMIN_COOKIE_NAME, ADMIN_COOKIE_MAX_AGE, getAdminSessionValue } from '@/lib/admin-auth'
+import { checkAdminPassword, ADMIN_COOKIE_NAME, ADMIN_COOKIE_MAX_AGE, generateSessionToken, storeSessionToken } from '@/lib/admin-auth'
 import { adminLoginLimiter, getClientIp, checkRateLimit } from '@/lib/rate-limit'
 
 export async function POST(request: NextRequest) {
-  // ── Brute-force protection ────────────────────────────────────────────────
   const ip = getClientIp(request)
   if (await checkRateLimit(adminLoginLimiter, `admin-login:${ip}`)) {
     return NextResponse.json(
@@ -21,8 +20,11 @@ export async function POST(request: NextRequest) {
 
   console.info(`[admin-auth] Successful login from ${ip} at ${new Date().toISOString()}`)
 
+  const token = generateSessionToken()
+  await storeSessionToken(token)
+
   const response = NextResponse.json({ success: true })
-  response.cookies.set(ADMIN_COOKIE_NAME, getAdminSessionValue(), {
+  response.cookies.set(ADMIN_COOKIE_NAME, token, {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
     sameSite: 'strict',
