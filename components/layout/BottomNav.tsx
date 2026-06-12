@@ -26,6 +26,7 @@ export default function BottomNav() {
   const isGuest = !isChecking && isGuestRaw;
   if (
     pathname.startsWith('/admin') ||
+    pathname.startsWith('/auth') ||
     pathname === '/' ||
     pathname === '/onboarding' ||
     pathname === '/privacy' ||

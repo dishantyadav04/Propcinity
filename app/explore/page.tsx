@@ -510,7 +510,7 @@ export default function ExplorePage() {
       {/* Main content */}
       <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6">
         {isLoading ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 items-start">
             {[1, 2, 3, 4, 5, 6].map(i => (
               <Skeleton key={i} className="h-[360px] rounded-[var(--radius)]" />
             ))}
@@ -530,7 +530,7 @@ export default function ExplorePage() {
             </button>
           </div>
         ) : viewMode === 'grid' ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 items-start">
             {visibleProjects.map((project, index) => (
               <motion.div key={project.id} layout
                 initial={{ opacity: 0, y: 16 }}
@@ -573,11 +573,10 @@ export default function ExplorePage() {
                   title={curatedIds.includes(project.id) ? 'Remove from Dashboard' : 'Add to Dashboard'}
                   className={`absolute top-3 right-3 z-30 w-7 h-7 rounded-full
                     flex items-center justify-center
-                    opacity-0 group-hover:opacity-100
                     transition-all duration-150 shadow-sm backdrop-blur-sm
                     hover:scale-110 ${curatedIds.includes(project.id)
                       ? 'bg-[var(--primary)] text-white'
-                      : 'bg-black/30 text-white hover:bg-[var(--primary)]'
+                      : 'bg-black/40 text-white hover:bg-[var(--primary)]'
                     }`}
                 >
                   {curatedIds.includes(project.id)
@@ -691,4 +690,3 @@ export default function ExplorePage() {
     </div>
   );
 }
-

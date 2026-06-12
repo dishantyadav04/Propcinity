@@ -7,7 +7,7 @@ export default function Footer() {
   const pathname = usePathname()
   const year = new Date().getFullYear()
 
-  if (pathname.startsWith('/admin')) return null
+  if (pathname.startsWith('/admin') || pathname.startsWith('/auth')) return null
 
   return (
     <footer className="hidden md:block border-t border-[var(--border)] bg-[var(--surface)]">

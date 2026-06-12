@@ -86,9 +86,8 @@ export default function ProjectCard({
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true }}
-      transition={{ delay: index * 0.05 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: index * 0.05, duration: 0.3 }}
       className="group bg-[var(--surface)] border border-[var(--border)] rounded-[var(--radius)] shadow-[var(--shadow-sm)] card-hover overflow-hidden flex flex-col relative"
       style={{ minHeight: '360px' }}
     >
@@ -107,12 +106,11 @@ export default function ProjectCard({
           title={isCurated ? 'Remove from Dashboard' : 'Add to Dashboard'}
           className={`absolute top-3 right-3 z-30 w-7 h-7 rounded-full
             flex items-center justify-center
-            opacity-0 group-hover:opacity-100
             transition-all duration-150 shadow-sm backdrop-blur-sm
             hover:scale-110 ${
               isCurated
                 ? 'bg-[var(--primary)] text-white'
-                : 'bg-black/30 text-white hover:bg-[var(--primary)]'
+                : 'bg-black/40 text-white hover:bg-[var(--primary)]'
             }`}
         >
           {isCurated
@@ -122,7 +120,7 @@ export default function ProjectCard({
         </button>
       )}
 
-      <Link href={`/projects/${project.slug}`} className="block flex flex-col flex-1">
+      <Link href={`/projects/${project.slug}`} className="block flex flex-col flex-1 min-h-0">
         {/* Image */}
         <div className="relative h-48 overflow-hidden bg-[var(--surface-raised)]">
           <div className="relative w-full h-48 group-hover:scale-105 transition-transform duration-500">

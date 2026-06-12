@@ -59,8 +59,9 @@ export default function AdminHeader({ onToggleSidebar }: { onToggleSidebar: () =
           }
           router.replace('/admin/login')
         }}
-        className="flex items-center gap-2 px-3 py-1.5 text-xs font-semibold text-red-400/70
-          hover:text-red-400 hover:bg-red-400/5 rounded-lg transition-all"
+        className="flex items-center gap-2 px-3 py-1.5 text-xs font-semibold text-red-400
+          border border-red-400/30 hover:border-red-400/60
+          hover:bg-red-400/10 rounded-lg transition-all"
       >
         <LogOut className="w-3.5 h-3.5" />
         <span className="hidden sm:inline">Sign Out</span>
