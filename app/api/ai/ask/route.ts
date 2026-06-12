@@ -1,3 +1,4 @@
+// app/api/ai/ask/route.ts
 import { NextRequest, NextResponse } from 'next/server'
 import { Redis } from '@upstash/redis'
 import { z } from 'zod'
@@ -72,14 +73,13 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
   }
 
-  const count = await getUserChatCount(user.id)
-  if (count >= DAILY_LIMIT) {
+  const newCount = await incrementUserChatCount(user.id)
+  if (newCount > DAILY_LIMIT) {
     return NextResponse.json(
       { error: `You've reached your ${DAILY_LIMIT} daily chat limit. Try again tomorrow.` },
       { status: 429 }
     )
   }
-  await incrementUserChatCount(user.id)
 
   // Check cache before hitting AI
   const cacheKey = makeCacheKey(question, projectId)

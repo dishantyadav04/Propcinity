@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { createHash } from 'crypto'
 import { z } from 'zod'
 import { createAdminSupabaseClient } from '@/lib/supabase-server'
 import { sendBuyerConfirmation, sendOpsAlert } from '@/lib/resend'
@@ -87,7 +88,7 @@ export async function POST(request: NextRequest) {
       host: process.env.NEXT_PUBLIC_POSTHOG_HOST || 'https://app.posthog.com',
     })
     phClient.capture({
-      distinctId: leadData.phone, // use phone as anonymous ID server-side
+      distinctId: createHash('sha256').update(leadData.phone).digest('hex').slice(0, 16),
       event: 'consultation_completed',
       properties: {
         projectId: leadData.projectId,

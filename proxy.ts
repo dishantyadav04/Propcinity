@@ -1,6 +1,30 @@
+// proxy.ts  ← Next.js 16 convention (replaces middleware.ts)
 import { createServerClient } from '@supabase/ssr'
 import { NextRequest, NextResponse } from 'next/server'
-import { isAdminAuthenticated } from '@/lib/admin-auth'
+import { isAdminAuthenticatedEdge } from '@/lib/admin-auth-edge'
+
+// ── IP Allowlist ───────────────────────────────────────────────
+// Set ADMIN_ALLOWED_IPS in .env.local as comma-separated IPs.
+// In development, the check is skipped entirely (dev IP is ::1 / 127.0.0.1).
+// In production, leave empty to allow all IPs, or set specific IPs to restrict.
+// Example: ADMIN_ALLOWED_IPS=203.0.113.42,198.51.100.7
+
+function isIpAllowed(request: NextRequest): boolean {
+  // Always allow in development — dev server uses ::1 (IPv6 localhost)
+  if (process.env.NODE_ENV !== 'production') return true
+
+  const allowedRaw = process.env.ADMIN_ALLOWED_IPS
+  if (!allowedRaw || allowedRaw.trim() === '') return true // no restriction
+
+  const allowed = allowedRaw.split(',').map(ip => ip.trim()).filter(Boolean)
+
+  const ip =
+    request.headers.get('x-real-ip') ||
+    request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
+    'unknown'
+
+  return allowed.includes(ip)
+}
 
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl
@@ -11,7 +35,7 @@ export async function proxy(request: NextRequest) {
     const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
     if (!supabaseUrl || !supabaseKey) {
-      console.warn('[proxy] Skipping /onboarding auth guard — NEXT_PUBLIC_SUPABASE_URL or NEXT_PUBLIC_SUPABASE_ANON_KEY not set')
+      console.warn('[proxy] Skipping /onboarding guard — Supabase env vars not set')
       return NextResponse.next()
     }
 
@@ -41,11 +65,23 @@ export async function proxy(request: NextRequest) {
 
   // ── Admin auth guard ───────────────────────────────────────────
   if (pathname.startsWith('/admin')) {
+    // Always allow the login page itself
     if (pathname === '/admin/login') {
       return NextResponse.next()
     }
 
-    if (!await isAdminAuthenticated(request)) {
+    // Step 1: IP allowlist (production only — dev always passes)
+    if (!isIpAllowed(request)) {
+      const ip =
+        request.headers.get('x-real-ip') ||
+        request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
+        'unknown'
+      console.warn(`[proxy] Admin blocked — IP not in allowlist: ${ip}`)
+      return new NextResponse('Forbidden', { status: 403 })
+    }
+
+    // Step 2: Session cookie check (edge-safe HMAC verification)
+    if (!await isAdminAuthenticatedEdge(request)) {
       const loginUrl = new URL('/admin/login', request.url)
       loginUrl.searchParams.set('from', pathname)
       return NextResponse.redirect(loginUrl)

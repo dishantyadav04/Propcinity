@@ -1,5 +1,14 @@
+// app/api/admin/auth/route.ts
 import { NextRequest, NextResponse } from 'next/server'
-import { checkAdminPassword, ADMIN_COOKIE_NAME, ADMIN_COOKIE_MAX_AGE, generateSessionToken, storeSessionToken } from '@/lib/admin-auth'
+import {
+  checkAdminPassword,
+  verifyTotpCode,
+  isTotpEnabled,
+  ADMIN_COOKIE_NAME,
+  ADMIN_COOKIE_MAX_AGE,
+  generateSessionToken,
+  storeSessionToken,
+} from '@/lib/admin-auth'
 import { adminLoginLimiter, getClientIp, checkRateLimit } from '@/lib/rate-limit'
 
 export async function POST(request: NextRequest) {
@@ -11,11 +20,25 @@ export async function POST(request: NextRequest) {
     )
   }
 
-  const { password } = await request.json().catch(() => ({}))
+  const body = await request.json().catch(() => ({}))
+  const { password, totpCode } = body
 
+  // Step 1: Password check
   if (!password || !checkAdminPassword(password)) {
-    console.warn(`[admin-auth] Failed login attempt from ${ip} at ${new Date().toISOString()}`)
+    console.warn(`[admin-auth] Failed password attempt from ${ip} at ${new Date().toISOString()}`)
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+
+  // Step 2: TOTP check (only if ADMIN_TOTP_SECRET is configured)
+  if (isTotpEnabled()) {
+    if (!totpCode) {
+      // Password correct, TOTP required — signal client to show TOTP field
+      return NextResponse.json({ requireTotp: true }, { status: 200 })
+    }
+    if (!verifyTotpCode(String(totpCode))) {
+      console.warn(`[admin-auth] Failed TOTP attempt from ${ip} at ${new Date().toISOString()}`)
+      return NextResponse.json({ error: 'Invalid authenticator code' }, { status: 401 })
+    }
   }
 
   console.info(`[admin-auth] Successful login from ${ip} at ${new Date().toISOString()}`)

@@ -1,6 +1,20 @@
+// app/api/admin/builders/[id]/project-update/route.ts
 import { NextRequest, NextResponse } from 'next/server'
+import { z } from 'zod'
 import { isAdminAuthenticated } from '@/lib/admin-auth'
 import { createAdminSupabaseClient } from '@/lib/supabase-server'
+
+const schema = z.object({
+  project_id: z.string().uuid(),
+  project_name: z.string().trim().min(1).max(200),
+  promised_possession: z.string().trim().max(20).optional(),
+  actual_possession: z.string().trim().max(20).optional(),
+  delay_months: z.number().int().min(0).max(600).optional().default(0),
+  is_delivered: z.boolean().optional().default(false),
+  quality_rating: z.number().min(0).max(5).optional(),
+  complaints_count: z.number().int().min(0).optional().default(0),
+  notes: z.string().trim().max(2000).optional(),
+})
 
 export async function POST(
   req: NextRequest,
@@ -9,8 +23,19 @@ export async function POST(
   if (!await isAdminAuthenticated(req)) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
+
   const { id } = await params
-  const body = await req.json()
+  if (!z.string().uuid().safeParse(id).success) {
+    return NextResponse.json({ error: 'Invalid builder id' }, { status: 400 })
+  }
+
+  const body = await req.json().catch(() => null)
+  const parsed = schema.safeParse(body)
+  if (!parsed.success) {
+    console.warn('[admin/builders/project-update] Validation failed:', JSON.stringify(parsed.error.flatten()))
+    return NextResponse.json({ error: 'Invalid payload', details: parsed.error.flatten() }, { status: 400 })
+  }
+
   const supabase = createAdminSupabaseClient()
   if (!supabase) return NextResponse.json({ error: 'Config error' }, { status: 500 })
 
@@ -18,15 +43,7 @@ export async function POST(
     .from('builder_project_updates')
     .upsert({
       builder_id: id,
-      project_id: body.project_id,
-      project_name: body.project_name,
-      promised_possession: body.promised_possession,
-      actual_possession: body.actual_possession,
-      delay_months: body.delay_months || 0,
-      is_delivered: body.is_delivered || false,
-      quality_rating: body.quality_rating,
-      complaints_count: body.complaints_count || 0,
-      notes: body.notes,
+      ...parsed.data,
       updated_at: new Date().toISOString(),
     })
     .select()
@@ -37,14 +54,8 @@ export async function POST(
     return NextResponse.json({ error: 'Database operation failed' }, { status: 500 })
   }
 
-  await fetch(`${req.nextUrl.origin}/api/admin/builders?id=${id}`, {
-    method: 'PUT',
-    headers: {
-      'Content-Type': 'application/json',
-      cookie: req.headers.get('cookie') || '',
-    },
-    body: JSON.stringify({}),
-  })
+  // NOTE: Removed the internal fetch() anti-pattern that was here previously.
+  // If cache invalidation is needed, call the service function directly.
 
   return NextResponse.json({ update: data })
 }
