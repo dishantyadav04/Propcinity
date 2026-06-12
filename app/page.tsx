@@ -1,11 +1,9 @@
 'use client';
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { ArrowRight, ShieldCheck, Star, Building2, MapPin, TrendingUp, CheckCircle2 } from "lucide-react";
 import { motion } from "framer-motion";
 import { useEffect, useState } from "react";
-import { useGuestMode } from "@/hooks/useGuestMode";
 
 // Inline SVG background — architectural city silhouette
 function CitySilhouette() {
@@ -132,10 +130,7 @@ function StatCard({ icon: Icon, value, label, delay }: {
 }
 
 export default function LandingPage() {
-  const { isGuest } = useGuestMode();
   const [projectCount, setProjectCount] = useState(0);
-
-
 
   useEffect(() => {
     fetch('/api/projects')
@@ -145,30 +140,7 @@ export default function LandingPage() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-[var(--background)] overflow-x-hidden md:-mt-16">
-
-      {/* ── Nav ─────────────────────────────────────────────── */}
-      <nav className="sticky top-0 z-50 bg-white/90 backdrop-blur-xl border-b border-[var(--border)]">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
-          <Link href={isGuest ? '/' : '/explore'}>
-            <span className="text-xl font-black text-[var(--text-primary)] tracking-tight"
-              style={{ fontFamily: 'var(--font-display)' }}>
-              Prop<span className="text-[var(--primary)]">cinity</span>
-            </span>
-          </Link>
-          <div className="flex items-center gap-3">
-            <span className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5
-              bg-[var(--success-light)] text-[var(--success)] text-xs font-bold rounded-full">
-              <ShieldCheck className="w-3 h-3" /> 100% Free for Buyers
-            </span>
-            <Link href="/onboarding"
-              className="px-4 py-2 bg-[var(--primary)] text-white text-sm font-bold
-                rounded-[var(--radius-xs)] hover:opacity-90 transition-opacity shadow-[var(--shadow-primary)]">
-              Get Started
-            </Link>
-          </div>
-        </div>
-      </nav>
+    <div className="min-h-screen bg-[var(--background)] overflow-x-hidden">
 
       {/* ── Hero ────────────────────────────────────────────── */}
       <section className="relative min-h-[88vh] flex items-center overflow-hidden">
@@ -212,7 +184,7 @@ export default function LandingPage() {
               initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.3 }}
               className="flex flex-col sm:flex-row gap-4">
-              <Link href="/onboarding"
+              <Link href="/auth/signup"
                 className="inline-flex items-center justify-center gap-2 px-8 py-4
                   bg-[var(--primary)] text-white text-base font-bold rounded-[var(--radius)]
                   shadow-[var(--shadow-primary)] hover:opacity-90 transition-opacity">
@@ -328,7 +300,7 @@ export default function LandingPage() {
               We earn commission from builders when you buy. Your interests always come first.
             </p>
           </div>
-          <Link href="/onboarding"
+          <Link href="/auth/signup"
             className="flex-shrink-0 px-8 py-3.5 bg-white text-[var(--primary)]
               text-sm font-black rounded-[var(--radius)] hover:opacity-90 transition-opacity">
             Start Free →
@@ -397,29 +369,13 @@ export default function LandingPage() {
         <p className="text-[var(--text-secondary)] max-w-md mx-auto">
           Takes 60 seconds. No broker calls. No spam. Just the right property for you.
         </p>
-        <Link href="/onboarding"
+        <Link href="/auth/signup"
           className="inline-flex items-center gap-2 px-10 py-4 bg-[var(--primary)] text-white
             text-base font-bold rounded-[var(--radius)] shadow-[var(--shadow-primary)]
             hover:opacity-90 transition-opacity">
           Find My Property <ArrowRight className="w-4 h-4" />
         </Link>
       </section>
-
-      {/* ── Footer ──────────────────────────────────────────── */}
-      <footer className="border-t border-[var(--border)] bg-white">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8
-          flex flex-col sm:flex-row items-center justify-between gap-4">
-          <span className="text-base font-black text-[var(--text-primary)]"
-            style={{ fontFamily: 'var(--font-display)' }}>
-            Prop<span className="text-[var(--primary)]">cinity</span>
-          </span>
-          <p className="text-sm text-[var(--text-muted)]">© 2025 Propcinity. Zero brokerage, always.</p>
-          <div className="flex items-center gap-6 text-sm text-[var(--text-muted)]">
-            <Link href="/privacy" className="hover:text-[var(--text-primary)] transition-colors">Privacy</Link>
-            <Link href="/terms" className="hover:text-[var(--text-primary)] transition-colors">Terms</Link>
-          </div>
-        </div>
-      </footer>
     </div>
   );
 }

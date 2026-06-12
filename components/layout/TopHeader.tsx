@@ -17,7 +17,6 @@ export default function TopHeader() {
 
   if (
     pathname.startsWith('/admin') ||
-    pathname === '/' ||
     pathname === '/onboarding'
   ) return null;
 
@@ -53,7 +52,7 @@ export default function TopHeader() {
       <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-4">
 
         {/* Logo */}
-        <Link href={isGuest ? '/onboarding' : '/dashboard'} className="flex items-center flex-shrink-0">
+        <Link href={isGuest ? '/auth/signup' : '/dashboard'} className="flex items-center flex-shrink-0">
           <span className="text-xl font-black text-[var(--text-primary)] tracking-tight"
             style={{ fontFamily: 'var(--font-display)' }}>
             Prop<span className="text-[var(--primary)]">cinity</span>
@@ -109,7 +108,7 @@ export default function TopHeader() {
           )}
           {isGuest ? (
             <Link
-              href="/onboarding"
+              href="/auth/signup"
               className="px-4 py-2 bg-[var(--primary)] text-white text-sm font-bold rounded-[var(--radius-xs)] hover:opacity-90 transition-opacity shadow-[var(--shadow-primary)]"
             >
               Sign Up / Login

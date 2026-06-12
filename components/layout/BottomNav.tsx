@@ -7,7 +7,7 @@ import { cn } from "@/lib/utils";
 import { useGuestMode } from "@/hooks/useGuestMode";
 
 const GUEST_NAV_ITEMS = [
-  { label: 'Sign Up', href: '/onboarding', icon: LogIn },
+  { label: 'Sign Up', href: '/auth/signup', icon: LogIn },
   { label: 'Explore', href: '/explore', icon: Compass },
   { label: 'AI Chat', href: '/ai-chat', icon: Sparkles },
   { label: 'Compare', href: '/compare', icon: GitCompareArrows },

@@ -3,14 +3,12 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  ArrowRight, ArrowLeft, Sparkles, Loader2, Plus, X, Check, User, Phone, Mail,
+  ArrowRight, ArrowLeft, Sparkles, Loader2, Plus, X, Check,
   ChevronRight
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { storage, STORAGE_KEYS } from "@/lib/storage";
 import { cn } from "@/lib/utils";
-import { signInWithGoogle, signInWithApple } from '@/lib/supabase-auth'
-import { toast } from 'sonner'
 
 const CITY_SUBLOCATIONS: Record<string, string[]> = {
   Pune: [
@@ -67,13 +65,12 @@ const TIMELINE_OPTIONS_LIST = [
   { id: '5_plus',        label: '5+ Years' },
 ]
 
-const TOTAL_STEPS = 7;
+const TOTAL_STEPS = 6;
 
 export default function UserIntentForm() {
   const router = useRouter();
   const [step, setStep] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
-  const [oauthLoading, setOauthLoading] = useState<'google' | 'apple' | null>(null);
   const [subInput, setSubInput] = useState('');
   const [showMoreSubLocs, setShowMoreSubLocs] = useState(false);
   const [consentGiven, setConsentGiven] = useState(false);
@@ -111,22 +108,26 @@ export default function UserIntentForm() {
   const prev = () => setStep(s => Math.max(s - 1, 1));
 
   const canNext = () => {
-    if (step === 1) {
-      return form.name.length >= 2 && form.phone.length === 10 && form.email.includes('@');
-    }
-    if (step === 2) return form.city.length > 0;
-    if (step === 3) return !!form.purpose;
-    if (step === 4) return form.propertyType.length > 0;
-    if (step === 5) return form.bhkType.length > 0;
-    if (step === 6) return true;
-    if (step === 7) return !!form.timeline && consentGiven;
+    if (step === 1) return form.city.length > 0;
+    if (step === 2) return !!form.purpose;
+    if (step === 3) return form.propertyType.length > 0;
+    if (step === 4) return form.bhkType.length > 0;
+    if (step === 5) return true;
+    if (step === 6) return !!form.timeline && consentGiven;
     return true;
   };
 
   const handleFinish = async () => {
     setIsLoading(true);
+
+    const supabase = (await import('@/lib/supabase')).createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    const name = user?.user_metadata?.full_name ?? ''
+    const phone = user?.user_metadata?.phone ?? ''
+    const email = user?.email ?? ''
+
     const intent = {
-      name: form.name, phone: form.phone, email: form.email,
+      name, phone, email,
       city: form.city, subLocations: form.subLocations,
       location: form.city.toLowerCase(),
       workLocation: '',
@@ -142,14 +143,12 @@ export default function UserIntentForm() {
     storage.set(STORAGE_KEYS.ONBOARDING_DONE, true);
 
     try {
-      const supabase = (await import('@/lib/supabase')).createClient()
-      const { data: { user } } = await supabase.auth.getUser()
       if (user) {
         await supabase.from('user_profiles').upsert({
           id: user.id,
-          display_name: form.name,
-          phone: form.phone,
-          email: form.email || user.email,
+          display_name: name,
+          phone: phone,
+          email: email,
           city: form.city,
           onboarding_complete: true,
           last_active: new Date().toISOString(),
@@ -161,18 +160,6 @@ export default function UserIntentForm() {
 
     await new Promise(r => setTimeout(r, 1000));
     router.push('/dashboard');
-  };
-
-  const handleGoogleSignIn = async () => {
-    setOauthLoading('google')
-    try { await signInWithGoogle('/onboarding') }
-    catch (err: unknown) { toast.error(err instanceof Error ? err.message : 'Google sign-in failed.'); setOauthLoading(null) }
-  }
-
-  const handleAppleSignIn = async () => {
-    setOauthLoading('apple')
-    try { await signInWithApple('/onboarding') }
-    catch (err: unknown) { toast.error(err instanceof Error ? err.message : 'Apple sign-in failed.'); setOauthLoading(null) }
   };
 
   const formatBudget = (val: number) => {
@@ -213,45 +200,8 @@ export default function UserIntentForm() {
             className="space-y-6"
           >
 
-            {/* ── STEP 1: Identity ─────────── */}
+            {/* ── STEP 1: Location ─────────── */}
             {step === 1 && (
-              <div className="space-y-6">
-                <div className="space-y-1">
-                  <h2 className="text-2xl font-black text-[var(--text-primary)]"
-                    style={{ fontFamily: 'var(--font-display)' }}>
-                    Let's get started
-                  </h2>
-                  <p className="text-sm text-[var(--text-secondary)]">
-                    Tell us about yourself.
-                  </p>
-                </div>
-
-                <div className="space-y-3">
-                    <button onClick={handleGoogleSignIn} disabled={!!oauthLoading} className="w-full flex items-center gap-3 px-4 py-3 bg-white border-2 border-[var(--border-strong)] rounded-[var(--radius)] hover:border-[var(--primary)] transition-colors font-semibold text-sm disabled:opacity-60 disabled:cursor-not-allowed">
-                      <svg className="w-5 h-5" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
-                      {oauthLoading === 'google' ? 'Redirecting to Google...' : 'Continue with Google'}
-                    </button>
-                    <button onClick={handleAppleSignIn} disabled={!!oauthLoading} className="w-full flex items-center gap-3 px-4 py-3 bg-[var(--surface-dark)] text-white rounded-[var(--radius)] hover:opacity-90 transition-opacity font-semibold text-sm disabled:opacity-60 disabled:cursor-not-allowed">
-                      <svg className="w-5 h-5 fill-white" viewBox="0 0 24 24"><path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/></svg>
-                      {oauthLoading === 'apple' ? 'Redirecting to Apple...' : 'Continue with Apple'}
-                    </button>
-                    <div className="flex items-center gap-3"><div className="flex-1 h-px bg-[var(--border)]" /><span className="text-xs text-[var(--text-muted)] font-semibold">or fill manually</span><div className="flex-1 h-px bg-[var(--border)]" /></div>
-                    <p className="text-center text-xs text-[var(--text-muted)]">
-                      Already have an account?{' '}
-                      <a href="/auth/signin" className="text-[var(--primary)] font-bold hover:underline">Sign in</a>
-                    </p>
-                  </div>
-
-                <div className="space-y-3">
-                  <div className="relative"><User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-muted)]" /><input value={form.name} onChange={e => set('name', e.target.value)} placeholder="Full name" className="w-full pl-10 pr-4 py-3 bg-[var(--surface-raised)] border border-[var(--border)] rounded-[var(--radius)] text-sm text-[var(--text-primary)] focus:outline-none focus:border-[var(--primary)]" /></div>
-                  <div className="relative"><Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-muted)]" /><span className="absolute left-9 top-1/2 -translate-y-1/2 text-sm text-[var(--text-muted)] font-semibold">+91</span><input value={form.phone} onChange={e => set('phone', e.target.value.replace(/\D/g, '').slice(0, 10))} placeholder="10-digit mobile" type="tel" className="w-full pl-16 pr-4 py-3 bg-[var(--surface-raised)] border border-[var(--border)] rounded-[var(--radius)] text-sm text-[var(--text-primary)] focus:outline-none focus:border-[var(--primary)]" /></div>
-                  <div className="relative"><Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-muted)]" /><input value={form.email} onChange={e => set('email', e.target.value)} placeholder="Email address" type="email" className="w-full pl-10 pr-4 py-3 bg-[var(--surface-raised)] border border-[var(--border)] rounded-[var(--radius)] text-sm text-[var(--text-primary)] focus:outline-none focus:border-[var(--primary)]" /></div>
-                </div>
-              </div>
-            )}
-
-            {/* ── STEP 2: Location ─────────── */}
-            {step === 2 && (
               <div className="space-y-6">
                 <div>
                   <h2 className="text-2xl font-black text-[var(--text-primary)]"
@@ -351,8 +301,8 @@ export default function UserIntentForm() {
               </div>
             )}
 
-            {/* ── STEP 3: Purpose ───────────────────────────── */}
-            {step === 3 && (
+            {/* ── STEP 2: Purpose ───────────────────────────── */}
+            {step === 2 && (
               <div className="space-y-6">
                 <div>
                   <h2 className="text-2xl font-black text-[var(--text-primary)]"
@@ -387,8 +337,8 @@ export default function UserIntentForm() {
               </div>
             )}
 
-            {/* ── STEP 4: Property Type ─────────────────────── */}
-            {step === 4 && (
+            {/* ── STEP 3: Property Type ─────────────────────── */}
+            {step === 3 && (
               <div className="space-y-6">
                 <div>
                   <h2 className="text-2xl font-black text-[var(--text-primary)]"
@@ -423,8 +373,8 @@ export default function UserIntentForm() {
               </div>
             )}
 
-            {/* ── STEP 5: BHK or Plot Size ───────────────────── */}
-            {step === 5 && (
+            {/* ── STEP 4: BHK or Plot Size ───────────────────── */}
+            {step === 4 && (
               <div className="space-y-6">
                 {form.propertyType.some(t => ['apartment', 'villa', 'penthouse'].includes(t)) && (
                   <div>
@@ -480,8 +430,8 @@ export default function UserIntentForm() {
               </div>
             )}
 
-            {/* ── STEP 6: Budget ────────────────────────────── */}
-            {step === 6 && (
+            {/* ── STEP 5: Budget ────────────────────────────── */}
+            {step === 5 && (
               <div className="space-y-6">
                 <div>
                   <h2 className="text-2xl font-black text-[var(--text-primary)]"
@@ -588,8 +538,8 @@ export default function UserIntentForm() {
               </div>
             )}
 
-            {/* ── STEP 7: Timeline + Optional prefs ────────── */}
-            {step === 7 && (
+            {/* ── STEP 6: Timeline + Optional prefs ────────── */}
+            {step === 6 && (
               <div className="space-y-6">
                 <div>
                   <h2 className="text-2xl font-black text-[var(--text-primary)]"
@@ -706,7 +656,7 @@ export default function UserIntentForm() {
 
         {/* Navigation buttons */}
         <div className="mt-8 space-y-3">
-          {step === 7 ? (
+          {step === 6 ? (
             <button
               onClick={handleFinish}
               disabled={!canNext() || isLoading}
