@@ -4,10 +4,12 @@ import UserIntentForm from "@/components/onboarding/UserIntentForm";
 
 export default async function OnboardingPage() {
   const supabase = await createServerSupabaseClient()
-  if (supabase) {
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) redirect('/auth/signin?next=/onboarding')
-  }
+
+  if (!supabase) redirect('/auth/signin?next=/onboarding')
+
+  const { data: { user }, error } = await supabase.auth.getUser()
+
+  if (!user || error) redirect('/auth/signin?next=/onboarding')
 
   return (
     <div className="min-h-screen bg-[var(--background)] md:-mt-16">

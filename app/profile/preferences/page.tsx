@@ -17,7 +17,7 @@ export default function PreferencesPage() {
 
   useEffect(() => {
     if (isChecking) return;
-    if (isGuest) router.replace('/onboarding');
+    if (isGuest) router.replace('/auth/signin?next=/profile/preferences');
   }, [isGuest, isChecking, router]);
 
   useEffect(() => {

@@ -17,6 +17,7 @@ export default function TopHeader() {
 
   if (
     pathname.startsWith('/admin') ||
+    pathname.startsWith('/auth') ||
     pathname === '/onboarding'
   ) return null;
 
