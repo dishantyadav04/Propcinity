@@ -38,13 +38,13 @@ export default function TopHeader() {
   const navItems = isGuest
     ? [
         { label: 'Explore', href: '/explore' },
-        { label: 'AI Chat', href: '/ai-chat' },
+        { label: 'AI Chat', href: isGuest ? '/auth/signin?redirect=/ai-chat' : '/ai-chat' },
         { label: 'Compare', href: '/compare' },
       ]
     : [
         { label: 'Dashboard', href: '/dashboard' },
         { label: 'Explore', href: '/explore' },
-        { label: 'AI Chat', href: '/ai-chat' },
+        { label: 'AI Chat', href: isGuest ? '/auth/signin?redirect=/ai-chat' : '/ai-chat' },
         { label: 'Compare', href: '/compare' },
       ];
 

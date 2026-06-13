@@ -9,15 +9,20 @@ import PageTransition from '@/components/ui/PageTransition'
 import ClientLayoutExtras from '@/components/layout/ClientLayoutExtras'
 import CookieConsentProvider from '@/components/consent/CookieConsentProvider'
 
-const syne = Syne({ 
+const syne = Syne({
   subsets: ['latin'],
-  weight: ['400', '600', '700', '800'],
-  variable: '--font-display'
+  weight: ['700', '800'],
+  variable: '--font-display',
+  display: 'swap',
+  preload: true,
 })
 
-const jakarta = Plus_Jakarta_Sans({ 
+const jakarta = Plus_Jakarta_Sans({
   subsets: ['latin'],
-  variable: '--font-body'
+  weight: ['400', '500', '600', '700'],
+  variable: '--font-body',
+  display: 'swap',
+  preload: true,
 })
 
 export const viewport: Viewport = {

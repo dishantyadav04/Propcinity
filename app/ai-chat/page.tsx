@@ -13,14 +13,12 @@ interface Message {
   content: string;
 }
 
+// ─── Constants ────────────────────────────────────────────────────────────────
 const SESSION_KEY = 'ai_chat_session';
-const MAX_MESSAGES = 15;
+const MAX_MESSAGES = 5;           // 5 daily chats for logged-in users
 const SESSION_TTL = 24 * 60 * 60 * 1000;
 
-const GUEST_SESSION_KEY = 'ai_chat_guest_session';
-const GUEST_MAX_MESSAGES = 3;
-const GUEST_SESSION_TTL = 24 * 60 * 60 * 1000;
-
+// ─── Session helpers (logged-in users only) ───────────────────────────────────
 function getSessionCount(): number {
   try {
     const raw = localStorage.getItem(SESSION_KEY);
@@ -46,52 +44,61 @@ function incrementSessionCount(): number {
   }
 }
 
-function getGuestCount(): number {
-  try {
-    const raw = localStorage.getItem(GUEST_SESSION_KEY);
-    if (!raw) return 0;
-    const parsed = JSON.parse(raw);
-    if (Date.now() - parsed.ts > GUEST_SESSION_TTL) {
-      localStorage.removeItem(GUEST_SESSION_KEY);
-      return 0;
-    }
-    return parsed.count || 0;
-  } catch {
-    return 0;
-  }
+// ─── Guest Gate UI ────────────────────────────────────────────────────────────
+function GuestLockScreen() {
+  return (
+    <div className="flex flex-col items-center justify-center flex-1 px-6 py-16 text-center gap-5">
+      <div className="w-16 h-16 rounded-full bg-[var(--surface-raised)] border border-[var(--border)] flex items-center justify-center">
+        <Lock className="w-7 h-7 text-[var(--primary)]" />
+      </div>
+      <div className="space-y-2 max-w-xs">
+        <h2
+          className="text-xl font-bold text-[var(--text-primary)]"
+          style={{ fontFamily: 'var(--font-display)' }}
+        >
+          AI Advisor is for members
+        </h2>
+        <p className="text-sm text-[var(--text-muted)] leading-relaxed">
+          Create a free account to unlock your daily AI consultations — personalised Pune real estate advice, zero brokerage.
+        </p>
+      </div>
+      <div className="flex flex-col sm:flex-row gap-3 w-full max-w-xs">
+        <Link
+          href="/auth/signup"
+          className="flex-1 py-3 bg-[var(--primary)] text-white text-sm font-bold rounded-[var(--radius-xs)] hover:opacity-90 transition-opacity shadow-[var(--shadow-primary)] text-center"
+        >
+          Get Started — Free
+        </Link>
+        <Link
+          href="/auth/signin"
+          className="flex-1 py-3 bg-[var(--surface-raised)] border border-[var(--border)] text-[var(--text-secondary)] text-sm font-bold rounded-[var(--radius-xs)] hover:border-[var(--primary)] transition-colors text-center"
+        >
+          Sign In
+        </Link>
+      </div>
+    </div>
+  );
 }
 
-function incrementGuestCount(): number {
-  try {
-    const count = getGuestCount() + 1;
-    localStorage.setItem(GUEST_SESSION_KEY, JSON.stringify({ count, ts: Date.now() }));
-    return count;
-  } catch {
-    return 0;
-  }
-}
-
+// ─── Main Page ────────────────────────────────────────────────────────────────
 export default function AIChatPage() {
+  const { isGuest, isChecking } = useGuestMode();
+
   const [messages, setMessages] = useState<Message[]>([
-    { role: 'assistant', content: "Hi! I'm your Propcinity Advisor. I have data on verified projects in Pune. Ask me anything — which areas suit your budget, which builders have the best track record, or what to look for in your shortlist." }
+    {
+      role: 'assistant',
+      content:
+        "Hi! I'm your Propcinity Advisor. I have data on verified projects in Pune. Ask me anything — which areas suit your budget, which builders have the best track record, or what to look for in your shortlist.",
+    },
   ]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [sessionCount, setSessionCount] = useState(0);
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  const { isGuest } = useGuestMode();
-  const [guestCount, setGuestCount] = useState(0);
-
   useEffect(() => {
     setSessionCount(getSessionCount());
   }, []);
-
-  useEffect(() => {
-    if (isGuest) {
-      setGuestCount(getGuestCount());
-    }
-  }, [isGuest]);
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -102,12 +109,8 @@ export default function AIChatPage() {
   const remaining = MAX_MESSAGES - sessionCount;
   const isLimitReached = remaining <= 0;
 
-  const guestLimitReached = isGuest && guestCount >= GUEST_MAX_MESSAGES;
-  const guestRemaining = GUEST_MAX_MESSAGES - guestCount;
-
   const handleSend = async () => {
-    if (isGuest && guestLimitReached) return;
-    if (!input.trim() || isLoading || isLimitReached) return;
+    if (!input.trim() || isLoading || isLimitReached || isGuest) return;
 
     const userMsg = input.trim();
     setInput("");
@@ -119,41 +122,55 @@ export default function AIChatPage() {
 
     try {
       const userIntent = storage.get<any>('userIntent', null);
-      
+
       const res = await fetch('/api/ai/ask', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
+        body: JSON.stringify({
           question: userMsg,
           projectId: '00000000-0000-0000-0000-000000000000',
-          userContext: userIntent ? {
-            location: userIntent.subLocations?.join(', ') || userIntent.city,
-            budget: userIntent.budget,
-            bhk: userIntent.bhkType,
-          } : undefined
-        })
+          userContext: userIntent
+            ? {
+                location: userIntent.subLocations?.join(', ') || userIntent.city,
+                budget: userIntent.budget,
+                bhk: userIntent.bhkType,
+              }
+            : undefined,
+        }),
       });
-      
-      if (res.status === 429) {
-        setMessages(prev => [...prev, { role: 'assistant', content: "You've sent too many messages. Please wait a moment before asking again." }]);
-        return;
-      }
-      
-      const data = await res.json();
-      
-      if (data.error && data.error !== 'Project not found') {
-        setMessages(prev => [...prev, { role: 'assistant', content: "I'm having trouble connecting right now. Please try again in a moment." }]);
-        return;
-      }
-      
-      setMessages(prev => [...prev, { role: 'assistant', content: data.answer || "I don't have enough information to answer that. Try asking about specific projects, locations, or budgets." }]);
 
-      if (isGuest) {
-        const newCount = incrementGuestCount();
-        setGuestCount(newCount);
+      if (res.status === 429) {
+        setMessages(prev => [
+          ...prev,
+          { role: 'assistant', content: "You've sent too many messages. Please wait a moment before asking again." },
+        ]);
+        return;
       }
+
+      const data = await res.json();
+
+      if (data.error && data.error !== 'Project not found') {
+        setMessages(prev => [
+          ...prev,
+          { role: 'assistant', content: "I'm having trouble connecting right now. Please try again in a moment." },
+        ]);
+        return;
+      }
+
+      setMessages(prev => [
+        ...prev,
+        {
+          role: 'assistant',
+          content:
+            data.answer ||
+            "I don't have enough information to answer that. Try asking about specific projects, locations, or budgets.",
+        },
+      ]);
     } catch {
-      setMessages(prev => [...prev, { role: 'assistant', content: "I'm having trouble connecting right now. Please try again in a moment." }]);
+      setMessages(prev => [
+        ...prev,
+        { role: 'assistant', content: "I'm having trouble connecting right now. Please try again in a moment." },
+      ]);
     } finally {
       setIsLoading(false);
     }
@@ -166,6 +183,41 @@ export default function AIChatPage() {
     "Explain the risk level for under-construction properties.",
   ];
 
+  // ── While auth check is still in-flight, show a neutral loader ───────────
+  if (isChecking) {
+    return (
+      <div className="flex items-center justify-center h-[calc(100vh-64px)]">
+        <Loader2 className="w-6 h-6 animate-spin text-[var(--text-muted)]" />
+      </div>
+    );
+  }
+
+  // ── Guest: full lock screen ───────────────────────────────────────────────
+  if (isGuest) {
+    return (
+      <div className="flex flex-col h-[calc(100vh-64px)]">
+        {/* Minimal header */}
+        <div className="flex-shrink-0 bg-white border-b border-[var(--border)] py-4">
+          <SectionContainer wide>
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-[var(--primary-light)] rounded-full flex items-center justify-center text-[var(--primary)]">
+                <Bot className="w-6 h-6" />
+              </div>
+              <div>
+                <h1 className="font-bold text-lg leading-tight">AI Advisor</h1>
+                <p className="text-xs text-[var(--text-muted)] flex items-center gap-1">
+                  <Sparkles className="w-3 h-3 text-yellow-500" /> Pune Real Estate Expert
+                </p>
+              </div>
+            </div>
+          </SectionContainer>
+        </div>
+        <GuestLockScreen />
+      </div>
+    );
+  }
+
+  // ── Logged-in user view ───────────────────────────────────────────────────
   return (
     <div className="flex flex-col h-[calc(100vh-64px)]">
       {/* Header */}
@@ -183,23 +235,15 @@ export default function AIChatPage() {
                 </p>
               </div>
             </div>
-            {/* Session budget indicator */}
-            {!isGuest && (
-              <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold ${
-                remaining <= 3 ? 'bg-red-50 text-red-600' : 'bg-[var(--surface-raised)] text-[var(--text-muted)]'
-              }`}>
-                <MessageSquare className="w-3.5 h-3.5" />
-                {isLimitReached ? 'Limit reached' : `${remaining} left today`}
-              </div>
-            )}
-            {isGuest && (
-              <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold ${
-                guestRemaining <= 1 ? 'bg-red-50 text-red-600' : 'bg-[var(--surface-raised)] text-[var(--text-muted)]'
-              }`}>
-                <MessageSquare className="w-3.5 h-3.5" />
-                {guestLimitReached ? 'Limit reached' : `${guestRemaining} free left`}
-              </div>
-            )}
+            {/* Daily budget indicator */}
+            <div
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold ${
+                remaining <= 1 ? 'bg-red-50 text-red-600' : 'bg-[var(--surface-raised)] text-[var(--text-muted)]'
+              }`}
+            >
+              <MessageSquare className="w-3.5 h-3.5" />
+              {isLimitReached ? 'Limit reached' : `${remaining} left today`}
+            </div>
           </div>
         </SectionContainer>
       </div>
@@ -215,21 +259,28 @@ export default function AIChatPage() {
               className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}
             >
               <div className={`max-w-[85%] md:max-w-[70%] flex gap-3 ${m.role === 'user' ? 'flex-row-reverse' : ''}`}>
-                <div className={`w-8 h-8 rounded-full flex-shrink-0 flex items-center justify-center ${
-                  m.role === 'user' ? 'bg-[var(--primary)] text-white' : 'bg-white border border-[var(--border)] text-[var(--text-secondary)]'
-                }`}>
+                <div
+                  className={`w-8 h-8 rounded-full flex-shrink-0 flex items-center justify-center ${
+                    m.role === 'user'
+                      ? 'bg-[var(--primary)] text-white'
+                      : 'bg-white border border-[var(--border)] text-[var(--text-secondary)]'
+                  }`}
+                >
                   {m.role === 'user' ? <User className="w-4 h-4" /> : <Bot className="w-4 h-4" />}
                 </div>
-                <div className={`p-4 rounded-2xl text-sm leading-relaxed shadow-sm ${
-                  m.role === 'user'
-                    ? 'bg-[var(--primary)] text-white rounded-tr-none'
-                    : 'bg-white border border-[var(--border)] text-[var(--text-primary)] rounded-tl-none'
-                }`}>
+                <div
+                  className={`p-4 rounded-2xl text-sm leading-relaxed shadow-sm ${
+                    m.role === 'user'
+                      ? 'bg-[var(--primary)] text-white rounded-tr-none'
+                      : 'bg-white border border-[var(--border)] text-[var(--text-primary)] rounded-tl-none'
+                  }`}
+                >
                   {m.content}
                 </div>
               </div>
             </motion.div>
           ))}
+
           {isLoading && (
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex justify-start">
               <div className="flex gap-3 max-w-[85%]">
@@ -243,14 +294,17 @@ export default function AIChatPage() {
             </motion.div>
           )}
 
-          {isLimitReached && !isGuest && (
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}
-              className="flex justify-center py-4">
+          {isLimitReached && (
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex justify-center py-4">
               <div className="bg-orange-50 border border-orange-200 rounded-[var(--radius)] p-4 text-center max-w-sm">
                 <p className="text-sm font-bold text-orange-800">Daily limit reached</p>
-                <p className="text-xs text-orange-600 mt-1">Your session resets in 24 hours. For more guidance, speak to our team.</p>
-                <a href="tel:+919999999999" 
-                  className="mt-3 inline-flex items-center gap-2 px-4 py-2 bg-[var(--primary)] text-white text-xs font-bold rounded-full">
+                <p className="text-xs text-orange-600 mt-1">
+                  Your 5 daily questions reset in 24 hours. For urgent advice, speak to our team.
+                </p>
+                <a
+                  href="tel:+919999999999"
+                  className="mt-3 inline-flex items-center gap-2 px-4 py-2 bg-[var(--primary)] text-white text-xs font-bold rounded-full"
+                >
                   Talk to an Expert
                 </a>
               </div>
@@ -259,14 +313,16 @@ export default function AIChatPage() {
         </SectionContainer>
       </div>
 
-      {/* Presets */}
-      {messages.length <= 1 && !isLimitReached && !guestLimitReached && (
+      {/* Preset chips */}
+      {messages.length <= 1 && !isLimitReached && (
         <div className="flex-shrink-0 px-4 pb-2">
           <div className="max-w-6xl mx-auto flex gap-2 overflow-x-auto scrollbar-hide py-2">
             {presets.map((p, i) => (
-              <button key={i}
-                onClick={() => { setInput(p); }}
-                className="flex-shrink-0 px-3 py-2 text-xs font-semibold bg-white border border-[var(--border)] text-[var(--text-secondary)] rounded-full hover:border-[var(--primary)] hover:text-[var(--primary)] transition-colors whitespace-nowrap">
+              <button
+                key={i}
+                onClick={() => setInput(p)}
+                className="flex-shrink-0 px-3 py-2 text-xs font-semibold bg-white border border-[var(--border)] text-[var(--text-secondary)] rounded-full hover:border-[var(--primary)] hover:text-[var(--primary)] transition-colors whitespace-nowrap"
+              >
                 {p}
               </button>
             ))}
@@ -274,63 +330,37 @@ export default function AIChatPage() {
         </div>
       )}
 
-      {/* Guest counter chip above input */}
-      {isGuest && !guestLimitReached && guestCount > 0 && (
-        <div className="flex-shrink-0 text-center">
-          <p className="text-[10px] text-[var(--text-muted)] pb-1">
-            {guestRemaining} free question{guestRemaining !== 1 ? 's' : ''} remaining today
-          </p>
-        </div>
-      )}
-
-      {/* Input or guest limit overlay */}
-      {guestLimitReached ? (
-        <div className="flex-shrink-0 border-t border-[var(--border)] bg-[var(--surface)] p-4">
-          <div className="flex flex-col items-center gap-3 py-4 text-center">
-            <div className="w-10 h-10 rounded-full bg-[var(--surface-raised)] border border-[var(--border)] flex items-center justify-center">
-              <Lock className="w-4 h-4 text-[var(--text-muted)]" />
-            </div>
-            <div>
-              <p className="text-sm font-bold text-[var(--text-primary)]">
-                You've used your {GUEST_MAX_MESSAGES} free questions
-              </p>
-              <p className="text-xs text-[var(--text-muted)] mt-1">
-                Sign up to unlock unlimited AI advice — resets every 24 hours
-              </p>
-            </div>
-            <Link
-              href="/onboarding"
-              className="px-5 py-2.5 bg-[var(--primary)] text-white text-sm font-bold rounded-[var(--radius-xs)] hover:opacity-90 transition-opacity shadow-[var(--shadow-primary)]"
+      {/* Input */}
+      <div className="flex-shrink-0 bg-white border-t border-[var(--border)] py-4">
+        <SectionContainer wide>
+          <div className="flex gap-3 items-end">
+            <textarea
+              value={input}
+              onChange={e => setInput(e.target.value)}
+              onKeyDown={e => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                  e.preventDefault();
+                  handleSend();
+                }
+              }}
+              disabled={isLoading || isLimitReached}
+              placeholder={
+                isLimitReached ? "Daily limit reached. Come back tomorrow!" : "Ask anything about Pune real estate..."
+              }
+              rows={1}
+              className="flex-1 resize-none px-4 py-3 text-sm bg-[var(--surface-raised)] border border-[var(--border-strong)] rounded-[var(--radius)] text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none focus:border-[var(--primary)] disabled:opacity-50 disabled:cursor-not-allowed"
+              style={{ maxHeight: '120px' }}
+            />
+            <button
+              onClick={handleSend}
+              disabled={!input.trim() || isLoading || isLimitReached}
+              className="flex-shrink-0 w-11 h-11 bg-[var(--primary)] text-white rounded-[var(--radius)] flex items-center justify-center shadow-[var(--shadow-primary)] hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed transition-opacity"
             >
-              Get Started — Free
-            </Link>
+              {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+            </button>
           </div>
-        </div>
-      ) : (
-        <div className="flex-shrink-0 bg-white border-t border-[var(--border)] py-4">
-          <SectionContainer wide>
-            <div className="flex gap-3 items-end">
-              <textarea
-                value={input}
-                onChange={e => setInput(e.target.value)}
-                onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); } }}
-                disabled={isLoading || isLimitReached}
-                placeholder={isLimitReached ? "Daily limit reached. Come back tomorrow!" : "Ask anything about Pune real estate..."}
-                rows={1}
-                className="flex-1 resize-none px-4 py-3 text-sm bg-[var(--surface-raised)] border border-[var(--border-strong)] rounded-[var(--radius)] text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none focus:border-[var(--primary)] disabled:opacity-50 disabled:cursor-not-allowed"
-                style={{ maxHeight: '120px' }}
-              />
-              <button
-                onClick={handleSend}
-                disabled={!input.trim() || isLoading || isLimitReached}
-                className="flex-shrink-0 w-11 h-11 bg-[var(--primary)] text-white rounded-[var(--radius)] flex items-center justify-center shadow-[var(--shadow-primary)] hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed transition-opacity"
-              >
-                {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
-              </button>
-            </div>
-          </SectionContainer>
-        </div>
-      )}
+        </SectionContainer>
+      </div>
     </div>
   );
 }

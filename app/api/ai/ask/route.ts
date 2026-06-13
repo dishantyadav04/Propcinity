@@ -126,6 +126,14 @@ export async function PUT(request: NextRequest) {
     return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
   }
 
+  const newCount = await incrementUserChatCount(user.id)
+  if (newCount > DAILY_LIMIT) {
+    return NextResponse.json(
+      { error: `You've reached your ${DAILY_LIMIT} daily chat limit. Try again tomorrow.` },
+      { status: 429 }
+    )
+  }
+
   try {
     const body = await request.json()
     const { userIntent, projects } = body
