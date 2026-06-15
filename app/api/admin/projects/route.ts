@@ -22,7 +22,13 @@ const publishSchema = z.object({
 
 export async function GET(request: NextRequest) {
   if (!await isAdminAuthenticated(request)) return unauth()
-  return NextResponse.json({ projects: await adminGetAllProjects() })
+
+  const { searchParams } = new URL(request.url)
+  const page = Math.max(1, parseInt(searchParams.get('page') ?? '1', 10) || 1)
+  const limit = Math.min(100, Math.max(1, parseInt(searchParams.get('limit') ?? '50', 10) || 50))
+
+  const result = await adminGetAllProjects(page, limit)
+  return NextResponse.json(result)
 }
 
 export async function POST(request: NextRequest) {

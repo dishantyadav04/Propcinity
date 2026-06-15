@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createHash } from 'crypto'
 import { z } from 'zod'
-import { createAdminSupabaseClient } from '@/lib/supabase-server'
+import { createAdminSupabaseClient, createServerSupabaseClient } from '@/lib/supabase-server'
 import { sendBuyerConfirmation, sendOpsAlert } from '@/lib/resend'
 import { getProjectsByIds } from '@/services/projects'
 import { calculateIntentScore } from '@/services/leads'
@@ -48,11 +48,20 @@ export async function POST(request: NextRequest) {
   if (!supabase) {
     return NextResponse.json({ error: 'Database connection failed' }, { status: 500 })
   }
+
+  const serverClient = await createServerSupabaseClient()
+  let userId: string | null = null
+  if (serverClient) {
+    const { data: { user } } = await serverClient.auth.getUser()
+    userId = user?.id ?? null
+  }
+
   const { data: lead, error } = await supabase
     .from('leads')
     .insert({
       project_id: leadData.projectId,
       unit_config_id: leadData.unitConfigId,
+      user_id: userId,
       name: leadData.name,
       phone: leadData.phone,
       email: leadData.email,
@@ -74,6 +83,12 @@ export async function POST(request: NextRequest) {
     .single()
 
   if (error || !lead) {
+    if ((error as any)?.code === '23505') {
+      return NextResponse.json(
+        { error: "You've already submitted a consultation request for this project." },
+        { status: 409 }
+      )
+    }
     console.error('Lead insert error:', error)
     return NextResponse.json({ error: 'Failed to save consultation' }, { status: 500 })
   }

@@ -318,14 +318,15 @@ export default function AdminLeadsPage() {
                             text-white text-xs font-bold rounded-[var(--radius-xs)] hover:opacity-90 transition-opacity">
                           <Phone className="w-3.5 h-3.5" /> Call Now
                         </a>
-                        <a href={`https://wa.me/91${lead.phone}?text=${encodeURIComponent(
-                          `Hi ${lead.name}, this is from Propcinity. I'm calling regarding your inquiry for ${lead.projects?.name}. Is this a good time to talk?`
-                        )}`}
-                          target="_blank" rel="noopener noreferrer"
-                          className="flex items-center gap-2 w-full px-3 py-2 bg-[#25D366]
+                        <button
+                          onClick={() => {
+                            navigator.clipboard.writeText(lead.phone)
+                            toast.success('Phone number copied')
+                          }}
+                          className="flex items-center gap-2 w-full px-3 py-2 bg-[var(--primary)]
                             text-white text-xs font-bold rounded-[var(--radius-xs)] hover:opacity-90 transition-opacity">
-                          <span className="text-sm">💬</span> WhatsApp
-                        </a>
+                          <Phone className="w-3.5 h-3.5" /> Copy Phone
+                        </button>
                       </div>
                     </div>
                   </div>

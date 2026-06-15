@@ -12,7 +12,7 @@ import { signOut } from "@/lib/supabase-auth";
 export default function ProfilePrivacyPage() {
   const router = useRouter();
   const { isGuest, isChecking } = useGuestMode();
-  const [notifications, setNotifications] = useState({ email: true, whatsapp: false, updates: true });
+  const [notifications, setNotifications] = useState({ email: true, sms: false, updates: true });
 
   useEffect(() => {
     if (isChecking) return;
@@ -85,7 +85,7 @@ export default function ProfilePrivacyPage() {
           </div>
           {[
             { key: 'email', label: 'Email updates', desc: 'Consultation confirmations and project alerts' },
-            { key: 'whatsapp', label: 'WhatsApp messages', desc: 'Advisor follow-ups and visit reminders' },
+            { key: 'sms', label: 'SMS notifications', desc: 'Advisor follow-ups and visit reminders' },
             { key: 'updates', label: 'Product updates', desc: 'New features and platform improvements' },
           ].map(item => (
             <div key={item.key}

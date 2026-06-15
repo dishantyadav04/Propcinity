@@ -126,6 +126,7 @@ create table leads (
   id uuid primary key default gen_random_uuid(),
   project_id uuid references projects,
   unit_config_id uuid references unit_configs,
+  user_id uuid references auth.users(id) on delete set null,
   name text not null,
   phone text not null,
   email text,
@@ -147,6 +148,11 @@ create table leads (
     'REF-' || upper(substring(gen_random_uuid()::text, 1, 8)),
   created_at timestamptz default now()
 );
+
+-- Prevent duplicate lead submissions from same logged-in user for same project
+create unique index if not exists leads_user_project_unique
+  on leads (user_id, project_id)
+  where user_id is not null;
 
 -- Drop and recreate to update column list
 drop view if exists projects_public;

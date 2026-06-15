@@ -23,6 +23,7 @@ export default function CookieConsentProvider({ children }: { children: React.Re
   const [consent, setConsentState] = useState<CookieConsent | null>(null)
   const [showBanner, setShowBanner] = useState(false)
   const [showModal, setShowModal] = useState(false)
+  const [showPreferencesModal, setShowPreferencesModal] = useState(false)
   const [mounted, setMounted] = useState(false)
 
   useEffect(() => {
@@ -40,10 +41,11 @@ export default function CookieConsentProvider({ children }: { children: React.Re
     setConsentState(updated)
     setShowBanner(false)
     setShowModal(false)
+    setShowPreferencesModal(false)
   }, [])
 
   const openPreferences = useCallback(() => {
-    setShowModal(true)
+    setShowPreferencesModal(true)
     if (!consent) {
       setShowBanner(true)
     }
@@ -52,14 +54,17 @@ export default function CookieConsentProvider({ children }: { children: React.Re
   return (
     <CookieConsentContext.Provider value={{ consent, updateConsent, showBanner, openPreferences }}>
       {children}
-      {mounted && showBanner && (
+      {mounted && (showBanner || showPreferencesModal) && (
         <CookieBanner
           onAcceptAll={() => updateConsent({ analytics: true, functional: true })}
           onEssentialOnly={() => updateConsent({ analytics: false, functional: false })}
           onUpdatePreferences={(prefs) => updateConsent(prefs)}
           onOpenPreferences={() => setShowModal(true)}
-          showModal={showModal}
-          onCloseModal={() => setShowModal(false)}
+          showModal={showPreferencesModal || showModal}
+          onCloseModal={() => {
+            setShowModal(false)
+            setShowPreferencesModal(false)
+          }}
           hasExistingConsent={!!consent}
         />
       )}

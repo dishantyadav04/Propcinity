@@ -24,21 +24,34 @@ export async function signInWithGoogle(redirectAfter = '/dashboard') {
   if (error) throw new Error(error.message)
 }
 
-// ─── OAuth 2.0 (Apple) ───────────────────────────────────────────────────────
+// ─── OAuth 2.0 (Facebook) ────────────────────────────────────────────────────
 
 /**
- * Initiates Apple OAuth 2.0 PKCE flow.
- * Browser is redirected to Apple → returns to /auth/callback.
- * NOTE: Apple requires HTTPS in production. Will not work on http://localhost.
+ * Initiates Facebook OAuth 2.0 PKCE flow.
+ * Browser is redirected to Facebook → returns to /auth/callback.
  * @param redirectAfter  Path to land on after successful auth (default: /dashboard)
  */
-export async function signInWithApple(redirectAfter = '/dashboard') {
+export async function signInWithFacebook(redirectAfter = '/dashboard') {
   const supabase = createClient()
   const { error } = await supabase.auth.signInWithOAuth({
-    provider: 'apple',
+    provider: 'facebook',
     options: {
       redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(redirectAfter)}`,
+      scopes: 'email,public_profile',
     },
+  })
+  if (error) throw new Error(error.message)
+}
+
+// ─── Update Phone ─────────────────────────────────────────────────────────────
+
+/**
+ * Updates the user's phone number in their profile metadata.
+ */
+export async function updateUserPhone(phone: string) {
+  const supabase = createClient()
+  const { error } = await supabase.auth.updateUser({
+    data: { phone }
   })
   if (error) throw new Error(error.message)
 }

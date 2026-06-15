@@ -9,7 +9,6 @@ const ALLOWED_SETTINGS_KEYS = new Set([
   'featured_project_id',
   'lead_alert_email',
   'contact_phone',
-  'whatsapp_number',
   'site_tagline',
 ])
 

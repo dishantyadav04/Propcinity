@@ -64,7 +64,7 @@ export default function AdminSettingsPage() {
       id: 'notifications',
       title: 'Lead Notifications',
       icon: <Bell className="w-5 h-5" />,
-      desc: 'Configure email and WhatsApp alerts for new inquiries.',
+      desc: 'Configure email and contact phone alerts for new inquiries.',
       badge: 'Configure',
       link: null,
     },

@@ -80,8 +80,8 @@ function mapProject(row: any, unitConfigs: SupabaseUnitConfigRow[]): Project {
     builderDescription: row.builder_description,
     location: row.location,
     city: row.city,
-    lat: Number(row.lat),
-    lng: Number(row.lng),
+    lat: Math.round(Number(row.lat) * 1000) / 1000,
+    lng: Math.round(Number(row.lng) * 1000) / 1000,
     tagline: row.tagline,
     description: row.description,
     reraId: row.rera_id,
@@ -279,15 +279,18 @@ export async function rejectProject(
     .upsert({ user_id: userId, project_id: projectId, reason })
 }
 
-export async function adminGetAllProjects(): Promise<unknown[]> {
+export async function adminGetAllProjects(page = 1, limit = 50): Promise<{ projects: unknown[]; total: number; page: number; limit: number }> {
   const supabase = createAdminSupabaseClient()
-  if (!supabase) return MOCK_PROJECTS
-  const { data } = await supabase
+  if (!supabase) return { projects: MOCK_PROJECTS, total: MOCK_PROJECTS.length, page, limit }
+  const from = (page - 1) * limit
+  const to = from + limit - 1
+  const { data, error, count } = await supabase
     .from('projects')
-    .select('*, unit_configs(*)')
+    .select('*, unit_configs(*)', { count: 'exact' })
     .order('created_at', { ascending: false })
+    .range(from, to)
 
-  return data || []
+  return { projects: data || [], total: count ?? 0, page, limit }
 }
 
 export async function adminCreateProject(projectData: Record<string, unknown>): Promise<string> {

@@ -49,7 +49,14 @@ export function isTotpEnabled(): boolean {
 
 export function verifyTotpCode(code: string): boolean {
   const secretStr = getTotpSecret()
-  if (!secretStr) return true // TOTP not configured — skip check (degraded mode)
+  if (!secretStr) {
+    if (process.env.NODE_ENV === 'production') {
+      console.error('[admin-auth] CRITICAL: ADMIN_TOTP_SECRET is not set in production. Login blocked for safety.')
+      return false // Block login in production if TOTP secret is missing
+    }
+    console.warn('[admin-auth] ADMIN_TOTP_SECRET not set — TOTP skipped (dev mode only).')
+    return true // Allow in dev/staging without TOTP
+  }
 
   const totp = new OTPAuth.TOTP({
     issuer: 'Propcinity',

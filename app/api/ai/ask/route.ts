@@ -15,6 +15,22 @@ const schema = z.object({
   compareProjectIds: z.array(z.string().uuid()).max(5).optional(),
 })
 
+const PutBodySchema = z.object({
+  userIntent: z.object({
+    budget: z.number().min(0).max(1000000000).optional(),
+    budgetLabel: z.string().max(100).optional(),
+    location: z.string().max(200).optional(),
+    propertyTypes: z.array(z.string().max(50)).max(10).optional(),
+    purpose: z.string().max(100).optional(),
+    bedrooms: z.array(z.number()).max(10).optional(),
+    mustHaves: z.array(z.string().max(100)).max(20).optional(),
+    dealBreakers: z.array(z.string().max(100)).max(20).optional(),
+  }).optional(),
+  projects: z.array(z.object({
+    id: z.string().uuid(),
+  })).max(20).optional(),
+})
+
 function getRedis(): Redis | null {
   const url = process.env.UPSTASH_REDIS_REST_URL
   const token = process.env.UPSTASH_REDIS_REST_TOKEN
@@ -82,8 +98,8 @@ export async function POST(request: NextRequest) {
   }
 
   // Check cache before hitting AI
-  const cacheKey = makeCacheKey(question, projectId)
-  const cached = getChatCache(cacheKey)
+  const cacheKey = makeCacheKey(question, projectId, user.id)
+  const cached = await getChatCache(cacheKey)
   if (cached) {
     return NextResponse.json({ answer: cached.answer, provider: cached.provider, cached: true })
   }
@@ -102,7 +118,7 @@ export async function POST(request: NextRequest) {
   const { answer, provider } = await askAI(question, systemPrompt)
 
   // Cache the response for future identical questions
-  setChatCache(cacheKey, answer, provider)
+  await setChatCache(cacheKey, answer, provider)
 
   return NextResponse.json({ answer, provider })
 }
@@ -135,8 +151,12 @@ export async function PUT(request: NextRequest) {
   }
 
   try {
-    const body = await request.json()
-    const { userIntent, projects } = body
+    const body = await request.json().catch(() => null)
+    const parsed = PutBodySchema.safeParse(body)
+    if (!parsed.success) {
+      return NextResponse.json({ error: 'Invalid request body', details: parsed.error.flatten() }, { status: 400 })
+    }
+    const { userIntent, projects } = parsed.data
 
     const projectIds = (projects || []).slice(0, 50)
       .map((p: any) => typeof p?.id === 'string' ? p.id : null)
@@ -174,11 +194,11 @@ Available projects: ${JSON.stringify(projectList)}
 Return JSON with recommended project IDs and a brief reason for each.`
 
     const result = await askAI(userPrompt, systemPrompt)
-    const parsed = JSON.parse(result.answer.replace(/```json|```/g, '').trim())
+    const aiResponse = JSON.parse(result.answer.replace(/```json|```/g, '').trim())
 
     return NextResponse.json({
-      recommended: parsed.recommended || [],
-      reasoning: parsed.reasoning || {},
+      recommended: aiResponse.recommended || [],
+      reasoning: aiResponse.reasoning || {},
       provider: result.provider,
     })
   } catch (err) {

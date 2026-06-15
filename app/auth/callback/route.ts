@@ -1,15 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerSupabaseClient } from '@/lib/supabase-server'
 
-/**
- * OAuth 2.0 PKCE callback handler.
- *
- * Flow:
- *   Google/Apple → Supabase → this route → /dashboard (or ?next=)
- *
- * Supabase provides ?code= query param. We exchange it for a JWT session.
- * The JWT + refresh token are stored in HttpOnly cookies by @supabase/ssr.
- */
 export async function GET(request: NextRequest) {
   const { searchParams, origin } = new URL(request.url)
   const code = searchParams.get('code')
@@ -42,6 +33,23 @@ export async function GET(request: NextRequest) {
     )
   }
 
+  const session = data.session
+  const identities = session.user?.identities || []
+  const userMeta = session.user?.user_metadata || {}
+  const appMeta = session.user?.app_metadata || {}
+
+  // Determine if this is an OAuth sign-in (Google or Facebook)
+  const provider = appMeta?.provider
+  const isOAuth = provider === 'google' || provider === 'facebook' ||
+    identities.some((id: any) => id?.provider === 'google' || id?.provider === 'facebook')
+
+  const hasPhone = userMeta?.phone && String(userMeta.phone).trim().length > 0
+
   const safeNext = next.startsWith('/') ? next : '/dashboard'
+
+  if (isOAuth && !hasPhone) {
+    return NextResponse.redirect(`${origin}/auth/phone?next=${encodeURIComponent(safeNext)}`)
+  }
+
   return NextResponse.redirect(`${origin}${safeNext}`)
 }

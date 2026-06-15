@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { generateEmbedding, intentToEmbeddingText } from '@/services/recommendations';
+import { createServerSupabaseClient } from '@/lib/supabase-server';
+import { aiEmbedLimiter, getClientIp, checkRateLimit } from '@/lib/rate-limit';
 
 // POST /api/ai/embed
 // Called ONCE after onboarding completion or profile preference update
@@ -15,6 +17,16 @@ const MAX_EMBEDDING_CACHE_SIZE = 100;
 
 export async function POST(request: NextRequest) {
   try {
+    const supabase = await createServerSupabaseClient()
+    if (!supabase) return NextResponse.json({ error: 'Service unavailable' }, { status: 503 })
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+    const ip = getClientIp(request)
+    if (await checkRateLimit(aiEmbedLimiter, `embed:${user.id}`)) {
+      return NextResponse.json({ error: 'Too many requests.' }, { status: 429 })
+    }
+
     const body = await request.json().catch(() => null);
     if (!body?.intent) {
       return NextResponse.json({ error: 'Missing intent' }, { status: 400 });

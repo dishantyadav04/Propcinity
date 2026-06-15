@@ -8,32 +8,40 @@ import { formatINR } from "@/lib/finance-calculations";
 
 export default function AdminProjectsPage() {
   const [projects, setProjects] = useState<Project[]>([]);
+  const [total, setTotal] = useState(0);
+  const [page, setPage] = useState(1);
   const [isLoading, setIsLoading] = useState(true);
+  const limit = 20;
+
+  const loadProjects = async (pageNum: number) => {
+    setIsLoading(true);
+    try {
+      const res = await fetch(`/api/admin/projects?page=${pageNum}&limit=${limit}`, {
+        credentials: 'include',
+      });
+      if (!res.ok) throw new Error('Unauthorized');
+      const json = await res.json();
+      setProjects(json.projects || []);
+      setTotal(json.total || 0);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const loadProjects = async () => {
-      try {
-        const res = await fetch('/api/admin/projects', {
-          credentials: 'include',
-        });
-        if (!res.ok) throw new Error('Unauthorized');
-        const json = await res.json();
-        setProjects(json.projects || []);
-      } catch (err) {
-        console.error(err);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    loadProjects();
-  }, []);
+    loadProjects(page);
+  }, [page]);
+
+  const totalPages = Math.ceil(total / limit);
 
   return (
     <div className="space-y-8">
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-2xl font-bold text-[var(--text-primary)]" style={{ fontFamily: 'var(--font-display)' }}>Projects</h1>
-          <p className="text-sm text-[var(--text-muted)]">Manage your property listings and data</p>
+          <p className="text-sm text-[var(--text-muted)]">Manage your property listings and data · {total} total</p>
         </div>
         <Link 
           href="/admin/projects/new"
@@ -55,7 +63,11 @@ export default function AdminProjectsPage() {
             </tr>
           </thead>
           <tbody>
-            {projects.map((project) => {
+            {isLoading ? (
+              <tr><td colSpan={4} className="px-6 py-12 text-center text-[var(--text-muted)]">Loading...</td></tr>
+            ) : projects.length === 0 ? (
+              <tr><td colSpan={4} className="px-6 py-12 text-center text-[var(--text-muted)]">No projects found.</td></tr>
+            ) : projects.map((project) => {
               const minPrice = project.unitConfigs.length > 0 ? Math.min(...project.unitConfigs.map(u => u.priceMin)) : 0;
               return (
                 <tr key={project.id} className="border-b border-[var(--border)] hover:bg-[var(--surface-raised)]/50 transition-all">
@@ -97,6 +109,27 @@ export default function AdminProjectsPage() {
           </tbody>
         </table>
       </div>
+
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <div className="flex items-center justify-between">
+          <p className="text-xs text-[var(--text-muted)]">
+            Showing {Math.min((page - 1) * limit + 1, total)}–{Math.min(page * limit, total)} of {total}
+          </p>
+          <div className="flex gap-2">
+            <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1}
+              className="px-3 py-1.5 text-xs font-bold border border-[var(--border)]
+                rounded-[var(--radius-xs)] disabled:opacity-40 hover:bg-[var(--surface-raised)] transition-colors">
+              ← Prev
+            </button>
+            <button onClick={() => setPage(p => p + 1)} disabled={page >= totalPages}
+              className="px-3 py-1.5 text-xs font-bold border border-[var(--border)]
+                rounded-[var(--radius-xs)] disabled:opacity-40 hover:bg-[var(--surface-raised)] transition-colors">
+              Next →
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -20,6 +20,7 @@ function createLimiter(requests: number, windowStr: `${number} ${'s' | 'm' | 'h'
 
 // Per-endpoint limiters
 export const aiAskLimiter    = createLimiter(20, '1 h')  // 20 AI questions/hour/IP
+export const aiEmbedLimiter  = createLimiter(20, '1 h')  // 20 embedding requests/hour/IP
 export const leadsLimiter    = createLimiter(10, '1 h')  // 10 lead submissions/hour/IP
 export const nearbyLimiter   = createLimiter(60, '1 h')  // 60 map lookups/hour/IP
 export const adminLoginLimiter = createLimiter(5, '15 m') // 5 login attempts/15min/IP

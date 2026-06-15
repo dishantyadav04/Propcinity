@@ -58,7 +58,7 @@ export async function GET(request: NextRequest) {
 
   try {
     const places = await fetchNearbyPlaces(lat, lng, radius)
-    const data = { places }
+    const data = { places, fallback: places.length === 0 ? true : undefined }
     cache.set(cacheKey, { data, expiresAt: Date.now() + CACHE_TTL })
     evictIfNeeded()
 
@@ -70,7 +70,7 @@ export async function GET(request: NextRequest) {
     })
   } catch (error) {
     console.error('Overpass error:', error)
-    const data = { places: [], error: 'Could not fetch nearby places' }
+    const data = { places: [], fallback: true, error: 'Could not fetch nearby places' }
     cache.set(cacheKey, { data, expiresAt: Date.now() + ERROR_CACHE_TTL })
     evictIfNeeded()
 

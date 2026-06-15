@@ -78,15 +78,7 @@ export function formatDistance(meters: number): string {
 }
 
 function getFallbackPlaces(lat: number, lng: number): NearbyPlace[] {
-  // Generate stable mock data based on coords for dev stability
-  return [
-    { id: 101, name: "City IT Park", type: 'it_park', lat: lat + 0.005, lng: lng + 0.005, distance: 800 },
-    { id: 102, name: "Metro Station North", type: 'metro', lat: lat - 0.003, lng: lng + 0.002, distance: 450 },
-    { id: 103, name: "Global Public School", type: 'school', lat: lat + 0.008, lng: lng - 0.001, distance: 1200 },
-    { id: 104, name: "City General Hospital", type: 'hospital', lat: lat - 0.006, lng: lng - 0.004, distance: 1500 },
-    { id: 105, name: "Phoenix Mall", type: 'mall', lat: lat + 0.012, lng: lng + 0.01, distance: 2200 },
-    { id: 106, name: "Central Park", type: 'park', lat: lat - 0.002, lng: lng - 0.002, distance: 300 },
-  ];
+  return []
 }
 
 export async function fetchNearbyPlaces(

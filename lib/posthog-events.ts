@@ -93,10 +93,3 @@ export function trackEMICalculated(data: {
 }): void {
   if (isAllowed()) getPostHog()?.capture('emi_calculated', data)
 }
-
-export function trackWhatsAppOpened(data: {
-  projectId: string
-  source: string
-}): void {
-  if (isAllowed()) getPostHog()?.capture('whatsapp_opened', data)
-}
