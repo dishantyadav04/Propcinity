@@ -2,11 +2,12 @@
 
 import posthog from 'posthog-js'
 import { PostHogProvider as PHProvider } from 'posthog-js/react'
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 import { useCookieConsent } from '@/components/consent/CookieConsentProvider'
 
 function PostHogInit() {
   const { consent } = useCookieConsent()
+  const initialPageviewFired = useRef(false)
 
   useEffect(() => {
     const key = process.env.NEXT_PUBLIC_POSTHOG_KEY
@@ -22,11 +23,17 @@ function PostHogInit() {
         persistence: 'localStorage+cookie',
         opt_out_capturing_by_default: true,
       })
-      // ✅ TASK 1 DONE
     }
 
     if (consent?.analytics) {
       posthog.opt_in_capturing()
+
+      if (!initialPageviewFired.current) {
+        initialPageviewFired.current = true
+        posthog.capture('$pageview', {
+          $current_url: window.location.href,
+        })
+      }
     } else {
       posthog.opt_out_capturing()
     }
