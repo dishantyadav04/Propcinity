@@ -46,6 +46,13 @@ function PhoneContent() {
           <p className="text-sm text-[var(--text-secondary)]">
             We need your phone number to connect you with advisors.
           </p>
+          <p className="text-xs text-[var(--text-muted)] mt-1">
+            Your number is only shared with a builder when <span className="font-semibold">you</span> choose
+            to enquire about a property. We never sell or market it.{' '}
+            <Link href="/privacy" className="underline hover:text-[var(--primary)] transition-colors">
+              Privacy Policy
+            </Link>
+          </p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -69,6 +76,12 @@ function PhoneContent() {
               text-sm hover:opacity-90 transition-opacity disabled:opacity-60 flex items-center justify-center gap-2">
             {isLoading ? <><Loader2 className="w-4 h-4 animate-spin" /> Saving...</> : 'Continue'}
           </button>
+          <p className="text-xs text-center text-[var(--text-muted)]">
+            By continuing you agree to our{' '}
+            <Link href="/terms" className="underline hover:text-[var(--primary)]">Terms</Link>
+            {' '}and{' '}
+            <Link href="/privacy" className="underline hover:text-[var(--primary)]">Privacy Policy</Link>.
+          </p>
         </form>
 
         <p className="text-center text-sm text-[var(--text-muted)]">
@@ -85,3 +98,4 @@ function PhoneContent() {
 export default function PhonePage() {
   return <Suspense><PhoneContent /></Suspense>
 }
+// ✅ TASK 2 DONE

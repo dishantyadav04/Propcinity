@@ -4,13 +4,160 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { ArrowLeft, Scale } from 'lucide-react'
 
+const SECTIONS = [
+  {
+    title: '1. Who we are',
+    body: `Propcinity ("Company", "we", "us", "our") is a buyer-side real estate intelligence platform operated from Pune, Maharashtra, India. Our website is propcinity.in.
+
+By accessing or using Propcinity, you agree to be bound by these Terms & Conditions. If you do not agree, please discontinue use of the platform immediately.`
+  },
+  {
+    title: '2. Eligibility',
+    body: `You must be at least 18 years of age and legally capable of entering into contracts under Indian law to use Propcinity. By using our platform, you represent and warrant that you meet this requirement.
+
+You must provide accurate, complete, and current information when registering. You are responsible for maintaining the confidentiality of your account credentials.`
+  },
+  {
+    title: '3. Nature of our service',
+    body: `Propcinity is a property discovery and advisory platform. We:
+
+• Curate and present residential real estate projects in Pune (and expanding markets)
+• Use AI to match properties to your stated preferences and generate trust scores
+• Facilitate introductions between serious buyers and RERA-registered developers
+• Provide zero-brokerage service to buyers
+
+We are NOT a real estate broker, agent, or developer. We do not hold RERA registration as a broker and do not negotiate on your behalf. We facilitate introductions only.
+
+All property data on our platform — including prices, configurations, possession dates, and RERA numbers — is sourced from developers or public sources. You must independently verify all information before making any purchase decision.`
+  },
+  {
+    title: '4. Zero brokerage commitment',
+    body: `Buyers pay zero brokerage, consultation fee, or advisory fee through Propcinity. This is our core promise.
+
+Our business model: We earn a referral commission from the developer when a transaction is completed through our platform. This arrangement is fully disclosed.
+
+This commercial relationship does not compromise our buyer-first advisory commitment. We will always recommend the right property over the most commercially advantageous one for us. If you believe a recommendation is commercially biased, email us at hello@propcinity.in.`
+  },
+  {
+    title: '5. Lead submission and developer contact',
+    body: `When you submit an enquiry or click "Contact Builder" for a specific project, you explicitly consent to:
+
+• Propcinity sharing your name, phone number, and email with the developer of that project
+• The developer or their representatives contacting you via phone, WhatsApp, SMS, or email about that project
+
+Propcinity is not responsible for the conduct, representations, or omissions of third-party developers. Any commitments made by a developer are solely between you and that developer.
+
+You may request removal from a developer's contact list by emailing hello@propcinity.in.`
+  },
+  {
+    title: '6. AI recommendations and trust scores',
+    body: `Our AI Match Score, Trust Score, and property recommendations are algorithmic assessments based on:
+
+• Preferences you provide
+• Publicly available project data and RERA registration status
+• Builder track record data sourced from public databases
+
+IMPORTANT DISCLAIMER: These scores and recommendations are informational tools to assist your decision-making. They are NOT:
+• Professional legal advice
+• Architectural or structural assessments
+• Financial investment advice
+• Guarantees of property quality, possession timeline, or appreciation
+
+You must engage your own legal, financial, and technical advisors before committing to any property purchase. Propcinity is not liable for decisions made based on AI recommendations.`
+  },
+  {
+    title: '7. RERA and legal compliance',
+    body: `We display RERA registration numbers for projects where available and sourced from MahaRERA (maharera.mahaonline.gov.in). We encourage all users to verify project RERA status directly on the MahaRERA portal before making any decision.
+
+Projects labelled "RERA Pending" are listed for informational awareness only — you should not pay any advance or booking amount for a project that does not have valid RERA registration, as per RERA Act, 2016.`
+  },
+  {
+    title: '8. User conduct',
+    body: `You agree NOT to:
+
+• Use Propcinity to scrape, harvest, or extract property data systematically
+• Reverse-engineer, decompile, or attempt to access our AI models or databases
+• Create fake accounts or submit false enquiries
+• Use our platform for any unlawful purpose
+• Harass, impersonate, or harm other users or our staff
+• Post or transmit malicious code
+
+Violation of these terms may result in immediate account termination and legal action.`
+  },
+  {
+    title: '9. Intellectual property',
+    body: `All content on Propcinity — including but not limited to the brand, logo, design system, AI model outputs, property curation methodology, trust score algorithm, editorial copy, and software — is owned by Propcinity or licensed to us.
+
+You are granted a limited, non-exclusive, non-transferable licence to use the platform for personal property search purposes only. No other rights are granted.
+
+You may not reproduce, redistribute, republish, or create derivative works from any Propcinity content without prior written permission.`
+  },
+  {
+    title: '10. Payments (if applicable)',
+    body: `Propcinity is currently free for buyers. If we introduce paid features (e.g. premium reports, verified listings), the following applies:
+
+• All payments are processed via Razorpay, a PCI-DSS compliant payment gateway
+• We do not store your card or bank account details
+• Refunds for digital services will be evaluated case-by-case within 7 business days of request
+• Email payments@propcinity.in for any payment disputes`
+  },
+  {
+    title: '11. Limitation of liability',
+    body: `TO THE MAXIMUM EXTENT PERMITTED BY APPLICABLE LAW:
+
+Propcinity is not liable for:
+• Any loss or damage arising from your reliance on property data, AI scores, or recommendations on this platform
+• Any acts or omissions of third-party developers
+• Loss of profit, opportunity, or investment value from any property transaction
+• Any data breach caused by third-party service providers despite reasonable security measures
+• Interruptions to service, downtime, or data loss
+
+Our maximum aggregate liability to you for any claim arising from your use of Propcinity shall not exceed ₹5,000 (Indian Rupees Five Thousand only).
+
+Nothing in these terms excludes liability for fraud, death, or personal injury caused by our negligence.`
+  },
+  {
+    title: '12. Privacy',
+    body: `Your use of Propcinity is also governed by our Privacy Policy, which is incorporated into these Terms by reference. Please read it at propcinity.in/privacy.`
+  },
+  {
+    title: '13. Termination',
+    body: `We reserve the right to suspend or terminate your account at any time if you breach these Terms. You may delete your account at any time via your profile settings or by emailing hello@propcinity.in.
+
+Upon termination, your right to use the platform ceases. We retain your data as described in our Privacy Policy.`
+  },
+  {
+    title: '14. Governing law and dispute resolution',
+    body: `These Terms are governed by and construed in accordance with the laws of India.
+
+Any dispute, controversy, or claim arising out of or in connection with these Terms or your use of Propcinity shall first be attempted to be resolved through good-faith negotiation within 30 days of written notice.
+
+If unresolved, disputes shall be subject to the exclusive jurisdiction of the courts in Pune, Maharashtra, India.
+
+For consumer disputes, you may also approach the appropriate Consumer Forum under the Consumer Protection Act, 2019.`
+  },
+  {
+    title: '15. Amendments',
+    body: `We may update these Terms at any time. We will update the "Last updated" date on this page. For material changes, we will notify registered users via email at least 7 days before the effective date. Continued use of Propcinity after the effective date constitutes acceptance of the updated Terms.`
+  },
+  {
+    title: '16. Contact',
+    body: `For any questions about these Terms:
+
+Email: legal@propcinity.in
+Grievance Officer: grievance@propcinity.in
+Response time: Within 3 business days
+
+Propcinity, Pune, Maharashtra, India`
+  },
+]
+
 export default function TermsPage() {
   const router = useRouter()
 
   return (
     <div className="min-h-screen bg-[var(--background)]">
       <main className="max-w-3xl mx-auto px-4 sm:px-6 py-10 space-y-10">
-        {/* Back button */}
         <button
           onClick={() => router.back()}
           className="inline-flex items-center gap-2 text-sm text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors -ml-1"
@@ -19,102 +166,39 @@ export default function TermsPage() {
           Back
         </button>
 
-        {/* Header */}
         <div className="space-y-3">
-          <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-[var(--primary-light)]
-            text-[var(--primary)] text-xs font-bold rounded-full">
-            <Scale className="w-3 h-3" /> Plain language, no legalese
+          <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-[var(--primary-light)] text-[var(--primary)] text-xs font-bold rounded-full">
+            <Scale className="w-3 h-3" /> Governed by Indian Law
           </div>
-          <h1 className="text-3xl font-black text-[var(--text-primary)] tracking-tight"
-            style={{ fontFamily: 'var(--font-display)' }}>
+          <h1 className="text-3xl font-black text-[var(--text-primary)] tracking-tight" style={{ fontFamily: 'var(--font-display)' }}>
             Terms & Conditions
           </h1>
-          <p className="text-sm text-[var(--text-muted)]">Last updated: June 2025 · Applies to Propcinity.in and our mobile app</p>
+          <p className="text-sm text-[var(--text-muted)]">
+            Last updated: June 2026 · Effective: June 2026 · Applies to Propcinity.in and our mobile app
+          </p>
         </div>
 
-        {[
-          {
-            title: '1. Who we are',
-            body: `Propcinity is a buyer-side real estate advisory platform based in Pune, India. We help homebuyers find, evaluate, and choose the right property — at zero cost to the buyer. Propcinity earns a referral fee from builders when a buyer transacts through us.`
-          },
-          {
-            title: '2. Using Propcinity',
-            body: `By using this platform, you agree to these terms. You must be 18 years or older to use Propcinity. You agree to provide accurate information about yourself and your property requirements.
+        <div className="space-y-8">
+          {SECTIONS.map((s) => (
+            <section key={s.title} className="space-y-3">
+              <h2 className="text-base font-bold text-[var(--text-primary)]">{s.title}</h2>
+              <div className="text-sm text-[var(--text-secondary)] leading-relaxed whitespace-pre-line">
+                {s.body}
+              </div>
+            </section>
+          ))}
+        </div>
 
-You may use Propcinity only for lawful purposes and only to find property for genuine personal or investment use. You may not use our platform to scrape data, reverse-engineer our AI, or misrepresent your intent.`
-          },
-          {
-            title: '3. Our service',
-            body: `Propcinity provides information, AI-assisted recommendations, and advisory services to help you make informed property decisions. We do not act as a legal representative, financial advisor, or broker in the traditional sense.
-
-Property data, trust scores, and AI recommendations on our platform are informational. You must independently verify all property details, RERA registration, builder credentials, and legal documents before making any purchase decision.`
-          },
-          {
-            title: '4. Zero brokerage commitment',
-            body: `We commit that buyers pay zero brokerage or advisory fee through Propcinity. Our revenue comes from builders who pay us a referral commission when a transaction is completed. This commercial relationship does not compromise our commitment to buyer-first advice — we will always recommend the right property over the most profitable one.`
-          },
-          {
-            title: '5. Lead submission',
-            body: `When you submit an enquiry for a specific project, you consent to us sharing your contact details (name, phone, email) with the developer of that project. The developer may contact you directly to schedule site visits or discuss the project. Propcinity is not responsible for the conduct of third-party developers.`
-          },
-          {
-            title: '6. AI recommendations',
-            body: `Our AI-powered match scores and recommendations are based on the preferences you provide. They are meant to assist your decision — not replace your judgment or professional due diligence. Propcinity does not guarantee that any recommended property will suit your needs or appreciate in value.`
-          },
-          {
-            title: '7. Intellectual property',
-            body: `All content on Propcinity — including project data, trust scores, design, and copy — is owned by Propcinity or licensed to us. You may not reproduce, republish, or distribute our content without written permission.`
-          },
-          {
-            title: '8. Limitation of liability',
-            body: `Propcinity is not liable for any loss or damage arising from your reliance on information provided on this platform, decisions made based on our recommendations, or the conduct of third-party builders or developers.
-
-Our total liability to you for any claim shall not exceed ₹1,000.`
-          },
-          {
-            title: '9. Governing law',
-            body: `These terms are governed by the laws of India. Any disputes shall be subject to the exclusive jurisdiction of courts in Pune, Maharashtra.`
-          },
-          {
-            title: '10. Changes to terms',
-            body: `We may update these terms at any time. Continued use of Propcinity after changes means you accept the updated terms. We will notify registered users of material changes via email.`
-          },
-          {
-            title: '11. Contact',
-            body: `For questions about these terms:\n\nhello@propcinity.in\nPropcinity, Pune, Maharashtra, India`
-          },
-        ].map(section => (
-          <section key={section.title} className="space-y-3">
-            <h2 className="text-lg font-bold text-[var(--text-primary)]"
-              style={{ fontFamily: 'var(--font-display)' }}>
-              {section.title}
-            </h2>
-            <div className="text-sm text-[var(--text-secondary)] leading-relaxed whitespace-pre-line">
-              {section.body}
-            </div>
-          </section>
-        ))}
-
-        {/* Footer */}
-        <div className="pt-8 border-t border-[var(--border)] space-y-4">
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
-            <p className="text-xs text-[var(--text-muted)]">
-              &copy; {new Date().getFullYear()} Propcinity. All rights reserved.
-            </p>
-            <div className="flex items-center gap-4 text-xs font-semibold">
-              <Link href="/privacy" className="text-[var(--primary)] hover:underline">
-                Privacy Policy
-              </Link>
-              <Link href="/contact" className="text-[var(--text-secondary)] hover:text-[var(--primary)] transition-colors">
-                Contact Us
-              </Link>
-            </div>
-          </div>
-          <p className="text-xs text-[var(--text-muted)] text-center sm:text-left">
-            Propcinity, Pune, Maharashtra, India &middot; hello@propcinity.in
+        <div className="border-t border-[var(--border)] pt-6 text-sm text-[var(--text-muted)] space-y-1">
+          <p>Questions? Email <a href="mailto:legal@propcinity.in" className="text-[var(--primary)] hover:underline">legal@propcinity.in</a></p>
+          <p>
+            <Link href="/privacy" className="text-[var(--primary)] hover:underline">Privacy Policy</Link>
+            {' · '}
+            <Link href="/" className="text-[var(--primary)] hover:underline">Back to Propcinity</Link>
           </p>
         </div>
       </main>
     </div>
   )
 }
+// ✅ TASK 4 DONE

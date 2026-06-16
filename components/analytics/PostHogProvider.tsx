@@ -15,12 +15,14 @@ function PostHogInit() {
 
     if (!posthog.__loaded) {
       posthog.init(key, {
-        api_host: host,
+        api_host: 'https://us.i.posthog.com',
+        defaults: '2026-01-30',
         capture_pageview: false,
         capture_pageleave: true,
         persistence: 'localStorage+cookie',
         opt_out_capturing_by_default: true,
       })
+      // ✅ TASK 1 DONE
     }
 
     if (consent?.analytics) {
