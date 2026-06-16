@@ -73,31 +73,36 @@ export default function RootLayout({
     <html lang="en" className={`${syne.variable} ${jakarta.variable}`} suppressHydrationWarning data-scroll-behavior="smooth">
       <body className="font-sans bg-[var(--background)] text-[var(--text-primary)] antialiased">
         <CookieConsentProvider>
-          <TopHeader />
-          <main className="min-h-screen pb-24 md:pb-0 pt-0">
-            <PageTransition>
-              {children}
-            </PageTransition>
-          </main>
-          <BottomNav />
-          <Footer />
-          <ClientLayoutExtras />
-          <Toaster
-            position="bottom-center"
-            closeButton={true}
-            duration={4000}
-            toastOptions={{
-              style: {
-                borderRadius: 'var(--radius)',
-                fontSize: '13px',
-                fontWeight: '600',
-                padding: '12px 16px',
-              },
-              classNames: {
-                closeButton: 'bg-transparent border-none text-current opacity-60 hover:opacity-100',
-              },
-            }}
-          />
+          <PostHogProvider>
+            <Suspense>
+              <PostHogPageView />
+            </Suspense>
+            <TopHeader />
+            <main className="min-h-screen pb-24 md:pb-0 pt-0">
+              <PageTransition>
+                {children}
+              </PageTransition>
+            </main>
+            <BottomNav />
+            <Footer />
+            <ClientLayoutExtras />
+            <Toaster
+              position="bottom-center"
+              closeButton={true}
+              duration={4000}
+              toastOptions={{
+                style: {
+                  borderRadius: 'var(--radius)',
+                  fontSize: '13px',
+                  fontWeight: '600',
+                  padding: '12px 16px',
+                },
+                classNames: {
+                  closeButton: 'bg-transparent border-none text-current opacity-60 hover:opacity-100',
+                },
+              }}
+            />
+          </PostHogProvider>
         </CookieConsentProvider>
       </body>
     </html>
