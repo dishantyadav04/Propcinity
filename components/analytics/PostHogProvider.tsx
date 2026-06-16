@@ -17,17 +17,17 @@ function PostHogInit() {
       posthog.init(key, {
         api_host: 'https://us.i.posthog.com',
         defaults: '2026-01-30',
-        capture_pageview: false,
+        capture_pageview: true,
         capture_pageleave: true,
-        persistence: 'localStorage+cookie',
-        opt_out_capturing_by_default: true,
+        persistence: 'memory',
+        person_profiles: 'identified_only',
       })
-      // ✅ TASK 1 DONE
     }
 
     if (consent?.analytics) {
+      posthog.set_config({ persistence: 'localStorage+cookie' })
       posthog.opt_in_capturing()
-    } else {
+    } else if (consent !== null) {
       posthog.opt_out_capturing()
     }
   }, [consent])
@@ -43,3 +43,4 @@ export default function PostHogProvider({ children }: { children: React.ReactNod
     </PHProvider>
   )
 }
+// ✅ TASK 1 DONE
