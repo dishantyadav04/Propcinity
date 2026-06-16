@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from 'next'
 import { Syne, Plus_Jakarta_Sans } from 'next/font/google'
+import { Suspense } from 'react'
 import { Toaster } from 'sonner'
 import './globals.css'
 import TopHeader from '@/components/layout/TopHeader'
@@ -9,7 +10,8 @@ import PageTransition from '@/components/ui/PageTransition'
 import ClientLayoutExtras from '@/components/layout/ClientLayoutExtras'
 import CookieConsentProvider from '@/components/consent/CookieConsentProvider'
 import PostHogProvider from '@/components/analytics/PostHogProvider'
-// ✅ TASK 2 DONE
+import PostHogPageView from '@/components/analytics/PostHogPageView'
+// ✅ TASK 1 DONE
 
 const syne = Syne({
   subsets: ['latin'],
@@ -76,6 +78,9 @@ export default function RootLayout({
       <body className="font-sans bg-[var(--background)] text-[var(--text-primary)] antialiased">
         <CookieConsentProvider>
           <PostHogProvider>
+            <Suspense>
+              <PostHogPageView />
+            </Suspense>
             <TopHeader />
             <main className="min-h-screen pb-24 md:pb-0 pt-0">
               <PageTransition>
