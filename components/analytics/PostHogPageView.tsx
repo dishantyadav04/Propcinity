@@ -9,7 +9,7 @@ export default function PostHogPageView() {
   const searchParams = useSearchParams()
   const posthog = usePostHog()
   // Skip the initial mount — PostHogProvider's `loaded` callback owns the
-  // first $pageview. This component only handles client-side navigations.
+  // first $pageview. This component only handles subsequent client-side navigations.
   const isFirstRender = useRef(true)
 
   useEffect(() => {
@@ -18,11 +18,10 @@ export default function PostHogPageView() {
       return
     }
 
-    // By navigation time posthog is always loaded, but guard defensively.
-    if (!pathname || !posthog || !posthog.__loaded || posthog.has_opted_out_capturing()) return
+    // Guard: posthog must be loaded. No opt-out check here —
+    // pageviews are anonymous and fire regardless of consent.
+    if (!pathname || !posthog || !posthog.__loaded) return
 
-    // posthog respects opt-out internally — if analytics consent was
-    // revoked, capture() is a no-op, so no extra consent check needed here.
     let url = window.location.origin + pathname
     const qs = searchParams.toString()
     if (qs) url += `?${qs}`
