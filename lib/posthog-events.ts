@@ -1,31 +1,14 @@
 // Client-safe PostHog event tracking functions
 // All functions are fire-and-forget — never await these
-// Called from both client components and server-side API routes
+// Uses the posthog-js singleton directly (same instance as PostHogProvider)
+// PostHog's internal opt-in/opt-out state handles consent — no manual gate needed.
 
-let posthogClient: typeof import('posthog-js').default | null = null
+import posthog from 'posthog-js'
 
-function getPostHog() {
-  if (typeof window === 'undefined') return null
-  if (!posthogClient) {
-    // Lazy import — only loads posthog-js in browser
-    import('posthog-js').then((mod) => {
-      posthogClient = mod.default
-    })
-    return null
-  }
-  return posthogClient
-}
-
-function isAllowed(): boolean {
-  if (typeof window === 'undefined') return false
-  try {
-    const raw = localStorage.getItem('propcinity_cookie_consent')
-    if (!raw) return false
-    const consent = JSON.parse(raw)
-    return consent?.analytics === true
-  } catch {
-    return false
-  }
+function track(event: string, properties?: Record<string, unknown>): void {
+  if (typeof window === 'undefined') return
+  if (!posthog.__loaded) return
+  posthog.capture(event, properties)
 }
 
 export function trackOnboardingCompleted(data: {
@@ -34,11 +17,11 @@ export function trackOnboardingCompleted(data: {
   propertyTypes: string[]
   timeline: string
 }): void {
-  if (isAllowed()) getPostHog()?.capture('onboarding_completed', data)
+  track('onboarding_completed', data)
 }
 
 export function trackOnboardingStep(step: number, stepName: string): void {
-  if (isAllowed()) getPostHog()?.capture('onboarding_step_reached', { step, stepName })
+  track('onboarding_step_reached', { step, stepName })
 }
 
 export function trackProjectViewed(data: {
@@ -46,50 +29,50 @@ export function trackProjectViewed(data: {
   projectName: string
   source: string
 }): void {
-  if (isAllowed()) getPostHog()?.capture('project_viewed', data)
+  track('project_viewed', data)
 }
 
 export function trackProjectSaved(data: {
   projectId: string
 }): void {
-  if (isAllowed()) getPostHog()?.capture('project_saved', data)
+  track('project_saved', data)
 }
 
 export function trackProjectRejected(data: {
   projectId: string
   reason: string
 }): void {
-  if (isAllowed()) getPostHog()?.capture('project_rejected', data)
+  track('project_rejected', data)
 }
 
 export function trackConsultationStarted(data: {
   projectId: string
   triggerSource: string
 }): void {
-  if (isAllowed()) getPostHog()?.capture('consultation_started', data)
+  track('consultation_started', data)
 }
 
 export function trackConsultationCompleted(data: {
   projectId: string
 }): void {
-  if (isAllowed()) getPostHog()?.capture('consultation_completed', data)
+  track('consultation_completed', data)
 }
 
 export function trackAIQuestionAsked(data: {
   projectId: string
   questionType: string
 }): void {
-  if (isAllowed()) getPostHog()?.capture('ai_question_asked', data)
+  track('ai_question_asked', data)
 }
 
 export function trackCompareStarted(data: {
   projectCount: number
 }): void {
-  if (isAllowed()) getPostHog()?.capture('compare_started', data)
+  track('compare_started', data)
 }
 
 export function trackEMICalculated(data: {
   projectId: string
 }): void {
-  if (isAllowed()) getPostHog()?.capture('emi_calculated', data)
+  track('emi_calculated', data)
 }

@@ -2,13 +2,16 @@
 
 import posthog from 'posthog-js'
 import { PostHogProvider as PHProvider } from 'posthog-js/react'
-import { useEffect, useRef } from 'react'
+import { useEffect } from 'react'
 import { useCookieConsent } from '@/components/consent/CookieConsentProvider'
 import { getConsent } from '@/lib/cookie-consent'
 
+// Module-level flag — survives React Strict Mode double-mounts.
+// Ensures $pageview fires exactly once per browser session load.
+let initialPageviewFired = false
+
 function PostHogInit() {
   const { consent } = useCookieConsent()
-  const initialPageviewFired = useRef(false)
 
   // ─── Step 1: Initialize PostHog once on mount ──────────────────────────────
   useEffect(() => {
@@ -23,12 +26,7 @@ function PostHogInit() {
       capture_pageview: false,   // Managed manually by PostHogPageView
       capture_pageleave: true,
       persistence: 'localStorage+cookie',
-
-      // Start opted OUT of everything by default.
-      // We immediately opt in below but with session recording disabled
-      // until the user grants analytics consent.
-      opt_out_capturing_by_default: true,
-
+      // Do NOT set opt_out_capturing_by_default — we manage tiers via set_config instead.
       session_recording: {
         maskAllInputs: true,
         maskInputOptions: { password: true, email: false },
@@ -39,14 +37,14 @@ function PostHogInit() {
         const storedConsent = getConsent()
 
         if (storedConsent?.analytics) {
-          // Full tracking — user has already accepted analytics
-          ph.opt_in_capturing()
-          ph.set_config({ disable_session_recording: false })
+          // Full tracking — user has already accepted analytics consent
+          ph.set_config({
+            disable_session_recording: false,
+            person_profiles: 'identified_only',
+          })
         } else {
-          // Anonymous tracking — no consent yet (or declined)
-          // $pageview with just a URL is equivalent to a server access log.
-          // No PII, no fingerprinting, no session recording, no person profile.
-          ph.opt_in_capturing()
+          // Anonymous tracking — no consent or declined.
+          // $pageview fires but no PII, no fingerprinting, no session recording.
           ph.set_config({
             disable_session_recording: true,
             person_profiles: 'never',
@@ -54,8 +52,8 @@ function PostHogInit() {
         }
 
         // Always fire the initial $pageview — anonymous URL data needs no consent.
-        if (!initialPageviewFired.current) {
-          initialPageviewFired.current = true
+        if (!initialPageviewFired) {
+          initialPageviewFired = true
           ph.capture('$pageview', { $current_url: window.location.href })
         }
       },
@@ -66,6 +64,7 @@ function PostHogInit() {
   useEffect(() => {
     // consent is null until CookieConsentProvider resolves — ignore that.
     if (consent === null) return
+    if (!posthog.__loaded) return
 
     if (consent.analytics) {
       // Upgrade to full tracking
@@ -75,8 +74,8 @@ function PostHogInit() {
         person_profiles: 'identified_only',
       })
     } else {
-      // Downgrade to anonymous-only tracking
-      // Keep opt_in so $pageview still fires, but disable all identifying features.
+      // Downgrade to anonymous-only — keep capturing but strip identifying features
+      posthog.opt_in_capturing()
       posthog.set_config({
         disable_session_recording: true,
         person_profiles: 'never',

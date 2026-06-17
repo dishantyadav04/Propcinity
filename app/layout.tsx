@@ -78,7 +78,7 @@ export default function RootLayout({
       <body className="font-sans bg-[var(--background)] text-[var(--text-primary)] antialiased">
         <CookieConsentProvider>
           <PostHogProvider>
-            <Suspense>
+            <Suspense fallback={null}>
               <PostHogPageView />
             </Suspense>
             <TopHeader />
