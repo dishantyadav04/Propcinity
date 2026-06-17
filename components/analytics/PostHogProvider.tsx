@@ -9,6 +9,11 @@ import { getConsent } from '@/lib/cookie-consent'
 // Module-level flag — survives React Strict Mode double-mounts.
 // Ensures $pageview fires exactly once per browser session load.
 let initialPageviewFired = false
+// Module-level flag — set synchronously the instant init() is *called*,
+// not when it *finishes*. This is what actually survives Strict Mode's
+// synchronous mount -> unmount -> remount, since posthog.__loaded only
+// flips true after the async loaded() callback resolves.
+let initStarted = false
 
 function PostHogInit() {
   const { consent } = useCookieConsent()
@@ -17,7 +22,8 @@ function PostHogInit() {
   useEffect(() => {
     const key = process.env.NEXT_PUBLIC_POSTHOG_KEY
     if (!key) return
-    if (posthog.__loaded) return
+    if (initStarted || posthog.__loaded) return
+    initStarted = true
 
     posthog.init(key, {
       api_host: process.env.NEXT_PUBLIC_POSTHOG_HOST || 'https://us.i.posthog.com',
@@ -37,27 +43,27 @@ function PostHogInit() {
         const storedConsent = getConsent()
 
         if (storedConsent?.analytics) {
-          // Full tracking — user has already accepted analytics consent
           ph.set_config({
             disable_session_recording: false,
             person_profiles: 'identified_only',
           })
         } else {
-          // Anonymous tracking — no consent or declined.
-          // $pageview fires but no PII, no fingerprinting, no session recording.
           ph.set_config({
             disable_session_recording: true,
             person_profiles: 'never',
           })
         }
-
-        // Always fire the initial $pageview — anonymous URL data needs no consent.
-        if (!initialPageviewFired) {
-          initialPageviewFired = true
-          ph.capture('$pageview', { $current_url: window.location.href })
-        }
       },
     })
+
+    // Fire the initial $pageview right after init() is called, not inside
+    // the async loaded() callback. capture() internally queues events until
+    // the SDK is ready to send, so this is safe even before `loaded` fires,
+    // and it can no longer be dropped by a racing second init() call.
+    if (!initialPageviewFired) {
+      initialPageviewFired = true
+      posthog.capture('$pageview', { $current_url: window.location.href })
+    }
   }, []) // intentionally no deps — runs exactly once
 
   // ─── Step 2: React to consent changes (banner accept / reject) ─────────────
