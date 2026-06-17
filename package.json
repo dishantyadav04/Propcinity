@@ -33,7 +33,7 @@
     "openai": "^4.100.0",
     "otpauth": "^9.5.1",
     "postcss": "^8.5.3",
-    "posthog-js": "^1.386.8",
+    "posthog-js": "^1.387.0",
     "posthog-node": "^4.17.0",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",

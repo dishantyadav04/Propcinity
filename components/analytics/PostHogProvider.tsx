@@ -19,14 +19,22 @@ function PostHogInit() {
     if (posthog.__loaded) return
 
     posthog.init(key, {
-      // Use the hardcoded ingestion endpoint. This MUST match what is
-      // allowed in next.config.mjs connect-src CSP header.
-      api_host: 'https://us.i.posthog.com',
+      api_host: process.env.NEXT_PUBLIC_POSTHOG_HOST || 'https://us.i.posthog.com',
+      ui_host: process.env.NEXT_PUBLIC_POSTHOG_UI_HOST || 'https://us.posthog.com',
       defaults: '2026-01-30',
       capture_pageview: false,    // Managed manually by PostHogPageView
       capture_pageleave: true,
+      disable_session_recording: false,
       persistence: 'localStorage+cookie',
       opt_out_capturing_by_default: true,
+      session_recording: {
+        maskAllInputs: true,
+        maskInputOptions: {
+          password: true,
+          email: false,
+        },
+      },
+      on_xhr_error: () => {},
 
       // `loaded` is the ONLY safe place to call opt_in_capturing() on
       // first paint — it fires after the SDK queue is established.

@@ -26,7 +26,10 @@ const nextConfig = {
       "default-src 'self'",
       // TODO: Replace 'unsafe-inline' with nonce-based CSP post-launch
       // See: https://nextjs.org/docs/app/building-your-application/configuring/content-security-policy
-      `script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ''}`,
+      // PostHog SDK requires unsafe-eval for session recording and feature flags.
+      // blob: is needed for PostHog's worker-based session recording scripts.
+      // Both us-assets.i.posthog.com and us.i.posthog.com host lazy-loaded SDK bundles.
+      `script-src 'self' 'unsafe-inline' 'unsafe-eval' blob: https://us-assets.i.posthog.com https://us.i.posthog.com`,
       // Styles: self + inline (Tailwind requires this)
       "style-src 'self' 'unsafe-inline'",
       // Images: self, data URIs, R2 bucket, Supabase storage
@@ -40,11 +43,14 @@ const nextConfig = {
         process.env.NEXT_PUBLIC_POSTHOG_HOST || 'https://us.i.posthog.com',
         // PostHog assets host (decide endpoint — feature flags, session recording)
         'https://us-assets.i.posthog.com',
+        // PostHog UI host (toolbar, debug, project dashboard)
+        'https://us.posthog.com',
         'https://overpass-api.de',
         'https://*.tile.openstreetmap.org',
         isDev ? 'ws://localhost:*' : '',
       ].filter(Boolean).join(' '),
       "font-src 'self' data:",
+      "worker-src 'self' blob:",
       "frame-ancestors 'none'",
       "base-uri 'self'",
       "form-action 'self'",

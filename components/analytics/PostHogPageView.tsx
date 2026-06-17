@@ -19,7 +19,7 @@ export default function PostHogPageView() {
     }
 
     // By navigation time posthog is always loaded, but guard defensively.
-    if (!pathname || !posthog || !posthog.__loaded) return
+    if (!pathname || !posthog || !posthog.__loaded || posthog.has_opted_out_capturing()) return
 
     // posthog respects opt-out internally — if analytics consent was
     // revoked, capture() is a no-op, so no extra consent check needed here.
