@@ -26,8 +26,8 @@ function PostHogInit() {
     initStarted = true
 
     posthog.init(key, {
-      api_host: process.env.NEXT_PUBLIC_POSTHOG_HOST || 'https://us.i.posthog.com',
-      ui_host: process.env.NEXT_PUBLIC_POSTHOG_UI_HOST || 'https://us.posthog.com',
+      api_host: process.env.NEXT_PUBLIC_POSTHOG_HOST ?? 'https://ingest.propcinity.in',
+      ui_host: process.env.NEXT_PUBLIC_POSTHOG_UI_HOST ?? 'https://us.posthog.com',
       defaults: '2026-01-30',
       capture_pageview: false,   // Managed manually by PostHogPageView
       capture_pageleave: true,
