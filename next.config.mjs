@@ -36,7 +36,10 @@ const nextConfig = {
         "connect-src 'self'",
         process.env.NEXT_PUBLIC_SUPABASE_URL || '',
         'https://api.openai.com',
-        process.env.NEXT_PUBLIC_POSTHOG_HOST || 'https://app.posthog.com',
+        // PostHog ingestion host (events)
+        process.env.NEXT_PUBLIC_POSTHOG_HOST || 'https://us.i.posthog.com',
+        // PostHog assets host (decide endpoint — feature flags, session recording)
+        'https://us-assets.i.posthog.com',
         'https://overpass-api.de',
         'https://*.tile.openstreetmap.org',
         isDev ? 'ws://localhost:*' : '',

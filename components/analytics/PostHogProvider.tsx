@@ -2,50 +2,69 @@
 
 import posthog from 'posthog-js'
 import { PostHogProvider as PHProvider } from 'posthog-js/react'
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 import { useCookieConsent } from '@/components/consent/CookieConsentProvider'
+import { getConsent } from '@/lib/cookie-consent'
 
 function PostHogInit() {
   const { consent } = useCookieConsent()
+  // Track whether the initial $pageview has been fired to avoid double-fire.
+  const initialPageviewFired = useRef(false)
 
-  // ✅ Initialize PostHog once on mount.
-  // The `loaded` callback fires only after the SDK is fully bootstrapped,
-  // ensuring opt_in_capturing() runs at the right time — not in the same
-  // synchronous tick as init() (which caused the race condition).
+  // ─── Step 1: Initialize PostHog once on mount ──────────────────────────────
   useEffect(() => {
     const key = process.env.NEXT_PUBLIC_POSTHOG_KEY
-    const host = process.env.NEXT_PUBLIC_POSTHOG_HOST
-    if (!key || !host) return
+    if (!key) return
 
-    if (!posthog.__loaded) {
-      posthog.init(key, {
-        api_host: 'https://us.i.posthog.com',
-        defaults: '2026-01-30',
-        capture_pageview: false,    // Handled manually by PostHogPageView
-        capture_pageleave: true,
-        persistence: 'localStorage+cookie',
-        opt_out_capturing_by_default: true,
-        loaded: (ph) => {
-          // At this point the SDK is guaranteed to be ready.
-          // Apply the initial consent state.
-          if (consent?.analytics) {
-            ph.opt_in_capturing()
+    if (posthog.__loaded) return
+
+    posthog.init(key, {
+      // Use the hardcoded ingestion endpoint. This MUST match what is
+      // allowed in next.config.mjs connect-src CSP header.
+      api_host: 'https://us.i.posthog.com',
+      defaults: '2026-01-30',
+      capture_pageview: false,    // Managed manually by PostHogPageView
+      capture_pageleave: true,
+      persistence: 'localStorage+cookie',
+      opt_out_capturing_by_default: true,
+
+      // `loaded` is the ONLY safe place to call opt_in_capturing() on
+      // first paint — it fires after the SDK queue is established.
+      // We read consent directly from localStorage here because React
+      // state (consent) closes over its value at the time posthog.init()
+      // runs, which is before CookieConsentProvider's useEffect has set it.
+      loaded: (ph) => {
+        const storedConsent = getConsent()
+        if (storedConsent?.analytics) {
+          ph.opt_in_capturing()
+          if (!initialPageviewFired.current) {
+            initialPageviewFired.current = true
+            ph.capture('$pageview', { $current_url: window.location.href })
           }
-        },
-      })
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []) // Intentionally omits `consent` — only runs once at mount.
+        }
+      },
+    })
+  }, []) // intentionally no deps — runs exactly once
 
-  // ✅ React to consent changes after init (e.g. user accepts/rejects banner).
-  // Guards with __loaded so this is a no-op if PostHog isn't ready yet
-  // (the `loaded` callback above will handle the initial opt-in instead).
+  // ─── Step 2: React to consent changes (banner accept/reject) ──────────────
   useEffect(() => {
-    if (!posthog.__loaded) return
+    // `consent` starts as null (CookieConsentProvider's useState initial value).
+    // We ignore that null until a real decision is made.
+    if (consent === null) return
 
-    if (consent?.analytics) {
+    if (consent.analytics) {
       posthog.opt_in_capturing()
-    } else if (consent !== null) {
+      // Fire the initial pageview if not yet fired (e.g. user just accepted
+      // the banner for the first time on this visit, or PostHog wasn't
+      // loaded yet during the `loaded` callback path above).
+      if (!initialPageviewFired.current) {
+        initialPageviewFired.current = true
+        // Use a small timeout to ensure opt_in_capturing has taken effect.
+        setTimeout(() => {
+          posthog.capture('$pageview', { $current_url: window.location.href })
+        }, 0)
+      }
+    } else {
       posthog.opt_out_capturing()
     }
   }, [consent])
