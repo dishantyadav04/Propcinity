@@ -29,18 +29,18 @@ const nextConfig = {
       // PostHog SDK requires unsafe-eval for session recording and feature flags.
       // blob: is needed for PostHog's worker-based session recording scripts.
       // Both us-assets.i.posthog.com and us.i.posthog.com host lazy-loaded SDK bundles.
-      `script-src 'self' 'unsafe-inline' 'unsafe-eval' blob: https://us-assets.i.posthog.com https://us.i.posthog.com`,
+      `script-src 'self' 'unsafe-inline' 'unsafe-eval' blob: https://us-assets.i.posthog.com https://us.i.posthog.com ${process.env.NEXT_PUBLIC_POSTHOG_HOST || 'https://ingest.propcinity.in'}`,
       // Styles: self + inline (Tailwind requires this)
       "style-src 'self' 'unsafe-inline'",
       // Images: self, data URIs, R2 bucket, Supabase storage
-      `img-src 'self' data: blob: ${process.env.NEXT_PUBLIC_R2_PUBLIC_URL || ''} https://*.supabase.co https://*.supabase.in https://*.r2.dev https://*.r2.cloudflarestorage.com https://images.propcinity.in https://*.tile.openstreetmap.org https://cdnjs.cloudflare.com`,
+      `img-src 'self' data: blob: ${process.env.NEXT_PUBLIC_R2_PUBLIC_URL || ''} https://*.supabase.co https://*.supabase.in https://*.r2.dev https://*.r2.cloudflarestorage.com https://images.propcinity.in https://*.tile.openstreetmap.org https://cdnjs.cloudflare.com ${process.env.NEXT_PUBLIC_POSTHOG_HOST || 'https://ingest.propcinity.in'} https://us.i.posthog.com`,
       // API connections
       [
         "connect-src 'self'",
         process.env.NEXT_PUBLIC_SUPABASE_URL || '',
         'https://api.openai.com',
         // PostHog ingestion host (events)
-        process.env.NEXT_PUBLIC_POSTHOG_HOST || 'https://us.i.posthog.com',
+        process.env.NEXT_PUBLIC_POSTHOG_HOST || 'https://ingest.propcinity.in',
         // PostHog assets host (decide endpoint — feature flags, session recording)
         'https://us-assets.i.posthog.com',
         // PostHog UI host (toolbar, debug, project dashboard)
@@ -50,7 +50,7 @@ const nextConfig = {
         isDev ? 'ws://localhost:*' : '',
       ].filter(Boolean).join(' '),
       "font-src 'self' data:",
-      "worker-src 'self' blob:",
+      `worker-src 'self' blob: ${process.env.NEXT_PUBLIC_POSTHOG_HOST || 'https://ingest.propcinity.in'}`,
       "frame-ancestors 'none'",
       "base-uri 'self'",
       "form-action 'self'",
