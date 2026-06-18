@@ -11,6 +11,7 @@ import ClientLayoutExtras from '@/components/layout/ClientLayoutExtras'
 import CookieConsentProvider from '@/components/consent/CookieConsentProvider'
 import PostHogProvider from '@/components/analytics/PostHogProvider'
 import PostHogPageView from '@/components/analytics/PostHogPageView'
+import { SpeedInsights } from '@vercel/speed-insights/next'
 // ✅ TASK 1 DONE
 
 const syne = Syne({
@@ -130,6 +131,7 @@ export default function RootLayout({
             />
           </PostHogProvider>
         </CookieConsentProvider>
+        <SpeedInsights />
       </body>
     </html>
   )
