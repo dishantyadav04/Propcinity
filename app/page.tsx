@@ -1,7 +1,7 @@
 'use client';
 
 import Link from "next/link";
-import { ArrowRight, ShieldCheck, Star, Building2, MapPin, TrendingUp, CheckCircle2 } from "lucide-react";
+import { ArrowRight, ShieldCheck, Star, Building2, MapPin, TrendingUp } from "lucide-react";
 import { motion } from "framer-motion";
 import { useEffect, useState } from "react";
 
@@ -245,6 +245,22 @@ export default function LandingPage() {
 
       {/* ── How it works ────────────────────────────────────── */}
       <section className="max-w-6xl mx-auto px-4 sm:px-6 py-28 sm:py-36 space-y-16">
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              "@context": "https://schema.org",
+              "@type": "HowTo",
+              "name": "How Propcinity works",
+              "description": "How buyers find and secure the right property using Propcinity's AI matching and channel-partner negotiation.",
+              "step": [
+                { "@type": "HowToStep", "name": "Tell us what you want", "text": "Share your budget, location, and purpose. We build your buyer profile." },
+                { "@type": "HowToStep", "name": "We curate your matches", "text": "Our AI generates Match % scores and honest pros and cons, narrowing thousands of listings to a shortlist." },
+                { "@type": "HowToStep", "name": "We negotiate on your behalf", "text": "As your channel partner, we negotiate pricing and terms with the developer and support you through to possession — at zero cost to you." },
+              ],
+            }),
+          }}
+        />
         <div className="text-center space-y-4">
           <h2 className="text-3xl sm:text-4xl font-black text-[var(--text-primary)] tracking-tight"
             style={{ fontFamily: 'var(--font-display)' }}>How Propcinity works</h2>
@@ -315,47 +331,37 @@ export default function LandingPage() {
             style={{ fontFamily: 'var(--font-display)' }}>
             Propcinity vs other platforms
           </h2>
-          <div className="grid sm:grid-cols-2 gap-4 max-w-3xl mx-auto">
-            <div className="p-6 bg-white rounded-[var(--radius)] border border-[var(--border)]">
-              <p className="text-xs font-black text-[var(--text-muted)] uppercase tracking-widest mb-4">
-                Others
-              </p>
-              <ul className="space-y-3">
-                {[
-                  'Hundreds of listings to scroll',
-                  'Broker calls within minutes',
-                  'No guidance, just listings',
-                  'You pay brokerage',
-                  'Gone after booking',
-                ].map(item => (
-                  <li key={item} className="flex items-center gap-2.5 text-sm text-[var(--text-secondary)]">
-                    <span className="w-4 h-4 rounded-full bg-[var(--danger-light)] text-[var(--danger)]
-                      flex items-center justify-center text-[10px] font-black flex-shrink-0">✕</span>
-                    {item}
-                  </li>
-                ))}
-              </ul>
-            </div>
-            <div className="p-6 bg-[var(--primary-light)] rounded-[var(--radius)]
-              border-2 border-[var(--primary)]/30">
-              <p className="text-xs font-black text-[var(--primary)] uppercase tracking-widest mb-4">
-                Propcinity
-              </p>
-              <ul className="space-y-3">
-                {[
-                  '5–10 curated picks only',
-                  'Expert advisor, your timeline',
-                  'Trust scores + AI analysis',
-                  '100% free for buyers',
-                  'With you till possession',
-                ].map(item => (
-                  <li key={item} className="flex items-center gap-2.5 text-sm text-[var(--text-primary)] font-medium">
-                    <CheckCircle2 className="w-4 h-4 text-[var(--success)] flex-shrink-0" />
-                    {item}
-                  </li>
-                ))}
-              </ul>
-            </div>
+          <div className="max-w-3xl mx-auto overflow-x-auto">
+            <table className="w-full border-collapse bg-white rounded-[var(--radius)] border border-[var(--border)] overflow-hidden shadow-[var(--shadow-sm)]">
+              <thead className="bg-[var(--surface-raised)]">
+                <tr>
+                  <th scope="col" className="p-4 text-left text-xs font-black text-[var(--text-muted)] uppercase tracking-widest w-1/2">Other platforms</th>
+                  <th scope="col" className="p-4 text-left text-xs font-black text-[var(--primary)] uppercase tracking-widest w-1/2">Propcinity</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr className="border-t border-[var(--border)]">
+                  <td className="p-4 text-sm text-[var(--text-secondary)]">Hundreds of listings to scroll</td>
+                  <td className="p-4 text-sm text-[var(--text-primary)] font-medium">5–10 curated picks only</td>
+                </tr>
+                <tr className="border-t border-[var(--border)] bg-[var(--surface-raised)]/30">
+                  <td className="p-4 text-sm text-[var(--text-secondary)]">Broker calls within minutes</td>
+                  <td className="p-4 text-sm text-[var(--text-primary)] font-medium">One dedicated channel partner</td>
+                </tr>
+                <tr className="border-t border-[var(--border)]">
+                  <td className="p-4 text-sm text-[var(--text-secondary)]">No guidance, just listings</td>
+                  <td className="p-4 text-sm text-[var(--text-primary)] font-medium">Match % scoring + AI analysis</td>
+                </tr>
+                <tr className="border-t border-[var(--border)] bg-[var(--surface-raised)]/30">
+                  <td className="p-4 text-sm text-[var(--text-secondary)]">You pay brokerage</td>
+                  <td className="p-4 text-sm text-[var(--text-primary)] font-medium">100% free for buyers</td>
+                </tr>
+                <tr className="border-t border-[var(--border)]">
+                  <td className="p-4 text-sm text-[var(--text-secondary)]">Gone after booking</td>
+                  <td className="p-4 text-sm text-[var(--text-primary)] font-medium">Negotiates for you, with you till possession</td>
+                </tr>
+              </tbody>
+            </table>
           </div>
         </div>
       </section>

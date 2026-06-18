@@ -29,6 +29,8 @@ export default function Footer() {
             <Link href="/explore" className="hover:text-[var(--primary)] transition-colors">Explore</Link>
             <Link href="/ai-chat" className="hover:text-[var(--primary)] transition-colors">AI Chat</Link>
             <Link href="/compare" className="hover:text-[var(--primary)] transition-colors">Compare</Link>
+            <Link href="/about" className="hover:text-[var(--primary)] transition-colors">About</Link>
+            <Link href="/faq" className="hover:text-[var(--primary)] transition-colors">FAQ</Link>
             <Link href="/contact" className="hover:text-[var(--primary)] transition-colors">Contact</Link>
             <Link href="/privacy" className="hover:text-[var(--primary)] transition-colors">Privacy Policy</Link>
             <Link href="/terms" className="hover:text-[var(--primary)] transition-colors">Terms</Link>

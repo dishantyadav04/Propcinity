@@ -275,6 +275,17 @@ export default function ExplorePage() {
   return (
     <div className="min-h-screen bg-[var(--background)] pb-40">
 
+      {/* Static SEO block — visible to crawlers before JS hydration */}
+      <div className="sr-only md:not-sr-only md:mb-4">
+        <h1>AI-curated property picks in Pune — not endless scrolling</h1>
+        <p>
+          Tell us your budget, location, and what matters to you. Propcinity&apos;s AI
+          narrows thousands of listings down to a curated shortlist — each with a
+          Match % score, RERA verification status, and an honest breakdown of pros
+          and cons.
+        </p>
+      </div>
+
       {/* Search + filter bar */}
       <div className="sticky top-16 z-30 bg-white border-b border-[var(--border)]">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 py-3 space-y-3">

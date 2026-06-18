@@ -35,8 +35,8 @@ export const projectSchema = z.object({
   lng: z.number().optional(),
   tagline: z.string().optional(),
   description: z.string().optional(),
-  trust_score: z.number().int().min(0).max(100).optional(),
-  risk_label: z.enum(['low', 'medium', 'high']).optional(),
+  trust_score: z.number().int().min(0).max(100).optional(), // DEPRECATED: trust_score removed from Project type, do not use — see types/project.ts
+  risk_label: z.enum(['low', 'medium', 'high']).optional(), // DEPRECATED: riskLabel removed from Project type, do not use — see types/project.ts
   rera_status: z.enum(['registered', 'expired', 'pending', 'not_registered']).optional(),
   rera_id: z.string().optional(),
   rera_expiry: z.string().optional().nullable(),

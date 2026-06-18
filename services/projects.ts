@@ -15,8 +15,8 @@ type SupabaseProjectRow = {
   lng: number
   tagline: string
   description: string
-  trust_score: number
-  risk_label: 'low' | 'medium' | 'high'
+  trust_score: number // DEPRECATED: trust_score removed from Project type, do not use — see types/project.ts
+  risk_label: 'low' | 'medium' | 'high' // DEPRECATED: riskLabel removed from Project type, do not use — see types/project.ts
   rera_id: string
   rera_expiry: string
   launch_date: string

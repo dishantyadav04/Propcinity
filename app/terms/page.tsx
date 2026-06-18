@@ -19,16 +19,23 @@ You must provide accurate, complete, and current information when registering. Y
   },
   {
     title: '3. Nature of our service',
-    body: `Propcinity is a property discovery and advisory platform. We:
+    body: `Propcinity is a real estate channel partner platform. We:
 
 • Curate and present residential real estate projects in Pune (and expanding markets)
-• Use AI to match properties to your stated preferences and generate trust scores
-• Facilitate introductions between serious buyers and RERA-registered developers
-• Provide zero-brokerage service to buyers
+• Use AI to match properties to your stated preferences (your "Match %")
+• Act as your channel partner with RERA-registered developers — including
+  negotiating on your behalf for pricing, terms, and unit selection
+• Provide this service at zero cost to buyers
 
-We are NOT a real estate broker, agent, or developer. We do not hold RERA registration as a broker and do not negotiate on your behalf. We facilitate introductions only.
+Propcinity operates as a channel partner to real estate developers. We
+negotiate with developers on your behalf throughout your property search and
+purchase process. You never pay Propcinity anything — we are compensated
+solely by the developer once a transaction is completed through our platform.
 
-All property data on our platform — including prices, configurations, possession dates, and RERA numbers — is sourced from developers or public sources. You must independently verify all information before making any purchase decision.`
+All property data on our platform — including prices, configurations,
+possession dates, and RERA numbers — is sourced from developers or public
+sources. You must independently verify all information before making any
+purchase decision.`
   },
   {
     title: '4. Zero brokerage commitment',
@@ -50,14 +57,19 @@ Propcinity is not responsible for the conduct, representations, or omissions of 
 You may request removal from a developer's contact list by emailing hello@propcinity.in.`
   },
   {
-    title: '6. AI recommendations and trust scores',
-    body: `Our AI Match Score, Trust Score, and property recommendations are algorithmic assessments based on:
+    title: '6. AI recommendations and Match %',
+    body: `Our AI Match % and property recommendations are algorithmic assessments
+based on:
 
-• Preferences you provide
+• Preferences you provide (location, budget, BHK, property type)
 • Publicly available project data and RERA registration status
-• Builder track record data sourced from public databases
 
-IMPORTANT DISCLAIMER: These scores and recommendations are informational tools to assist your decision-making. They are NOT:
+IMPORTANT DISCLAIMER: Match % is an informational tool to help your
+decision-making based on YOUR stated preferences. It is NOT an assessment of
+builder reliability, project quality, or investment merit, and is not a
+guarantee of any outcome.
+
+These recommendations are NOT:
 • Professional legal advice
 • Architectural or structural assessments
 • Financial investment advice
@@ -86,7 +98,7 @@ Violation of these terms may result in immediate account termination and legal a
   },
   {
     title: '9. Intellectual property',
-    body: `All content on Propcinity — including but not limited to the brand, logo, design system, AI model outputs, property curation methodology, trust score algorithm, editorial copy, and software — is owned by Propcinity or licensed to us.
+    body: `All content on Propcinity — including but not limited to the brand, logo, design system, AI model outputs, property curation methodology, Match % algorithm, editorial copy, and software — is owned by Propcinity or licensed to us.
 
 You are granted a limited, non-exclusive, non-transferable licence to use the platform for personal property search purposes only. No other rights are granted.
 

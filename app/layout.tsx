@@ -38,18 +38,18 @@ export const viewport: Viewport = {
 
 export const metadata: Metadata = {
   title: {
-    default: 'Propcinity — Find the Right Property',
+    default: 'Propcinity — Find the Right Property in Pune',
     template: '%s | Propcinity',
   },
-  description: 'AI-curated real estate in Pune. Zero brokerage. Free for buyers. Trust scores, RERA verification, and expert advisors.',
+  description: 'AI-curated real estate in Pune. Zero brokerage. Free for buyers. AI Match % scoring, RERA verification, and a dedicated channel partner.',
   keywords: ['real estate', 'Pune property', 'zero brokerage', 'buy flat Pune'],
   authors: [{ name: 'Propcinity' }],
   creator: 'Propcinity',
   metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || 'https://propcinity.in'),
   openGraph: {
     siteName: 'Propcinity',
-    title: 'Propcinity — Find the Right Property',
-    description: 'AI-curated real estate in Pune. Zero brokerage. Free for buyers.',
+    title: 'Propcinity — Find the Right Property in Pune',
+    description: 'AI-curated real estate in Pune. Zero brokerage. AI Match % scoring. Your dedicated channel partner in Pune.',
     type: 'website',
     locale: 'en_IN',
     images: [
@@ -57,13 +57,13 @@ export const metadata: Metadata = {
         url: '/opengraph-image',
         width: 1200,
         height: 630,
-        alt: 'Propcinity — Find the Right Property',
+        alt: 'Propcinity — Find the Right Property in Pune',
       },
     ],
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Propcinity — Find the Right Property',
+    title: 'Propcinity — Find the Right Property in Pune',
     images: ['/opengraph-image'],
   },
 }
@@ -73,9 +73,31 @@ export default function RootLayout({
 }: {
   children: React.ReactNode
 }) {
+  const organizationSchema = {
+    "@context": "https://schema.org",
+    "@type": "Organization",
+    "name": "Propcinity",
+    "url": "https://propcinity.in",
+    "description": "Propcinity is a real estate channel partner platform that uses AI to curate property matches for buyers in Pune and negotiates with developers on the buyer's behalf, at no cost to buyers.",
+    "areaServed": { "@type": "City", "name": "Pune" },
+    "contactPoint": {
+      "@type": "ContactPoint",
+      "telephone": "+91-XXXXXXXXXX", // TODO: replace with real support number
+      "contactType": "customer service",
+      "email": "hello@propcinity.in",
+      "areaServed": "IN",
+      "availableLanguage": ["English", "Hindi", "Marathi"]
+    }
+    // TODO: add "sameAs": [...] once real social profiles exist (see Task 9)
+  }
+
   return (
     <html lang="en" className={`${syne.variable} ${jakarta.variable}`} suppressHydrationWarning data-scroll-behavior="smooth">
       <body className="font-sans bg-[var(--background)] text-[var(--text-primary)] antialiased">
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationSchema) }}
+        />
         <CookieConsentProvider>
           <PostHogProvider>
             <Suspense fallback={null}>

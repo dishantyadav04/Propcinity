@@ -183,184 +183,185 @@ export default function AIChatPage() {
     "Explain the risk level for under-construction properties.",
   ];
 
-  // ── While auth check is still in-flight, show a neutral loader ───────────
-  if (isChecking) {
-    return (
-      <div className="flex items-center justify-center h-[calc(100vh-64px)]">
-        <Loader2 className="w-6 h-6 animate-spin text-[var(--text-muted)]" />
-      </div>
-    );
-  }
-
-  // ── Guest: full lock screen ───────────────────────────────────────────────
-  if (isGuest) {
-    return (
-      <div className="flex flex-col h-[calc(100vh-64px)]">
-        {/* Minimal header */}
-        <div className="flex-shrink-0 bg-white border-b border-[var(--border)] py-4">
-          <SectionContainer wide>
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-[var(--primary-light)] rounded-full flex items-center justify-center text-[var(--primary)]">
-                <Bot className="w-6 h-6" />
-              </div>
-              <div>
-                <h1 className="font-bold text-lg leading-tight">AI Advisor</h1>
-                <p className="text-xs text-[var(--text-muted)] flex items-center gap-1">
-                  <Sparkles className="w-3 h-3 text-yellow-500" /> Pune Real Estate Expert
-                </p>
-              </div>
-            </div>
-          </SectionContainer>
-        </div>
-        <GuestLockScreen />
-      </div>
-    );
-  }
-
-  // ── Logged-in user view ───────────────────────────────────────────────────
+  // ── Common SEO shell that always renders for crawlers ─────────────────────
   return (
     <div className="flex flex-col h-[calc(100vh-64px)]">
-      {/* Header */}
-      <div className="flex-shrink-0 bg-white border-b border-[var(--border)] py-4">
-        <SectionContainer wide>
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-[var(--primary-light)] rounded-full flex items-center justify-center text-[var(--primary)]">
-                <Bot className="w-6 h-6" />
+      {/* Static SEO block — visible to crawlers before JS hydration */}
+      <div className="sr-only md:not-sr-only md:mb-2 px-4 sm:px-6 max-w-6xl mx-auto">
+        <h1 className="text-sm font-bold">Ask Propcinity&apos;s AI anything about a property</h1>
+        <p className="text-xs text-[var(--text-muted)]">
+          Get honest, data-backed answers about Pune properties using RERA data and AI
+          — no brochures, no sales calls. Ask about pricing, construction status,
+          builder track records, and more.
+        </p>
+      </div>
+      {isChecking ? (
+        <div className="flex items-center justify-center flex-1">
+          <Loader2 className="w-6 h-6 animate-spin text-[var(--text-muted)]" />
+        </div>
+      ) : isGuest ? (
+        <>
+          <div className="flex-shrink-0 bg-white border-b border-[var(--border)] py-4">
+            <SectionContainer wide>
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-[var(--primary-light)] rounded-full flex items-center justify-center text-[var(--primary)]">
+                  <Bot className="w-6 h-6" />
+                </div>
+                <div>
+                  <h1 className="font-bold text-lg leading-tight">AI Advisor</h1>
+                  <p className="text-xs text-[var(--text-muted)] flex items-center gap-1">
+                    <Sparkles className="w-3 h-3 text-yellow-500" /> Pune Real Estate Expert
+                  </p>
+                </div>
               </div>
-              <div>
-                <h1 className="font-bold text-lg leading-tight">AI Advisor</h1>
-                <p className="text-xs text-[var(--text-muted)] flex items-center gap-1">
-                  <Sparkles className="w-3 h-3 text-yellow-500" /> Pune Real Estate Expert
-                </p>
-              </div>
-            </div>
-            {/* Daily budget indicator */}
-            <div
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold ${
-                remaining <= 1 ? 'bg-red-50 text-red-600' : 'bg-[var(--surface-raised)] text-[var(--text-muted)]'
-              }`}
-            >
-              <MessageSquare className="w-3.5 h-3.5" />
-              {isLimitReached ? 'Limit reached' : `${remaining} left today`}
-            </div>
+            </SectionContainer>
           </div>
-        </SectionContainer>
-      </div>
-
-      {/* Messages */}
-      <div ref={scrollRef} className="flex-1 overflow-y-auto bg-[var(--background)] py-6">
-        <SectionContainer wide className="space-y-6">
-          {messages.map((m, i) => (
-            <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              key={i}
-              className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}
-            >
-              <div className={`max-w-[85%] md:max-w-[70%] flex gap-3 ${m.role === 'user' ? 'flex-row-reverse' : ''}`}>
-                <div
-                  className={`w-8 h-8 rounded-full flex-shrink-0 flex items-center justify-center ${
-                    m.role === 'user'
-                      ? 'bg-[var(--primary)] text-white'
-                      : 'bg-white border border-[var(--border)] text-[var(--text-secondary)]'
-                  }`}
-                >
-                  {m.role === 'user' ? <User className="w-4 h-4" /> : <Bot className="w-4 h-4" />}
+          <GuestLockScreen />
+        </>
+      ) : (
+        <div className="flex flex-col flex-1 overflow-hidden">
+          {/* Header */}
+          <div className="flex-shrink-0 bg-white border-b border-[var(--border)] py-4">
+            <SectionContainer wide>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-[var(--primary-light)] rounded-full flex items-center justify-center text-[var(--primary)]">
+                    <Bot className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <h1 className="font-bold text-lg leading-tight">AI Advisor</h1>
+                    <p className="text-xs text-[var(--text-muted)] flex items-center gap-1">
+                      <Sparkles className="w-3 h-3 text-yellow-500" /> Pune Real Estate Expert
+                    </p>
+                  </div>
                 </div>
                 <div
-                  className={`p-4 rounded-2xl text-sm leading-relaxed shadow-sm ${
-                    m.role === 'user'
-                      ? 'bg-[var(--primary)] text-white rounded-tr-none'
-                      : 'bg-white border border-[var(--border)] text-[var(--text-primary)] rounded-tl-none'
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold ${
+                    remaining <= 1 ? 'bg-red-50 text-red-600' : 'bg-[var(--surface-raised)] text-[var(--text-muted)]'
                   }`}
                 >
-                  {m.content}
+                  <MessageSquare className="w-3.5 h-3.5" />
+                  {isLimitReached ? 'Limit reached' : `${remaining} left today`}
                 </div>
               </div>
-            </motion.div>
-          ))}
+            </SectionContainer>
+          </div>
 
-          {isLoading && (
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex justify-start">
-              <div className="flex gap-3 max-w-[85%]">
-                <div className="w-8 h-8 rounded-full flex-shrink-0 flex items-center justify-center bg-white border border-[var(--border)]">
-                  <Bot className="w-4 h-4 text-[var(--text-secondary)]" />
-                </div>
-                <div className="p-4 rounded-2xl bg-white border border-[var(--border)] rounded-tl-none">
-                  <Loader2 className="w-4 h-4 animate-spin text-[var(--text-muted)]" />
-                </div>
-              </div>
-            </motion.div>
-          )}
-
-          {isLimitReached && (
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex justify-center py-4">
-              <div className="bg-orange-50 border border-orange-200 rounded-[var(--radius)] p-4 text-center max-w-sm">
-                <p className="text-sm font-bold text-orange-800">Daily limit reached</p>
-                <p className="text-xs text-orange-600 mt-1">
-                  Your 5 daily questions reset in 24 hours. For urgent advice, speak to our team.
-                </p>
-                <a
-                  href="tel:+919999999999"
-                  className="mt-3 inline-flex items-center gap-2 px-4 py-2 bg-[var(--primary)] text-white text-xs font-bold rounded-full"
+          {/* Messages */}
+          <div ref={scrollRef} className="flex-1 overflow-y-auto bg-[var(--background)] py-6">
+            <SectionContainer wide className="space-y-6">
+              {messages.map((m, i) => (
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  key={i}
+                  className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}
                 >
-                  Talk to an Expert
-                </a>
-              </div>
-            </motion.div>
-          )}
-        </SectionContainer>
-      </div>
+                  <div className={`max-w-[85%] md:max-w-[70%] flex gap-3 ${m.role === 'user' ? 'flex-row-reverse' : ''}`}>
+                    <div
+                      className={`w-8 h-8 rounded-full flex-shrink-0 flex items-center justify-center ${
+                        m.role === 'user'
+                          ? 'bg-[var(--primary)] text-white'
+                          : 'bg-white border border-[var(--border)] text-[var(--text-secondary)]'
+                      }`}
+                    >
+                      {m.role === 'user' ? <User className="w-4 h-4" /> : <Bot className="w-4 h-4" />}
+                    </div>
+                    <div
+                      className={`p-4 rounded-2xl text-sm leading-relaxed shadow-sm ${
+                        m.role === 'user'
+                          ? 'bg-[var(--primary)] text-white rounded-tr-none'
+                          : 'bg-white border border-[var(--border)] text-[var(--text-primary)] rounded-tl-none'
+                      }`}
+                    >
+                      {m.content}
+                    </div>
+                  </div>
+                </motion.div>
+              ))}
 
-      {/* Preset chips */}
-      {messages.length <= 1 && !isLimitReached && (
-        <div className="flex-shrink-0 px-4 pb-2">
-          <div className="max-w-6xl mx-auto flex gap-2 overflow-x-auto scrollbar-hide py-2">
-            {presets.map((p, i) => (
-              <button
-                key={i}
-                onClick={() => setInput(p)}
-                className="flex-shrink-0 px-3 py-2 text-xs font-semibold bg-white border border-[var(--border)] text-[var(--text-secondary)] rounded-full hover:border-[var(--primary)] hover:text-[var(--primary)] transition-colors whitespace-nowrap"
-              >
-                {p}
-              </button>
-            ))}
+              {isLoading && (
+                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex justify-start">
+                  <div className="flex gap-3 max-w-[85%]">
+                    <div className="w-8 h-8 rounded-full flex-shrink-0 flex items-center justify-center bg-white border border-[var(--border)]">
+                      <Bot className="w-4 h-4 text-[var(--text-secondary)]" />
+                    </div>
+                    <div className="p-4 rounded-2xl bg-white border border-[var(--border)] rounded-tl-none">
+                      <Loader2 className="w-4 h-4 animate-spin text-[var(--text-muted)]" />
+                    </div>
+                  </div>
+                </motion.div>
+              )}
+
+              {isLimitReached && (
+                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex justify-center py-4">
+                  <div className="bg-orange-50 border border-orange-200 rounded-[var(--radius)] p-4 text-center max-w-sm">
+                    <p className="text-sm font-bold text-orange-800">Daily limit reached</p>
+                    <p className="text-xs text-orange-600 mt-1">
+                      Your 5 daily questions reset in 24 hours. For urgent advice, speak to our team.
+                    </p>
+                    <a
+                      href="tel:+919999999999"
+                      className="mt-3 inline-flex items-center gap-2 px-4 py-2 bg-[var(--primary)] text-white text-xs font-bold rounded-full"
+                    >
+                      Talk to an Expert
+                    </a>
+                  </div>
+                </motion.div>
+              )}
+            </SectionContainer>
+          </div>
+
+          {/* Preset chips */}
+          {messages.length <= 1 && !isLimitReached && (
+            <div className="flex-shrink-0 px-4 pb-2">
+              <div className="max-w-6xl mx-auto flex gap-2 overflow-x-auto scrollbar-hide py-2">
+                {presets.map((p, i) => (
+                  <button
+                    key={i}
+                    onClick={() => setInput(p)}
+                    className="flex-shrink-0 px-3 py-2 text-xs font-semibold bg-white border border-[var(--border)] text-[var(--text-secondary)] rounded-full hover:border-[var(--primary)] hover:text-[var(--primary)] transition-colors whitespace-nowrap"
+                  >
+                    {p}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Input */}
+          <div className="flex-shrink-0 bg-white border-t border-[var(--border)] py-4">
+            <SectionContainer wide>
+              <div className="flex gap-3 items-end">
+                <textarea
+                  value={input}
+                  onChange={e => setInput(e.target.value)}
+                  onKeyDown={e => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                      e.preventDefault();
+                      handleSend();
+                    }
+                  }}
+                  disabled={isLoading || isLimitReached}
+                  placeholder={
+                    isLimitReached ? "Daily limit reached. Come back tomorrow!" : "Ask anything about Pune real estate..."
+                  }
+                  rows={1}
+                  className="flex-1 resize-none px-4 py-3 text-sm bg-[var(--surface-raised)] border border-[var(--border-strong)] rounded-[var(--radius)] text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none focus:border-[var(--primary)] disabled:opacity-50 disabled:cursor-not-allowed"
+                  style={{ maxHeight: '120px' }}
+                />
+                <button
+                  onClick={handleSend}
+                  disabled={!input.trim() || isLoading || isLimitReached}
+                  className="flex-shrink-0 w-11 h-11 bg-[var(--primary)] text-white rounded-[var(--radius)] flex items-center justify-center shadow-[var(--shadow-primary)] hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed transition-opacity"
+                >
+                  {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                </button>
+              </div>
+            </SectionContainer>
           </div>
         </div>
       )}
-
-      {/* Input */}
-      <div className="flex-shrink-0 bg-white border-t border-[var(--border)] py-4">
-        <SectionContainer wide>
-          <div className="flex gap-3 items-end">
-            <textarea
-              value={input}
-              onChange={e => setInput(e.target.value)}
-              onKeyDown={e => {
-                if (e.key === 'Enter' && !e.shiftKey) {
-                  e.preventDefault();
-                  handleSend();
-                }
-              }}
-              disabled={isLoading || isLimitReached}
-              placeholder={
-                isLimitReached ? "Daily limit reached. Come back tomorrow!" : "Ask anything about Pune real estate..."
-              }
-              rows={1}
-              className="flex-1 resize-none px-4 py-3 text-sm bg-[var(--surface-raised)] border border-[var(--border-strong)] rounded-[var(--radius)] text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none focus:border-[var(--primary)] disabled:opacity-50 disabled:cursor-not-allowed"
-              style={{ maxHeight: '120px' }}
-            />
-            <button
-              onClick={handleSend}
-              disabled={!input.trim() || isLoading || isLimitReached}
-              className="flex-shrink-0 w-11 h-11 bg-[var(--primary)] text-white rounded-[var(--radius)] flex items-center justify-center shadow-[var(--shadow-primary)] hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed transition-opacity"
-            >
-              {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
-            </button>
-          </div>
-        </SectionContainer>
-      </div>
     </div>
   );
 }

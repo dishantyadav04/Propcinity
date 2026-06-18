@@ -149,6 +149,15 @@ function CompareContent() {
 
   return (
     <div className="min-h-screen bg-[var(--background)] pb-40">
+      {/* Static SEO block — visible to crawlers before JS hydration */}
+      <div className="sr-only md:not-sr-only md:mb-4 px-4 sm:px-6 max-w-5xl mx-auto">
+        <h1>Compare properties side by side — Match %, price, and RERA status in one view</h1>
+        <p>
+          See how your shortlisted Pune properties stack up on Match % score, pricing,
+          RERA verification, construction progress, amenities, and more — all in a
+          single, clean comparison table.
+        </p>
+      </div>
       {/* Header */}
       <div className="bg-white border-b border-[var(--border)] sticky top-16 z-30">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 h-14 flex items-center gap-4">

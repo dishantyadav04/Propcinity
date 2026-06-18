@@ -58,7 +58,7 @@ export default function Image() {
             opacity: 0.6,
           }}
         >
-          Zero Brokerage · AI-Powered · Trust Scores
+          Zero Brokerage · AI-Powered · Match % Scoring
         </div>
       </div>
     ),
