@@ -11,6 +11,7 @@ import ClientLayoutExtras from '@/components/layout/ClientLayoutExtras'
 import CookieConsentProvider from '@/components/consent/CookieConsentProvider'
 import PostHogProvider from '@/components/analytics/PostHogProvider'
 import PostHogPageView from '@/components/analytics/PostHogPageView'
+import { Analytics } from '@vercel/analytics/next'
 // ✅ TASK 1 DONE
 
 const syne = Syne({
@@ -128,6 +129,7 @@ export default function RootLayout({
                 },
               }}
             />
+            <Analytics />
           </PostHogProvider>
         </CookieConsentProvider>
       </body>
