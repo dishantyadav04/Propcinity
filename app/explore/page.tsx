@@ -275,15 +275,22 @@ export default function ExplorePage() {
   return (
     <div className="min-h-screen bg-[var(--background)] pb-40">
 
-      {/* Static SEO block — visible to crawlers before JS hydration */}
-      <div className="sr-only md:not-sr-only md:mb-4">
-        <h1>AI-curated property picks in Pune — not endless scrolling</h1>
-        <p>
-          Tell us your budget, location, and what matters to you. Propcinity&apos;s AI
-          narrows thousands of listings down to a curated shortlist — each with a
-          Match % score, RERA verification status, and an honest breakdown of pros
-          and cons.
-        </p>
+      {/* SEO + visual page header — visible to crawlers and on desktop */}
+      <div className="sr-only md:not-sr-only border-b border-[var(--border)] bg-[var(--surface)]">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 pt-6 pb-5">
+          <h1
+            className="text-2xl sm:text-3xl font-extrabold text-[var(--text-primary)] tracking-tight"
+            style={{ fontFamily: 'var(--font-display)' }}
+          >
+            AI-curated property picks in Pune
+            <span className="text-[var(--primary)]"> — not endless scrolling</span>
+          </h1>
+          <p className="mt-2 text-sm sm:text-[15px] text-[var(--text-secondary)] max-w-3xl leading-relaxed">
+            Tell us your budget, location, and what matters to you. Propcinity&apos;s AI narrows
+            thousands of listings down to a curated shortlist — each with a Match % score, RERA
+            verification status, and an honest breakdown of pros and cons.
+          </p>
+        </div>
       </div>
 
       {/* Search + filter bar */}

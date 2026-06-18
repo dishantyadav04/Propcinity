@@ -15,8 +15,21 @@
   "dependencies": {
     "@aws-sdk/client-s3": "^3.785.0",
     "@aws-sdk/lib-storage": "^3.785.0",
+    "@sentry/nextjs": "^10.58.0",
     "@supabase/ssr": "^0.10.3",
     "@supabase/supabase-js": "^2.106.2",
+    "@tiptap/extension-character-count": "^3.27.0",
+    "@tiptap/extension-image": "^3.27.0",
+    "@tiptap/extension-link": "^3.27.0",
+    "@tiptap/extension-placeholder": "^3.27.0",
+    "@tiptap/extension-table": "^3.27.0",
+    "@tiptap/extension-table-cell": "^3.27.0",
+    "@tiptap/extension-table-header": "^3.27.0",
+    "@tiptap/extension-table-row": "^3.27.0",
+    "@tiptap/extension-youtube": "^3.27.0",
+    "@tiptap/pm": "^3.27.0",
+    "@tiptap/react": "^3.27.0",
+    "@tiptap/starter-kit": "^3.27.0",
     "@types/leaflet": "^1.9.21",
     "@types/node": "^22.15.0",
     "@types/react": "^19.1.0",
@@ -40,11 +53,15 @@
     "react-hook-form": "^7.56.4",
     "react-leaflet": "^5.0.0",
     "resend": "^4.5.2",
+    "sanitize-html": "^2.17.5",
     "sonner": "^2.0.7",
     "tailwind-merge": "^3.3.0",
     "tailwindcss": "^3.4.17",
     "typescript": "^5.8.3",
     "vaul": "^1.1.2",
     "zod": "^3.25.28"
+  },
+  "devDependencies": {
+    "@types/sanitize-html": "^2.16.1"
   }
 }

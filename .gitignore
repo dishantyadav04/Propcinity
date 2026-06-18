@@ -11,3 +11,6 @@ pnpm-debug.log*
 .mcp.json
 .vscode/mcp.json
 .opencode.json
+
+# Sentry Config File
+.env.sentry-build-plugin

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
+import * as Sentry from '@sentry/nextjs'
 import { isAdminAuthenticated } from '@/lib/admin-auth'
 import { projectSchema } from '@/lib/project-schema'
 import {
@@ -46,6 +47,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ success: true, id })
   } catch (err) {
     console.error('[admin/projects] Create error:', err)
+    Sentry.captureException(err)
     return NextResponse.json({ error: 'Database operation failed' }, { status: 500 })
   }
 }

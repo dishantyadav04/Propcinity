@@ -5,13 +5,14 @@ import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
 import {
   LayoutDashboard, Building2, HardHat,
-  Users, MessageSquare, Settings, LogOut, ExternalLink, Mail, X
+  Users, MessageSquare, Settings, LogOut, ExternalLink, Mail, X, Newspaper
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 const ADMIN_NAV = [
   { label: 'Overview',  href: '/admin',              icon: LayoutDashboard },
   { label: 'Projects',  href: '/admin/projects',      icon: Building2 },
+  { label: 'Blogs',     href: '/admin/blogs',          icon: Newspaper },
   { label: 'Builders',  href: '/admin/builders',      icon: HardHat },
   { label: 'Leads',     href: '/admin/leads',         icon: MessageSquare },
   { label: 'Contact',   href: '/admin/contact',       icon: Mail },
