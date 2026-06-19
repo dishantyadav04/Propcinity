@@ -5,14 +5,14 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { User, Phone, Mail, Lock, Eye, EyeOff, Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
-import { signUpWithEmail, signInWithGoogle, signInWithFacebook } from '@/lib/supabase-auth'
+import { signUpWithEmail, signInWithGoogle } from '@/lib/supabase-auth'
 
 export default function SignUpPage() {
   const router = useRouter()
   const [form, setForm] = useState({ name: '', phone: '', email: '', password: '' })
   const [showPassword, setShowPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
-  const [oauthLoading, setOauthLoading] = useState<'google' | 'facebook' | null>(null)
+  const [oauthLoading, setOauthLoading] = useState<'google' | null>(null)
 
   const set = (field: keyof typeof form, value: string) =>
     setForm(prev => ({ ...prev, [field]: value }))
@@ -43,16 +43,6 @@ export default function SignUpPage() {
       await signInWithGoogle('/onboarding')
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : 'Google sign-in failed.')
-      setOauthLoading(null)
-    }
-  }
-
-  const handleFacebook = async () => {
-    setOauthLoading('facebook')
-    try {
-      await signInWithFacebook('/onboarding')
-    } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : 'Facebook sign-in failed.')
       setOauthLoading(null)
     }
   }
@@ -88,25 +78,6 @@ export default function SignUpPage() {
                 </svg>
             }
             {oauthLoading === 'google' ? 'Redirecting...' : 'Continue with Google'}
-          </button>
-
-          <button
-            onClick={handleFacebook}
-            disabled={!!oauthLoading || isLoading}
-            className="w-full flex items-center justify-center gap-3 px-4 py-3
-              bg-[#1877F2] text-white rounded-[var(--radius)]
-              hover:opacity-90 transition-opacity font-semibold text-sm
-              disabled:opacity-60 disabled:cursor-not-allowed"
-          >
-            {oauthLoading === 'facebook'
-              ? <Loader2 className="w-5 h-5 animate-spin" />
-              : (
-                <svg className="w-5 h-5 fill-white" viewBox="0 0 24 24">
-                  <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
-                </svg>
-              )
-            }
-            {oauthLoading === 'facebook' ? 'Redirecting...' : 'Continue with Facebook'}
           </button>
         </div>
 

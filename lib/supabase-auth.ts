@@ -24,25 +24,6 @@ export async function signInWithGoogle(redirectAfter = '/dashboard') {
   if (error) throw new Error(error.message)
 }
 
-// ─── OAuth 2.0 (Facebook) ────────────────────────────────────────────────────
-
-/**
- * Initiates Facebook OAuth 2.0 PKCE flow.
- * Browser is redirected to Facebook → returns to /auth/callback.
- * @param redirectAfter  Path to land on after successful auth (default: /dashboard)
- */
-export async function signInWithFacebook(redirectAfter = '/dashboard') {
-  const supabase = createClient()
-  const { error } = await supabase.auth.signInWithOAuth({
-    provider: 'facebook',
-    options: {
-      redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(redirectAfter)}`,
-      scopes: 'email,public_profile',
-    },
-  })
-  if (error) throw new Error(error.message)
-}
-
 // ─── Update Phone ─────────────────────────────────────────────────────────────
 
 /**
@@ -50,10 +31,22 @@ export async function signInWithFacebook(redirectAfter = '/dashboard') {
  */
 export async function updateUserPhone(phone: string) {
   const supabase = createClient()
-  const { error } = await supabase.auth.updateUser({
+
+  // Write to auth metadata
+  const { error: authError } = await supabase.auth.updateUser({
     data: { phone }
   })
-  if (error) throw new Error(error.message)
+  if (authError) throw new Error(authError.message)
+
+  // Also write to user_profiles table
+  const { data: { user } } = await supabase.auth.getUser()
+  if (user) {
+    const { error: profileError } = await supabase
+      .from('user_profiles')
+      .update({ phone, updated_at: new Date().toISOString() })
+      .eq('id', user.id)
+    if (profileError) console.error('[updateUserPhone] profile update failed:', profileError)
+  }
 }
 
 // ─── Manual Sign Up ───────────────────────────────────────────────────────────

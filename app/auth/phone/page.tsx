@@ -83,13 +83,6 @@ function PhoneContent() {
             <Link href="/privacy" className="underline hover:text-[var(--primary)]">Privacy Policy</Link>.
           </p>
         </form>
-
-        <p className="text-center text-sm text-[var(--text-muted)]">
-          <Link href={next.startsWith('/') ? next : '/onboarding'}
-            className="text-[var(--primary)] hover:underline font-semibold">
-            Skip for now
-          </Link>
-        </p>
       </div>
     </div>
   )
@@ -98,4 +91,3 @@ function PhoneContent() {
 export default function PhonePage() {
   return <Suspense><PhoneContent /></Suspense>
 }
-// ✅ TASK 2 DONE

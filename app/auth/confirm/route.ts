@@ -34,6 +34,18 @@ export async function GET(request: NextRequest) {
     )
   }
 
+  // Write phone from signup metadata to user_profiles
+  const { data: { user } } = await supabase.auth.getUser()
+  if (user) {
+    const phone = user.user_metadata?.phone
+    if (phone) {
+      await supabase
+        .from('user_profiles')
+        .update({ phone })
+        .eq('id', user.id)
+    }
+  }
+
   const safeNext = next.startsWith('/') ? next : '/onboarding'
   return NextResponse.redirect(`${origin}${safeNext}`)
 }

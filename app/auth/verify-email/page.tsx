@@ -15,22 +15,17 @@ export default function VerifyEmailPage() {
           Check your email
         </h1>
         <p className="text-sm text-[var(--text-secondary)] leading-relaxed">
-          We&apos;ve sent a confirmation link to your email. Click it to activate your account, then come back to set your property preferences.
+          We&apos;ve sent a confirmation link to your email address.
+          Click the link to activate your account — you&apos;ll be taken directly to set your property preferences.
         </p>
         <p className="text-xs text-[var(--text-muted)]">
           Didn&apos;t get it? Check your spam folder. The link expires in 1 hour.
         </p>
       </div>
-      <div className="flex flex-col gap-3 w-full max-w-xs">
-        <Link href="/auth/signin"
-          className="w-full py-3 bg-[var(--primary)] text-white font-bold rounded-[var(--radius)] text-sm text-center">
-          I&apos;ve confirmed my email — Sign in
-        </Link>
-        <Link href="/auth/signup"
-          className="flex items-center justify-center gap-1 text-sm text-[var(--text-muted)] hover:text-[var(--text-primary)]">
-          <ArrowLeft className="w-3.5 h-3.5" /> Back to sign up
-        </Link>
-      </div>
+      <Link href="/auth/signup"
+        className="flex items-center justify-center gap-1 text-sm text-[var(--text-muted)] hover:text-[var(--text-primary)]">
+        <ArrowLeft className="w-3.5 h-3.5" /> Back to sign up
+      </Link>
     </div>
   )
 }

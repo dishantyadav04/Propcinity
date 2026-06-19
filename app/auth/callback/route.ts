@@ -38,10 +38,10 @@ export async function GET(request: NextRequest) {
   const userMeta = session.user?.user_metadata || {}
   const appMeta = session.user?.app_metadata || {}
 
-  // Determine if this is an OAuth sign-in (Google or Facebook)
+  // Determine if this is an OAuth sign-in (Google)
   const provider = appMeta?.provider
-  const isOAuth = provider === 'google' || provider === 'facebook' ||
-    identities.some((id: any) => id?.provider === 'google' || id?.provider === 'facebook')
+  const isOAuth = provider === 'google' ||
+    identities.some((id: any) => id?.provider === 'google')
 
   const hasPhone = userMeta?.phone && String(userMeta.phone).trim().length > 0
 
