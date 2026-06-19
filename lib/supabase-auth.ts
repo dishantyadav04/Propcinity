@@ -31,10 +31,11 @@ export async function signInWithGoogle(redirectAfter = '/dashboard') {
  */
 export async function updateUserPhone(phone: string) {
   const supabase = createClient()
+  const formattedPhone = phone ? `+91${phone.replace(/\D/g, '').slice(0, 10)}` : ''
 
   // Write to auth metadata
   const { error: authError } = await supabase.auth.updateUser({
-    data: { phone }
+    data: { phone: formattedPhone }
   })
   if (authError) throw new Error(authError.message)
 
@@ -43,10 +44,24 @@ export async function updateUserPhone(phone: string) {
   if (user) {
     const { error: profileError } = await supabase
       .from('user_profiles')
-      .update({ phone, updated_at: new Date().toISOString() })
+      .update({ phone: formattedPhone, updated_at: new Date().toISOString() })
       .eq('id', user.id)
     if (profileError) console.error('[updateUserPhone] profile update failed:', profileError)
   }
+}
+
+// ─── Resend Confirmation Email ────────────────────────────────────────────────
+
+export async function resendConfirmationEmail(email: string) {
+  const supabase = createClient()
+  const { error } = await supabase.auth.resend({
+    type: 'signup',
+    email,
+    options: {
+      emailRedirectTo: `${window.location.origin}/auth/confirm`,
+    },
+  })
+  if (error) throw new Error(error.message)
 }
 
 // ─── Manual Sign Up ───────────────────────────────────────────────────────────
@@ -67,12 +82,20 @@ export async function signUpWithEmail(
     options: {
       data: {
         full_name: metadata.name,
-        phone: metadata.phone,
+        phone: metadata.phone ? `+91${metadata.phone}` : '',
       },
       emailRedirectTo: `${window.location.origin}/auth/confirm`,
     },
   })
-  if (error) throw new Error(error.message)
+  if (error) {
+    if (
+      error.message.includes('User already registered') ||
+      error.message.includes('already been registered')
+    ) {
+      throw new Error('An account with this email already exists. Try signing in with Google.')
+    }
+    throw new Error(error.message)
+  }
   if (data.user && data.user.identities?.length === 0) {
     throw new Error('An account with this email already exists. Please sign in instead.')
   }

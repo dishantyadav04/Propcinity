@@ -29,6 +29,9 @@ export default function SignUpPage() {
         name: form.name,
         phone: form.phone,
       })
+      if (typeof window !== 'undefined') {
+        sessionStorage.setItem('signup_email', form.email)
+      }
       router.push('/auth/verify-email')
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : 'Sign up failed. Please try again.')

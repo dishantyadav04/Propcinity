@@ -39,10 +39,16 @@ export async function GET(request: NextRequest) {
   if (user) {
     const phone = user.user_metadata?.phone
     if (phone) {
-      await supabase
+      const { error: phoneError } = await supabase
         .from('user_profiles')
-        .update({ phone })
-        .eq('id', user.id)
+        .upsert(
+          { id: user.id, phone, updated_at: new Date().toISOString() },
+          { onConflict: 'id' }
+        )
+
+      if (phoneError) {
+        console.error('[auth/confirm] Failed to write phone to user_profiles:', phoneError)
+      }
     }
   }
 

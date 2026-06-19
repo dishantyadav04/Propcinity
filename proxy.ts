@@ -29,33 +29,42 @@ function isIpAllowed(request: NextRequest): boolean {
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl
 
+  // ── Global session refresh ──────────────────────────────────────
+  // Run on every request to keep Supabase auth tokens fresh.
+  // Without this, the server-side client sees stale cookies and
+  // throws "Refresh Token Not Found" when any route handler or
+  // server component tries to read the session.
+
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+
+  if (!supabaseUrl || !supabaseKey) {
+    console.warn('[proxy] Skipping session refresh — Supabase env vars not set')
+    return NextResponse.next()
+  }
+
+  let supabaseResponse = NextResponse.next({ request })
+
+  const supabase = createServerClient(supabaseUrl, supabaseKey, {
+    cookies: {
+      getAll() {
+        return request.cookies.getAll()
+      },
+      setAll(cookiesToSet) {
+        cookiesToSet.forEach(({ name, value, options }) => {
+          supabaseResponse.cookies.set(name, value, options)
+        })
+      },
+    },
+  })
+
+  // Refresh session by validating the current user.
+  // Supabase internally rotates the refresh token if needed and writes
+  // the updated cookies via setAll() above.
+  const { data: { user } } = await supabase.auth.getUser()
+
   // ── Onboarding auth guard ──────────────────────────────────────
   if (pathname.startsWith('/onboarding')) {
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-    const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-
-    if (!supabaseUrl || !supabaseKey) {
-      console.warn('[proxy] Skipping /onboarding guard — Supabase env vars not set')
-      return NextResponse.next()
-    }
-
-    let supabaseResponse = NextResponse.next({ request })
-
-    const supabase = createServerClient(supabaseUrl, supabaseKey, {
-      cookies: {
-        getAll() {
-          return request.cookies.getAll()
-        },
-        setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value, options }) => {
-            supabaseResponse.cookies.set(name, value, options)
-          })
-        },
-      },
-    })
-
-    const { data: { user } } = await supabase.auth.getUser()
-
     if (!user) {
       return NextResponse.redirect(new URL('/auth/signup', request.url))
     }
@@ -67,7 +76,7 @@ export async function proxy(request: NextRequest) {
   if (pathname.startsWith('/admin')) {
     // Always allow the login page itself
     if (pathname === '/admin/login') {
-      return NextResponse.next()
+      return supabaseResponse
     }
 
     // Step 1: IP allowlist (production only — dev always passes)
@@ -88,9 +97,9 @@ export async function proxy(request: NextRequest) {
     }
   }
 
-  return NextResponse.next()
+  return supabaseResponse
 }
 
 export const config = {
-  matcher: ['/onboarding/:path*', '/admin/:path*'],
+  matcher: ['/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)'],
 }
