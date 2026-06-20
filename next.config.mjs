@@ -50,7 +50,7 @@ const nextConfig = {
         isDev ? 'ws://localhost:*' : '',
       ].filter(Boolean).join(' '),
       "font-src 'self' data:",
-      `worker-src 'self' blob: ${process.env.NEXT_PUBLIC_POSTHOG_HOST || 'https://ingest.propcinity.in'}`,
+      `worker-src 'self' blob: ${process.env.NEXT_PUBLIC_POSTHOG_HOST || 'https://ingest.propcinity.in'} https://us-assets.i.posthog.com https://us.i.posthog.com`,
       "frame-ancestors 'none'",
       "base-uri 'self'",
       "form-action 'self'",
