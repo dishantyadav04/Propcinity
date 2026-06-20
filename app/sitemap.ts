@@ -8,7 +8,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     const res = await fetch(`${BASE_URL}/api/projects`, { next: { revalidate: 3600 } })
     if (res.ok) {
       const data = await res.json()
-      projectEntries = (data.projects || []).map((p: any) => ({
+      projectEntries = (Array.isArray(data) ? data : (data.projects || [])).map((p: any) => ({
         url: `${BASE_URL}/projects/${p.slug}`,
         lastModified: p.updatedAt || new Date(),
         changeFrequency: 'weekly' as const,

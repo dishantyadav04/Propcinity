@@ -7,7 +7,7 @@ import { isAdminAuthenticatedEdge } from '@/lib/admin-auth-edge'
 // Set ADMIN_ALLOWED_IPS in .env.local as comma-separated IPs.
 // In development, the check is skipped entirely (dev IP is ::1 / 127.0.0.1).
 // In production, leave empty to allow all IPs, or set specific IPs to restrict.
-// Example: ADMIN_ALLOWED_IPS=203.0.113.42,198.51.100.7
+// Example: ADMIN_ALLOWED_IPS=203.0.113.42,198.51.100.54
 
 function isIpAllowed(request: NextRequest): boolean {
   // Always allow in development — dev server uses ::1 (IPv6 localhost)

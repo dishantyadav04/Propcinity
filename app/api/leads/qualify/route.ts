@@ -82,8 +82,6 @@ export async function POST(request: NextRequest) {
     .select('booking_ref')
     .single()
 
-  console.log('[leads] insert result:', lead, error)
-
   if (error || !lead) {
     if ((error as any)?.code === '23505') {
       return NextResponse.json(

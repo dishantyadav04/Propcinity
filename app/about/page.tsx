@@ -92,10 +92,18 @@ export default function AboutPage() {
         {/* Team section */}
         <section className="space-y-3 border-t border-[var(--border)] pt-8">
           <h2 className="text-base font-bold text-[var(--text-primary)]">Who we are</h2>
-          <div className="text-sm text-[var(--text-muted)] leading-relaxed">
-            {/* TODO: Replace with real founder/advisor name, photo, and one-line bio.
-                E-E-A-T signal — having zero named humans on a trust-dependent platform
-                is a credibility gap. Even one real founder bio + LinkedIn link helps. */}
+          <div className="text-sm text-[var(--text-muted)] leading-relaxed space-y-3">
+            <p>
+              Propcinity was built by [Founder Name], a [background] based in Pune who 
+              [one sentence on motivation/why they built this].
+            </p>
+            <p>
+              <a href="https://linkedin.com/in/yourprofile" 
+                 className="text-[var(--primary)] hover:underline" 
+                 target="_blank" rel="noopener noreferrer">
+                Connect on LinkedIn →
+              </a>
+            </p>
           </div>
         </section>
 

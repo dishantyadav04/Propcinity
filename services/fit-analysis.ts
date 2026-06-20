@@ -30,7 +30,11 @@ export function generateFitReasons(
     }
   }
 
-  if (project.city.toLowerCase() === intent.location.toLowerCase()) {
+  const cityMatch = intent.subLocations?.some(
+    (loc: string) => project.city.toLowerCase().includes(loc.toLowerCase()) 
+      || loc.toLowerCase().includes(project.city.toLowerCase())
+  ) ?? false;
+  if (cityMatch) {
     reasons.push({ icon: 'MapPin', text: 'Located in your preferred city', strength: 'strong' })
   }
 

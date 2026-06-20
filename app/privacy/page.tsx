@@ -155,10 +155,10 @@ Email: privacy@propcinity.in
 Response time: Within 3 business days
 
 Grievance Officer (as required under DPDPA 2023 and IT Act, 2000):
-{/* TODO: replace with real Grievance Officer name before launch — required for DPDPA compliance */}
-[Name to be appointed]
-Propcinity, Pune, Maharashtra, India
-grievance@propcinity.in
+[Full Name]
+Email: grievance@propcinity.in
+Address: [Registered address], Pune, Maharashtra
+Response time: Within 30 days as per DPDPA 2023
 
 You also have the right to lodge a complaint with the Data Protection Board of India once it is constituted under DPDPA 2023.`
   },

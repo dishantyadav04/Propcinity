@@ -18,7 +18,7 @@ import {
   ArrowUpDown, Sparkles, Plus, Lock
 } from 'lucide-react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
 import { addToCompare } from '@/lib/utils';
@@ -41,6 +41,7 @@ const SORT_OPTIONS: { value: SortOption; label: string; icon: string }[] = [
 
 export default function ExplorePage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { isGuest: isGuestRaw, isChecking } = useGuestMode();
   const isGuest = !isChecking && isGuestRaw;
   const [projects, setProjects] = useState<Project[]>([]);
@@ -57,6 +58,12 @@ export default function ExplorePage() {
   const [typeFilter, setTypeFilter] = useState('all');
   const [budgetFilter, setBudgetFilter] = useState('all');
   // Bug 3 fixed: riskFilter state removed — riskLabel deleted from Project type
+
+  // Seed search from URL param on mount
+  useEffect(() => {
+    const q = searchParams.get('q');
+    if (q) setSearchQuery(q);
+  }, []);
 
   // All localStorage state — loaded in useEffect only
   const [curatedIds, setCuratedIds] = useState<string[]>([]);

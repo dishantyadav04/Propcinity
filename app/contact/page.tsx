@@ -101,7 +101,7 @@ export default function ContactPage() {
           {[
             { icon: Mail, label: 'Email', value: 'hello@propcinity.in' },
             // TODO: replace with real support phone number before launch
-            { icon: Phone, label: 'Phone', value: '+91 98765 43210' },
+            { icon: Phone, label: 'Phone', value: '+91 98765 43210' }, // Update with real support number
             { icon: MapPin, label: 'Location', value: 'Pune, Maharashtra' },
           ].map(({ icon: Icon, label, value }) => (
             <div key={label}

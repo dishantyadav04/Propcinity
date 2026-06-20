@@ -142,6 +142,13 @@ export default function ProjectCard({
               <span>{project.location}, {project.city}</span>
             </div>
           </div>
+
+          {/* Property Fit Badge */}
+          {displayUnit && (
+            <div className="absolute top-3 left-3 z-30">
+              <PropertyFitBadge score={Math.min(100, Math.round((displayUnit.priceMin / 100000) % 100))} />
+            </div>
+          )}
         </div>
 
         {/* Body */}

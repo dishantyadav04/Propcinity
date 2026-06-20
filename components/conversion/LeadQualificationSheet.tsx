@@ -16,21 +16,40 @@ interface LeadQualificationSheetProps {
 export default function LeadQualificationSheet({ isOpen, onClose, project, unitConfig }: LeadQualificationSheetProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
+  const [name, setName] = useState('');
+  const [phone, setPhone] = useState('');
+  const [preferredTime, setPreferredTime] = useState('morning');
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setIsLoading(true);
-    
-    // Simulating API call
-    setTimeout(() => {
-      setIsLoading(false);
+    try {
+      const res = await fetch('/api/leads/qualify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name,
+          phone,
+          preferredTime,
+          projectId: project.id,
+          unitConfigId: unitConfig?.id,
+          triggerSource: 'consultation_sheet',
+        }),
+      });
+      if (res.status === 409) {
+        toast.error("You've already requested a consultation for this project.");
+        setIsLoading(false);
+        return;
+      }
+      if (!res.ok) throw new Error('Failed');
       setIsSuccess(true);
-      toast.success("Consultation scheduled successfully!");
-      setTimeout(() => {
-        setIsSuccess(false);
-        onClose();
-      }, 2000);
-    }, 1500);
+      toast.success('Consultation requested!');
+      setTimeout(() => { setIsSuccess(false); onClose(); }, 2000);
+    } catch {
+      toast.error('Something went wrong. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -63,15 +82,20 @@ export default function LeadQualificationSheet({ isOpen, onClose, project, unitC
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="space-y-2">
                   <label className="text-sm font-bold text-[var(--text-primary)]">Full Name</label>
-                  <input required type="text" placeholder="John Doe" className="w-full px-4 py-3 bg-[var(--surface-raised)] border border-[var(--border)] rounded-xl text-sm focus:outline-none focus:border-[var(--primary)]" />
+                  <input required type="text" placeholder="John Doe"
+                    value={name} onChange={e => setName(e.target.value)}
+                    className="w-full px-4 py-3 bg-[var(--surface-raised)] border border-[var(--border)] rounded-xl text-sm focus:outline-none focus:border-[var(--primary)]" />
                 </div>
                 <div className="space-y-2">
                   <label className="text-sm font-bold text-[var(--text-primary)]">Phone Number</label>
-                  <input required type="tel" placeholder="+91 98765 43210" className="w-full px-4 py-3 bg-[var(--surface-raised)] border border-[var(--border)] rounded-xl text-sm focus:outline-none focus:border-[var(--primary)]" />
+                  <input required type="tel" placeholder="+91 98765 43210"
+                    value={phone} onChange={e => setPhone(e.target.value)}
+                    className="w-full px-4 py-3 bg-[var(--surface-raised)] border border-[var(--border)] rounded-xl text-sm focus:outline-none focus:border-[var(--primary)]" />
                 </div>
                 <div className="space-y-2">
                   <label className="text-sm font-bold text-[var(--text-primary)]">Preferred Time</label>
-                  <select className="w-full px-4 py-3 bg-[var(--surface-raised)] border border-[var(--border)] rounded-xl text-sm focus:outline-none focus:border-[var(--primary)]">
+                  <select value={preferredTime} onChange={e => setPreferredTime(e.target.value)}
+                    className="w-full px-4 py-3 bg-[var(--surface-raised)] border border-[var(--border)] rounded-xl text-sm focus:outline-none focus:border-[var(--primary)]">
                     <option value="morning">Morning (9AM - 12PM)</option>
                     <option value="afternoon">Afternoon (12PM - 4PM)</option>
                     <option value="evening">Evening (4PM - 7PM)</option>

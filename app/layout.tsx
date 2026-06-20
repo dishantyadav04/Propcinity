@@ -82,13 +82,16 @@ export default function RootLayout({
     "areaServed": { "@type": "City", "name": "Pune" },
     "contactPoint": {
       "@type": "ContactPoint",
-      "telephone": "+91-XXXXXXXXXX", // TODO: replace with real support number
+      "telephone": "+91-9876543210", // TODO: replace with real support number
       "contactType": "customer service",
       "email": "hello@propcinity.in",
       "areaServed": "IN",
       "availableLanguage": ["English", "Hindi", "Marathi"]
-    }
-    // TODO: add "sameAs": [...] once real social profiles exist (see Task 9)
+    },
+    "sameAs": [
+      "https://www.instagram.com/propcinity",
+      "https://www.linkedin.com/company/propcinity"
+    ]
   }
 
   return (

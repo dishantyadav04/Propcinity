@@ -14,6 +14,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { getMatchPercent } from '@/lib/match-score';
 import { storage, STORAGE_KEYS } from '@/lib/storage';
 import { useGuestMode } from '@/hooks/useGuestMode';
+import PersonalizedWelcome from '@/components/onboarding/PersonalizedWelcome';
+import { RECO_CACHE_KEY } from '@/lib/storage-keys';
 
 function getSmartMatchLabel(project: Project, intent: any): string | null {
   if (!intent) return null;
@@ -134,8 +136,6 @@ function smartRankProjects(projects: Project[], intent: any): string[] {
   scored.sort((a, b) => a.tier !== b.tier ? a.tier - b.tier : b.score - a.score);
   return scored.map(s => s.id);
 }
-
-const RECO_CACHE_KEY = 'propcinity_reco_cache';
 
 export default function DashboardPage() {
   const router = useRouter();

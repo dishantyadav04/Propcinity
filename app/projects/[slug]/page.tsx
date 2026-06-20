@@ -29,6 +29,7 @@ import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 import { storage, STORAGE_KEYS } from "@/lib/storage";
+import TimelineSection from "@/components/property/TimelineSection";
 
 // ── Tab definitions ────────────────────────────────────────
 const TABS = [
@@ -555,9 +556,7 @@ export default function ProjectDetailPage() {
                 </div>
               ) : null}
 
-              {(!project.internalAmenities?.length && !project.externalAmenities?.length && !project.amenities?.length) && (
-                <p className="text-sm text-[var(--text-muted)] italic">Amenities details coming soon.</p>
-              )}
+              {/* No amenity data available — section hidden */}
             </div>
 
             {/* ── FLOOR PLANS ──────────────────────────── */}
@@ -1180,6 +1179,27 @@ export default function ProjectDetailPage() {
                 <img src={expandedFloorPlan.src} alt={expandedFloorPlan.label}
                   className="w-full h-auto max-h-[70vh] object-contain rounded-[var(--radius-xs)]" />
               </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ── Modals ───────────────────────────────────── */}
+      <LeadQualificationSheet
+        isOpen={isQualificationOpen}
+        onClose={() => setIsQualificationOpen(false)}
+        project={project}
+        unitConfig={selectedUnit}
+      />
+      <AskAIModal
+        isOpen={isAIModalOpen}
+        onClose={() => setIsAIModalOpen(false)}
+        project={project}
+      />
+    </div>
+  );
+}
+/div>
             </motion.div>
           </motion.div>
         )}

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from "react";
-import { ArrowLeft, User, Phone, Mail, Camera, CheckCircle2 } from "lucide-react";
+import { ArrowLeft, User, Phone, Mail, CheckCircle2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import SectionContainer from "@/components/layout/SectionContainer";
 import { toast } from "sonner";
@@ -45,14 +45,29 @@ export default function PersonalInfoPage() {
     );
   }
 
-  const handleSave = () => {
+  const handleSave = async () => {
     setIsEditing(false);
+    // Write to localStorage
     const saved = storage.get<any>(STORAGE_KEYS.USER_INTENT, null);
     if (saved) {
       const updated = { ...saved, ...form };
       storage.set(STORAGE_KEYS.USER_INTENT, updated);
     } else {
       storage.set(STORAGE_KEYS.USER_INTENT, form);
+    }
+    // Write to Supabase
+    try {
+      const { createClientSupabaseClient } = await import('@/lib/supabase');
+      const supabase = createClientSupabaseClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        await supabase.from('user_profiles').upsert(
+          { user_id: user.id, full_name: form.name, phone: form.phone, city: form.city },
+          { onConflict: 'user_id' }
+        );
+      }
+    } catch {
+      // Supabase write failure is non-critical — localStorage still works
     }
     toast.success('Profile updated');
   };
@@ -97,13 +112,7 @@ export default function PersonalInfoPage() {
               rounded-full flex items-center justify-center text-white text-3xl font-black">
               {form.name ? form.name.split(' ').map((n: string) => n[0]).join('').substring(0, 2).toUpperCase() : 'U'}
             </div>
-            {isEditing && (
-              <button className="absolute -bottom-1 -right-1 w-8 h-8 bg-[var(--primary)]
-                text-white rounded-full flex items-center justify-center
-                shadow-[var(--shadow)] hover:opacity-90 transition-opacity">
-                <Camera className="w-4 h-4" />
-              </button>
-            )}
+            {isEditing && null /* Camera button removed — photo upload not yet implemented */}
           </div>
           <div className="text-center">
             <p className="font-black text-[var(--text-primary)] text-xl">{form.name}</p>
@@ -145,6 +154,12 @@ export default function PersonalInfoPage() {
 
         <p className="text-xs text-[var(--text-muted)] text-center mt-4">
           Your personal information is encrypted and never shared.
+        </p>
+      </SectionContainer>
+    </div>
+  );
+}
+n is encrypted and never shared.
         </p>
       </SectionContainer>
     </div>

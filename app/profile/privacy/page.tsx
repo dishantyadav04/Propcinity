@@ -96,7 +96,23 @@ export default function ProfilePrivacyPage() {
                 <p className="text-xs text-[var(--text-muted)] mt-0.5">{item.desc}</p>
               </div>
               <button
-                onClick={() => setNotifications(prev => ({ ...prev, [item.key]: !prev[item.key as keyof typeof prev] }))}
+                onClick={async () => {
+                  const key = item.key as keyof typeof notifications;
+                  const newVal = !notifications[key];
+                  setNotifications(prev => ({ ...prev, [key]: newVal }));
+                  try {
+                    const { createClientSupabaseClient } = await import('@/lib/supabase');
+                    const supabase = createClientSupabaseClient();
+                    const { data: { user } } = await supabase.auth.getUser();
+                    if (user) {
+                      await supabase.from('user_profiles')
+                        .upsert({ user_id: user.id, [`notif_${key}`]: newVal }, { onConflict: 'user_id' });
+                    }
+                  } catch {
+                    setNotifications(prev => ({ ...prev, [key]: !newVal }));
+                    toast.error('Failed to save preference');
+                  }
+                }}
                 className={`relative w-12 h-6 rounded-full transition-colors flex-shrink-0 ${
                   notifications[item.key as keyof typeof notifications] ? 'bg-[var(--primary)]' : 'bg-[var(--border-strong)]'
                 }`}>

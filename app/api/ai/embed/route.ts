@@ -8,8 +8,6 @@ import { aiEmbedLimiter, getClientIp, checkRateLimit } from '@/lib/rate-limit';
 // Returns a ranked list of project IDs based on vector similarity
 // Falls back to empty array if OpenAI is unavailable — client uses JS scorer
 
-const RECO_CACHE_KEY = 'propcinity_reco_cache';
-
 // Simple in-memory cache for embeddings (resets on server restart, that's fine)
 const embeddingCache = new Map<string, { embedding: number[]; ts: number }>();
 const CACHE_TTL = 24 * 60 * 60 * 1000; // 24 hours
@@ -70,18 +68,19 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ recommendedIds: [], source: 'fallback' });
     }
 
-    // Projects without embeddings get scored by JS fallback on client
-    // Projects WITH embeddings get vector-ranked here
-    // Note: embeddings are not in the /api/projects response by default
-    // For now, return empty and let client use JS scorer
-    // TODO: after running the one-time embedding script, add embeddings to projects table
-    // and fetch them here via Supabase directly
-    
-    return NextResponse.json({ 
-      recommendedIds: [], 
-      source: 'js_scorer',
-      intentHash 
+    // Vector search via Supabase RPC
+    const { data: matches, error: matchError } = await supabase.rpc('match_projects', {
+      query_embedding: intentEmbedding,
+      match_threshold: 0.5,
+      match_count: 20,
     });
+
+    if (matchError || !matches) {
+      return NextResponse.json({ recommendedIds: [], source: 'fallback' });
+    }
+
+    const recommendedIds = (matches as { id: string }[]).map(m => m.id);
+    return NextResponse.json({ recommendedIds, source: 'vector', intentHash });
 
   } catch (err) {
     console.error('Embed API error:', err);
