@@ -144,6 +144,7 @@ export default function UserIntentForm() {
 
     try {
       if (user) {
+        // 1. Update user_profiles with onboarding state
         await supabase.from('user_profiles').upsert({
           id: user.id,
           display_name: name,
@@ -153,9 +154,38 @@ export default function UserIntentForm() {
           onboarding_complete: true,
           last_active: new Date().toISOString(),
         }, { onConflict: 'id' })
+
+        // 2. Save intent answers to user_intents so admin panel can read them
+        await supabase.from('user_intents').upsert({
+          user_id: user.id,
+          city: form.city,
+          bhk_types: form.bhkType,
+          purpose: form.purpose,
+          timeline: form.timeline,
+          budget_min: form.budgetMin,
+          budget_max: form.isOpenMax ? null : form.budgetMax,
+          intent_data: {
+            subLocations: form.subLocations,
+            propertyType: form.propertyType,
+            preferences: form.preferences,
+          },
+          raw_answers: {
+            city: form.city,
+            subLocations: form.subLocations,
+            purpose: form.purpose,
+            propertyType: form.propertyType,
+            bhkType: form.bhkType,
+            budgetMin: form.budgetMin,
+            budgetMax: form.budgetMax,
+            isOpenMax: form.isOpenMax,
+            timeline: form.timeline,
+            preferences: form.preferences,
+          },
+          updated_at: new Date().toISOString(),
+        }, { onConflict: 'user_id' })
       }
     } catch (err) {
-      console.warn('Profile upsert failed:', err)
+      console.warn('Profile/intent upsert failed:', err)
     }
 
     await new Promise(r => setTimeout(r, 1000));
