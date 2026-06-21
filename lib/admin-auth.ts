@@ -132,9 +132,16 @@ function getRedis(): Redis | null {
 
 export async function storeSessionToken(token: string): Promise<void> {
   const redis = getRedis()
-  if (redis) {
-    const tokenId = extractTokenId(token)
-    await redis.set(`admin_session:${tokenId}`, '1', { ex: ADMIN_COOKIE_MAX_AGE }).catch(() => {})
+  if (!redis) {
+    console.warn('[admin-auth] Redis not configured — session stored in cookie only')
+    return
+  }
+  const tokenId = extractTokenId(token)
+  try {
+    await redis.set(`admin_session:${tokenId}`, '1', { ex: ADMIN_COOKIE_MAX_AGE })
+    console.log('[admin-auth] Session token stored in Redis successfully:', tokenId)
+  } catch (e) {
+    console.error('[admin-auth] Redis storeSessionToken failed:', e)
   }
 }
 
@@ -142,24 +149,36 @@ export async function verifySessionToken(token: string): Promise<boolean> {
   if (!verifyTokenSignature(token)) return false
 
   const redis = getRedis()
-  if (redis) {
-    const tokenId = extractTokenId(token)
-    try {
-      const exists = await redis.get(`admin_session:${tokenId}`)
-      if (exists === null) return false
-    } catch {
-      // Redis unreachable — fall through to HMAC-only
-    }
+  if (!redis) {
+    // Redis not configured — HMAC signature is the sole auth check
+    console.warn('[admin-auth] Redis not configured — using HMAC-only verification')
+    return true
   }
 
-  return true
+  const tokenId = extractTokenId(token)
+  try {
+    const exists = await redis.get(`admin_session:${tokenId}`)
+    if (exists === null) {
+      console.warn('[admin-auth] Session token not found in Redis:', tokenId)
+      return false
+    }
+    return true
+  } catch (e) {
+    // Redis unreachable — fall back to HMAC-only rather than blocking all admin access
+    console.error('[admin-auth] Redis verifySessionToken failed, falling back to HMAC:', e)
+    return true
+  }
 }
 
 export async function deleteSessionToken(token: string): Promise<void> {
   const redis = getRedis()
-  if (redis) {
-    const tokenId = extractTokenId(token)
-    await redis.del(`admin_session:${tokenId}`).catch(() => {})
+  if (!redis) return
+  const tokenId = extractTokenId(token)
+  try {
+    await redis.del(`admin_session:${tokenId}`)
+    console.log('[admin-auth] Session token deleted from Redis:', tokenId)
+  } catch (e) {
+    console.error('[admin-auth] Redis deleteSessionToken failed:', e)
   }
 }
 

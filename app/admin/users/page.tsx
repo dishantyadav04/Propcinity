@@ -10,18 +10,25 @@ export default function AdminUsersPage() {
 
   useEffect(() => {
     fetch('/api/admin/users', { credentials: 'include' })
-      .then(r => r.json())
-      .then(d => setUsers(d.users || []))
+      .then(r => {
+        if (!r.ok) console.error('[admin/users] API error', r.status, r.statusText);
+        return r.json();
+      })
+      .then(d => {
+        if (d.error) console.error('[admin/users] Response error:', d.error);
+        setUsers(d.users || []);
+      })
       .catch(console.error)
       .finally(() => setIsLoading(false));
   }, []);
 
   const filtered = users.filter(u => {
+    if (!search.trim()) return true;
     const term = search.toLowerCase();
     return (
-      u.location?.toLowerCase().includes(term) ||
-      u.purpose?.toLowerCase().includes(term) ||
-      u.timeline?.toLowerCase().includes(term)
+      (u.location ?? '').toLowerCase().includes(term) ||
+      (u.purpose ?? '').toLowerCase().includes(term) ||
+      (u.timeline ?? '').toLowerCase().includes(term)
     );
   });
 

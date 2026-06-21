@@ -44,8 +44,15 @@ export default function AdminLeadsPage() {
       ...(statusFilter && { status: statusFilter }),
     });
     fetch(`/api/admin/leads?${params}`, { credentials: 'include' })
-      .then(r => r.json())
-      .then(d => { setLeads(d.leads || []); setTotal(d.total || 0); })
+      .then(r => {
+        if (!r.ok) console.error('[admin/leads] API error', r.status, r.statusText);
+        return r.json();
+      })
+      .then(d => {
+        if (d.error) console.error('[admin/leads] Response error:', d.error);
+        setLeads(d.leads || []);
+        setTotal(d.total || 0);
+      })
       .catch(console.error)
       .finally(() => setIsLoading(false));
   }, [page, search, intentFilter, statusFilter]);
