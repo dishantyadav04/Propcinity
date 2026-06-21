@@ -156,9 +156,10 @@ export default function UserIntentForm() {
         }, { onConflict: 'id' })
 
         // 2. Save intent answers to user_intents so admin panel can read them
-        await supabase.from('user_intents').upsert({
+        const { error: intentError } = await supabase.from('user_intents').upsert({
           user_id: user.id,
           city: form.city,
+          location: form.city.toLowerCase(),
           bhk_types: form.bhkType,
           purpose: form.purpose,
           timeline: form.timeline,
@@ -183,6 +184,17 @@ export default function UserIntentForm() {
           },
           updated_at: new Date().toISOString(),
         }, { onConflict: 'user_id' })
+
+        if (intentError) {
+          console.error('[onboarding] user_intents upsert failed:', intentError)
+        }
+
+        // 3. Trigger AI embedding — fire-and-forget, never block the user
+        fetch('/api/ai/embed', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ intent }),
+        }).catch((err) => console.warn('[onboarding] embed call failed (non-blocking):', err))
       }
     } catch (err) {
       console.warn('Profile/intent upsert failed:', err)

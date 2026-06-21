@@ -1,4 +1,4 @@
-import { askOpenAI } from '@/lib/openai'
+import { askOpenAI, rankWithOpenAI } from '@/lib/openai'
 
 const TIMEOUT_MS = 5000
 
@@ -31,4 +31,22 @@ export async function askAI(
     answer: 'Our AI assistant is temporarily unavailable. Please try again in a moment.',
     provider: 'none',
   }
+}
+
+// Separate fallback for ranking — higher timeout, returns empty object on failure
+export async function rankAI(
+  prompt: string,
+  systemPrompt: string
+): Promise<{ answer: string; provider: 'openai' | 'none' }> {
+  try {
+    const answer = await withTimeout(
+      rankWithOpenAI(prompt, systemPrompt),
+      8000,           // 8s timeout — ranking prompt is larger than chat
+      'OpenAI Rank'
+    )
+    if (answer && answer !== '{}') return { answer, provider: 'openai' }
+  } catch (error) {
+    console.error('[ai-fallback] rankAI failed:', error)
+  }
+  return { answer: '{}', provider: 'none' }
 }

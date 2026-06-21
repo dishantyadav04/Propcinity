@@ -16,6 +16,7 @@ import { storage, STORAGE_KEYS } from '@/lib/storage';
 import { useGuestMode } from '@/hooks/useGuestMode';
 import PersonalizedWelcome from '@/components/onboarding/PersonalizedWelcome';
 import { RECO_CACHE_KEY } from '@/lib/storage-keys';
+import { hashIntent, getLocalAIRank, setLocalAIRank } from '@/lib/ai-rank-cache';
 
 function getSmartMatchLabel(project: Project, intent: any): string | null {
   if (!intent) return null;
@@ -152,6 +153,10 @@ export default function DashboardPage() {
   const [rejectedIds, setRejectedIds] = useState<string[]>([]);
   const [userName, setUserName] = useState<string>('');
 
+  const [reasoning, setReasoning] = useState<Record<string, string>>({})
+  const [aiRankDone, setAiRankDone] = useState(false)
+  const [aiRankSource, setAiRankSource] = useState<'js' | 'ai' | 'cache'>('js')
+
   useEffect(() => {
     if (isChecking) return;
     if (isGuest) router.replace('/onboarding');
@@ -223,19 +228,116 @@ export default function DashboardPage() {
     };
   }, []);
 
+  // Pass 1: JS scorer — runs instantly on every load
   useEffect(() => {
-    if (!storageReady || !userIntent || projects.length === 0) return;
-    if (aiRecommended.length > 0) return;
+    if (!storageReady || !userIntent || projects.length === 0) return
+    if (aiRecommended.length > 0) return
 
-    setAiLoading(true);
+    setAiLoading(true)
     try {
-      const scored = smartRankProjects(projects, userIntent);
-      setAiRecommended(scored);
-      storage.set(RECO_CACHE_KEY, scored);
+      const scored = smartRankProjects(projects, userIntent)
+      setAiRecommended(scored)
+      storage.set(RECO_CACHE_KEY, scored)
     } finally {
-      setAiLoading(false);
+      setAiLoading(false)
     }
-  }, [storageReady, userIntent, projects, aiRecommended.length]);
+  }, [storageReady, userIntent, projects, aiRecommended.length])
+
+  // Pass 2: AI ranker — runs async after JS scoring, re-ranks with GPT
+  useEffect(() => {
+    if (!storageReady || !userIntent || projects.length === 0) return
+    if (aiRankDone) return
+    if (aiRecommended.length === 0) return // Wait for JS pass to finish first
+
+    const runAIRanker = async () => {
+      const intentHash = hashIntent(userIntent)
+
+      // Check localStorage cache — serves instantly if intent hasn't changed
+      const storedHash = storage.get<string>(STORAGE_KEYS.AI_RANK_HASH, '')
+      const localCache = getLocalAIRank()
+
+      if (localCache && storedHash === intentHash) {
+        setAiRecommended(localCache.ranked)
+        setReasoning(localCache.reasoning)
+        setAiRankSource('cache')
+        setAiRankDone(true)
+        return
+      }
+
+      // Build top 15 project summaries for GPT
+      const top15Ids = aiRecommended.slice(0, 15)
+      const top15Projects = top15Ids
+        .map(id => projects.find(p => p.id === id))
+        .filter(Boolean)
+        .map(p => ({
+          id: p!.id,
+          name: p!.name,
+          location: p!.location || '',
+          unitTypes: (p!.unitConfigs || []).map((u: any) => u.type).join(', '),
+          priceMin: p!.unitConfigs?.[0]?.priceMin || 0,
+          priceMax: Math.max(...(p!.unitConfigs || []).map((u: any) => u.priceMax || u.priceMin || 0)),
+          possessionDate: (p as any).possessionDate || null,
+          constructionStatus: (p as any).constructionStatus || '',
+          constructionPercent: (p as any).constructionPercent || 0,
+          reraStatus: (p as any).reraStatus || 'not_registered',
+          amenities: (p as any).amenities || [],
+          pros: (p as any).pros || [],
+          cons: (p as any).cons || [],
+        }))
+
+      if (top15Projects.length === 0) {
+        setAiRankDone(true)
+        return
+      }
+
+      try {
+        const res = await fetch('/api/ai/rank', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            intentHash,
+            intent: userIntent,
+            projects: top15Projects,
+          }),
+        })
+
+        if (!res.ok) {
+          setAiRankDone(true)
+          return // Silently keep JS ranking on any failure
+        }
+
+        const data = await res.json()
+        if (!data.ranked?.length) {
+          setAiRankDone(true)
+          return
+        }
+
+        // Merge: AI-ranked at front, any remaining JS-ranked after
+        const aiRankedSet = new Set<string>(data.ranked)
+        const remaining = aiRecommended.filter(id => !aiRankedSet.has(id))
+        const finalRanked = [...data.ranked, ...remaining]
+
+        setAiRecommended(finalRanked)
+        setReasoning(data.reasoning || {})
+        setAiRankSource('ai')
+        setAiRankDone(true)
+
+        // Persist to localStorage + save hash
+        setLocalAIRank({
+          ranked: finalRanked,
+          reasoning: data.reasoning || {},
+          excluded: data.excluded || [],
+          excludedReason: data.excludedReason || {},
+        })
+        storage.set(STORAGE_KEYS.AI_RANK_HASH, intentHash)
+
+      } catch {
+        setAiRankDone(true) // Silent fail — JS ranking stays
+      }
+    }
+
+    runAIRanker()
+  }, [storageReady, userIntent, projects, aiRecommended, aiRankDone])
 
   const handleRemove = (id: string) => {
     const nextRejected = [...rejectedIds, id];
@@ -321,10 +423,25 @@ export default function DashboardPage() {
                 style={{ fontFamily: 'var(--font-display)' }}>
                 {userName ? `${userName}'s Top Picks` : 'Your Top Picks'}
               </h1>
-              <p className="text-sm text-[var(--text-secondary)]">
+              <p className="text-sm text-[var(--text-secondary)] flex items-center gap-1.5">
                 {curatedIds.length > 0
                   ? `${curatedIds.length} propert${curatedIds.length === 1 ? 'y' : 'ies'} you added`
-                  : 'Smart-matched based on your preferences'}
+                  : (
+                    <>
+                      {aiRankSource !== 'js' && (
+                        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px]
+                          font-bold bg-[var(--primary-light)] text-[var(--primary)]">
+                          <Sparkles className="w-2.5 h-2.5" /> AI
+                        </span>
+                      )}
+                      {aiRankSource === 'cache'
+                        ? 'AI-ranked · from earlier session'
+                        : aiRankSource === 'ai'
+                        ? 'AI-ranked based on your full profile'
+                        : 'Smart-matched based on your preferences'}
+                    </>
+                  )
+                }
               </p>
             </div>
             <Link href="/explore"
@@ -388,6 +505,17 @@ export default function DashboardPage() {
                         </div>
                       );
                     })()}
+
+                    {reasoning[project.id] && (
+                      <div className="absolute bottom-3 left-3 right-3 z-30 pointer-events-none">
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full
+                          text-[10px] font-medium bg-black/70 text-white backdrop-blur-sm
+                          max-w-full overflow-hidden">
+                          <Sparkles className="w-2.5 h-2.5 flex-shrink-0 text-[var(--primary)]" />
+                          <span className="truncate">{reasoning[project.id]}</span>
+                        </span>
+                      </div>
+                    )}
 
                     <button
                       onClick={() => handleRemove(project.id)}

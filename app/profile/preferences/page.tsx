@@ -8,6 +8,7 @@ import { UserIntent } from "@/types/user";
 import { toast } from "sonner";
 
 import { storage, STORAGE_KEYS } from "@/lib/storage";
+import { clearLocalAIRank } from "@/lib/ai-rank-cache";
 import { useGuestMode } from "@/hooks/useGuestMode";
 
 export default function PreferencesPage() {
@@ -35,6 +36,9 @@ export default function PreferencesPage() {
 
   const handleReset = () => {
     storage.remove(STORAGE_KEYS.USER_INTENT);
+    // Clear AI rank cache — stale if intent changes
+    storage.remove(STORAGE_KEYS.AI_RANK_HASH);
+    clearLocalAIRank();
     setIntent(null);
     toast.success('Preferences cleared. You can retake the quiz.');
   };
