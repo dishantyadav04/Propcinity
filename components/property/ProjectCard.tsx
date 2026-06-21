@@ -1,6 +1,7 @@
 'use client';
 
 import { Project, UnitConfig } from "@/types/project";
+import PropertyFitBadge from "./PropertyFitBadge";
 import InsightsPanel from "./InsightsPanel";
 import WhyThisFitsYou from "./WhyThisFitsYou";
 import ProjectImage from "./ProjectImage";

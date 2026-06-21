@@ -1199,24 +1199,3 @@ export default function ProjectDetailPage() {
     </div>
   );
 }
-/div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* ── Modals ───────────────────────────────────── */}
-      <LeadQualificationSheet
-        isOpen={isQualificationOpen}
-        onClose={() => setIsQualificationOpen(false)}
-        project={project}
-        unitConfig={selectedUnit}
-      />
-      <AskAIModal
-        isOpen={isAIModalOpen}
-        onClose={() => setIsAIModalOpen(false)}
-        project={project}
-      />
-    </div>
-  );
-}

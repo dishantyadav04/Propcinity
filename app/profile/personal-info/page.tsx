@@ -57,8 +57,8 @@ export default function PersonalInfoPage() {
     }
     // Write to Supabase
     try {
-      const { createClientSupabaseClient } = await import('@/lib/supabase');
-      const supabase = createClientSupabaseClient();
+      const { createClient } = await import('@/lib/supabase');
+      const supabase = createClient();
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
         await supabase.from('user_profiles').upsert(
@@ -154,12 +154,6 @@ export default function PersonalInfoPage() {
 
         <p className="text-xs text-[var(--text-muted)] text-center mt-4">
           Your personal information is encrypted and never shared.
-        </p>
-      </SectionContainer>
-    </div>
-  );
-}
-n is encrypted and never shared.
         </p>
       </SectionContainer>
     </div>

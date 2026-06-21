@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useCallback, useRef } from 'react';
+import { Suspense, useEffect, useState, useCallback, useRef } from 'react';
 import Image from 'next/image';
 import dynamic from 'next/dynamic';
 import { Project } from '@/types/project';
@@ -39,7 +39,7 @@ const SORT_OPTIONS: { value: SortOption; label: string; icon: string }[] = [
   { value: 'newest', label: 'Newest First', icon: '🆕' },
 ];
 
-export default function ExplorePage() {
+function ExplorePageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { isGuest: isGuestRaw, isChecking } = useGuestMode();
@@ -713,5 +713,13 @@ export default function ExplorePage() {
         )}
       </div>
     </div>
+  );
+}
+
+export default function ExplorePage() {
+  return (
+    <Suspense fallback={null}>
+      <ExplorePageContent />
+    </Suspense>
   );
 }

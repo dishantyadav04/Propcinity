@@ -101,8 +101,8 @@ export default function ProfilePrivacyPage() {
                   const newVal = !notifications[key];
                   setNotifications(prev => ({ ...prev, [key]: newVal }));
                   try {
-                    const { createClientSupabaseClient } = await import('@/lib/supabase');
-                    const supabase = createClientSupabaseClient();
+                    const { createClient } = await import('@/lib/supabase');
+                    const supabase = createClient();
                     const { data: { user } } = await supabase.auth.getUser();
                     if (user) {
                       await supabase.from('user_profiles')
