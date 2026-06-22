@@ -87,7 +87,7 @@ export default function AdminUsersPage() {
             <table className="w-full text-left border-collapse">
               <thead>
                 <tr className="border-b border-[var(--border)] bg-[var(--surface-raised)]/50">
-                  {['City', 'Purpose', 'Budget', 'BHK Type', 'Timeline', 'Updated'].map(h => (
+                  {['User', 'City', 'Purpose', 'Budget', 'BHK Type', 'Timeline', 'Updated'].map(h => (
                     <th key={h} className="px-4 py-3 text-[10px] font-black text-[var(--text-muted)] uppercase tracking-wider">
                       {h}
                     </th>
@@ -97,6 +97,24 @@ export default function AdminUsersPage() {
               <tbody className="divide-y divide-[var(--border)]">
                 {filtered.map((user, i) => (
                   <tr key={i} className="hover:bg-[var(--surface-raised)]/30 transition-colors">
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-8 h-8 rounded-full bg-[var(--primary-light)] flex items-center justify-center flex-shrink-0">
+                          <span className="text-xs font-black text-[var(--primary)] uppercase">
+                            {(user.display_name || user.email || '?').charAt(0)}
+                          </span>
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-sm font-semibold text-[var(--text-primary)] truncate">
+                            {user.display_name || '—'}
+                          </p>
+                          <p className="text-[10px] text-[var(--text-muted)] truncate">{user.email || '—'}</p>
+                          {user.phone && (
+                            <p className="text-[10px] text-[var(--text-muted)]">{user.phone}</p>
+                          )}
+                        </div>
+                      </div>
+                    </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-1.5 text-sm font-semibold text-[var(--text-primary)]">
                         <MapPin className="w-3 h-3 text-[var(--primary)]" />

@@ -2,6 +2,15 @@ import { createAdminSupabaseClient, createServerSupabaseClient } from '@/lib/sup
 import { Project, UnitConfig } from '@/types/project'
 import { MOCK_PROJECTS } from '@/lib/mock-data'
 
+function sanitizeDates(obj: Record<string, unknown>): Record<string, unknown> {
+  const DATE_FIELDS = ['launch_date', 'possession_date', 'rera_expiry', 'rera_possession_date', 'rera_expiry']
+  return Object.fromEntries(
+    Object.entries(obj).map(([k, v]) =>
+      DATE_FIELDS.includes(k) && v === '' ? [k, null] : [k, v]
+    )
+  )
+}
+
 type SupabaseProjectRow = {
   id: string
   slug: string
@@ -301,7 +310,7 @@ export async function adminCreateProject(projectData: Record<string, unknown>): 
 
   const { data, error } = await supabase
     .from('projects')
-    .insert(project)
+    .insert(sanitizeDates(project as Record<string, unknown>))
     .select('id')
     .single()
 
@@ -339,7 +348,7 @@ export async function adminUpdateProject(
 
   await supabase
     .from('projects')
-    .update(project)
+    .update(sanitizeDates(project as Record<string, unknown>))
     .eq('id', id)
 
   if (unitConfigs !== undefined) {

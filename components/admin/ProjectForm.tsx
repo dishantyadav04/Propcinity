@@ -194,8 +194,8 @@ export default function ProjectForm({ initialData }: ProjectFormProps) {
         masterPlanImages: undefined,
       };
 
-      const response = await fetch(initialData ? `/api/admin/projects/${initialData.id}` : '/api/admin/projects', {
-        method: initialData ? 'PATCH' : 'POST',
+      const response = await fetch(initialData ? `/api/admin/projects?id=${initialData.id}` : '/api/admin/projects', {
+        method: initialData ? 'PUT' : 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body)
       });
@@ -473,8 +473,8 @@ export default function ProjectForm({ initialData }: ProjectFormProps) {
             <label className="text-[10px] text-[var(--text-muted)] uppercase font-bold">Construction %</label>
             <input
               type="number" min="0" max="100"
-              value={project.constructionPercent || 0}
-              onChange={(e) => setProject({...project, constructionPercent: Number(e.target.value)})}
+              value={project.constructionPercent ?? ''}
+              onChange={(e) => setProject({...project, constructionPercent: e.target.value === '' ? 0 : Number(e.target.value)})}
               className="w-full bg-[var(--surface-raised)] border border-[var(--border)] rounded-xl px-4 py-2.5 text-sm"
             />
           </div>

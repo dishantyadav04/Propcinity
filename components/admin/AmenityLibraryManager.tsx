@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from "react";
-import { Plus, X, Loader2 } from "lucide-react";
+import { Plus, X, Loader2, Pencil, Check } from "lucide-react";
 import { AmenityLibraryItem } from "@/types/project";
 import { toast } from "sonner";
 
@@ -30,6 +30,11 @@ export default function AmenityLibraryManager({
   const [newCategory, setNewCategory] = useState<'internal' | 'external' | 'both'>('external');
   const [isAdding, setIsAdding] = useState(false);
   const [activeTab, setActiveTab] = useState<'internal' | 'external'>('internal');
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editName, setEditName] = useState('');
+  const [editIcon, setEditIcon] = useState('✨');
+  const [editCategory, setEditCategory] = useState<'internal' | 'external' | 'both'>('both');
+  const [isSavingEdit, setIsSavingEdit] = useState(false);
 
   const fetchLibrary = async () => {
     try {
@@ -85,6 +90,28 @@ export default function AmenityLibraryManager({
     }
   };
 
+  const saveEdit = async (id: string) => {
+    if (!editName.trim()) return;
+    setIsSavingEdit(true);
+    try {
+      const res = await fetch(`/api/admin/amenity-library/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ name: editName.trim(), icon: editIcon, category: editCategory }),
+      });
+      if (!res.ok) throw new Error();
+      const data = await res.json();
+      setLibrary(prev => prev.map(a => a.id === id ? data.amenity : a));
+      setEditingId(null);
+      toast.success('Amenity updated');
+    } catch {
+      toast.error('Failed to update amenity');
+    } finally {
+      setIsSavingEdit(false);
+    }
+  };
+
   const toggleSelect = (amenity: AmenityLibraryItem, forInternal: boolean) => {
     if (forInternal) {
       const next = selectedInternal.includes(amenity.name)
@@ -126,10 +153,44 @@ export default function AmenityLibraryManager({
       ) : (
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
           {filteredLibrary.map(amenity => {
+            if (editingId === amenity.id) {
+              return (
+                <div key={amenity.id}
+                  className="p-3 bg-[var(--surface-raised)] border-2 border-[var(--primary)] rounded-[var(--radius-xs)] space-y-2 col-span-1">
+                  <div className="flex gap-1 flex-wrap">
+                    {COMMON_EMOJIS.map(e => (
+                      <button key={e} type="button" onClick={() => setEditIcon(e)}
+                        className={`w-6 h-6 text-sm rounded flex items-center justify-center ${editIcon === e ? 'ring-2 ring-[var(--primary)] bg-[var(--primary-light)]' : 'bg-[var(--surface)]'}`}>
+                        {e}
+                      </button>
+                    ))}
+                  </div>
+                  <input value={editName} onChange={e => setEditName(e.target.value)}
+                    className="w-full px-2 py-1.5 bg-[var(--surface)] border border-[var(--border)] rounded text-xs focus:outline-none focus:border-[var(--primary)]" />
+                  <select value={editCategory} onChange={e => setEditCategory(e.target.value as any)}
+                    className="w-full px-2 py-1.5 bg-[var(--surface)] border border-[var(--border)] rounded text-xs">
+                    <option value="internal">Internal</option>
+                    <option value="external">External</option>
+                    <option value="both">Both</option>
+                  </select>
+                  <div className="flex gap-2">
+                    <button type="button" onClick={() => saveEdit(amenity.id)} disabled={isSavingEdit}
+                      className="flex items-center gap-1 px-2 py-1 bg-[var(--primary)] text-white text-xs font-bold rounded hover:opacity-90 disabled:opacity-50">
+                      {isSavingEdit ? <Loader2 className="w-3 h-3 animate-spin" /> : <Check className="w-3 h-3" />} Save
+                    </button>
+                    <button type="button" onClick={() => setEditingId(null)}
+                      className="px-2 py-1 bg-[var(--surface)] border border-[var(--border)] text-xs rounded">
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              );
+            }
+
             const selected = activeSelected.includes(amenity.name);
             return (
               <div key={amenity.id}
-                className={`flex items-center gap-2 px-3 py-2.5 rounded-[var(--radius-xs)] border cursor-pointer transition-all ${
+                className={`group flex items-center gap-2 px-3 py-2.5 rounded-[var(--radius-xs)] border cursor-pointer transition-all ${
                   selected
                     ? 'bg-[var(--primary-light)] border-[var(--primary)] text-[var(--primary)]'
                     : 'bg-[var(--surface-raised)] border-[var(--border)] text-[var(--text-secondary)] hover:border-[var(--primary)]/50'
@@ -137,12 +198,24 @@ export default function AmenityLibraryManager({
                 onClick={() => toggleSelect(amenity, activeTab === 'internal')}>
                 <span className="text-lg flex-shrink-0">{amenity.icon}</span>
                 <span className="text-xs font-medium flex-1 truncate">{amenity.name}</span>
-                <button
-                  type="button"
-                  onClick={e => { e.stopPropagation(); removeFromLibrary(amenity.id); }}
-                  className="text-[var(--text-muted)] hover:text-[var(--danger)] opacity-0 group-hover:opacity-100 transition-opacity ml-auto">
-                  <X className="w-3 h-3" />
-                </button>
+                <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity ml-auto">
+                  <button type="button"
+                    onClick={e => {
+                      e.stopPropagation();
+                      setEditingId(amenity.id);
+                      setEditName(amenity.name);
+                      setEditIcon(amenity.icon);
+                      setEditCategory(amenity.category as any);
+                    }}
+                    className="text-[var(--text-muted)] hover:text-[var(--primary)] p-0.5">
+                    <Pencil className="w-3 h-3" />
+                  </button>
+                  <button type="button"
+                    onClick={e => { e.stopPropagation(); removeFromLibrary(amenity.id); }}
+                    className="text-[var(--text-muted)] hover:text-[var(--danger)] p-0.5">
+                    <X className="w-3 h-3" />
+                  </button>
+                </div>
               </div>
             );
           })}

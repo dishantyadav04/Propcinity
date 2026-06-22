@@ -27,7 +27,7 @@ export async function GET(req: NextRequest) {
     .order('created_at', { ascending: false })
     .range(offset, offset + limit - 1)
 
-  if (search) query = query.ilike('name', `%${search}%`)
+  if (search) query = query.or(`name.ilike.%${search}%,phone.ilike.%${search}%`)
   if (status) query = query.eq('status', status)
   if (intentLabel) query = query.eq('intent_label', intentLabel)
 

@@ -1,8 +1,8 @@
 'use client';
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Drawer } from "vaul";
-import { X, CalendarDays, CheckCircle2, Loader2 } from "lucide-react";
+import { X, CalendarDays, CheckCircle2, Loader2, ArrowLeft } from "lucide-react";
 import { Project, UnitConfig } from "@/types/project";
 import { toast } from "sonner";
 
@@ -19,6 +19,15 @@ export default function LeadQualificationSheet({ isOpen, onClose, project, unitC
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [preferredTime, setPreferredTime] = useState('morning');
+  const [step, setStep] = useState<1 | 2>(1);
+  const [timeline, setTimeline] = useState<string>('exploring');
+  const [budgetReady, setBudgetReady] = useState<string>('no_still_planning');
+  const [financeType, setFinanceType] = useState<string>('unsure');
+  const [purpose, setPurpose] = useState<string>('self_use');
+
+  useEffect(() => {
+    if (!isOpen) setStep(1);
+  }, [isOpen]);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -33,6 +42,11 @@ export default function LeadQualificationSheet({ isOpen, onClose, project, unitC
           preferredTime,
           projectId: project.id,
           unitConfigId: unitConfig?.id,
+          timeline,
+          budgetReady,
+          financeType,
+          decisionMaker: 'myself',
+          purpose,
           triggerSource: 'consultation_sheet',
         }),
       });
@@ -50,6 +64,14 @@ export default function LeadQualificationSheet({ isOpen, onClose, project, unitC
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleNext = () => {
+    if (!name.trim() || !phone.trim()) {
+      toast.error('Please fill name and phone');
+      return;
+    }
+    setStep(2);
   };
 
   return (
@@ -78,8 +100,8 @@ export default function LeadQualificationSheet({ isOpen, onClose, project, unitC
                   <p className="text-sm text-[var(--text-secondary)] mt-1">Our property advisor will contact you shortly.</p>
                 </div>
               </div>
-            ) : (
-              <form onSubmit={handleSubmit} className="space-y-4">
+            ) : step === 1 ? (
+              <div className="space-y-4">
                 <div className="space-y-2">
                   <label className="text-sm font-bold text-[var(--text-primary)]">Full Name</label>
                   <input required type="text" placeholder="John Doe"
@@ -102,7 +124,67 @@ export default function LeadQualificationSheet({ isOpen, onClose, project, unitC
                   </select>
                 </div>
                 
-                <button type="submit" disabled={isLoading} className="w-full flex items-center justify-center gap-2 bg-[var(--primary)] text-white font-bold py-4 rounded-xl mt-6 disabled:opacity-70">
+                <button type="button" onClick={handleNext}
+                  className="w-full bg-[var(--primary)] text-white font-bold py-4 rounded-xl mt-6">
+                  Next →
+                </button>
+              </div>
+            ) : (
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <button type="button" onClick={() => setStep(1)}
+                  className="flex items-center gap-1 text-sm text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors">
+                  <ArrowLeft className="w-4 h-4" /> Back
+                </button>
+
+                <div className="space-y-4">
+                  <h3 className="text-sm font-bold text-[var(--text-primary)]">A few quick questions</h3>
+                  
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-[var(--text-primary)]">When are you planning to buy?</label>
+                    <select value={timeline} onChange={e => setTimeline(e.target.value)}
+                      className="w-full px-4 py-3 bg-[var(--surface-raised)] border border-[var(--border)] rounded-xl text-sm">
+                      <option value="within_3_months">Within 3 months</option>
+                      <option value="3_6_months">3–6 months</option>
+                      <option value="6_12_months">6–12 months</option>
+                      <option value="exploring">Just exploring</option>
+                    </select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-[var(--text-primary)]">Is your budget ready?</label>
+                    <select value={budgetReady} onChange={e => setBudgetReady(e.target.value)}
+                      className="w-full px-4 py-3 bg-[var(--surface-raised)] border border-[var(--border)] rounded-xl text-sm">
+                      <option value="yes_full">Yes, fully ready</option>
+                      <option value="yes_partial">Partially ready</option>
+                      <option value="loan_approved">Loan approved</option>
+                      <option value="no_still_planning">Still planning</option>
+                    </select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-[var(--text-primary)]">How will you finance?</label>
+                    <select value={financeType} onChange={e => setFinanceType(e.target.value)}
+                      className="w-full px-4 py-3 bg-[var(--surface-raised)] border border-[var(--border)] rounded-xl text-sm">
+                      <option value="self_funded">Self-funded</option>
+                      <option value="loan_approved">Loan – already approved</option>
+                      <option value="loan_not_applied">Loan – not applied yet</option>
+                      <option value="unsure">Not sure yet</option>
+                    </select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-[var(--text-primary)]">Purpose of purchase?</label>
+                    <select value={purpose} onChange={e => setPurpose(e.target.value)}
+                      className="w-full px-4 py-3 bg-[var(--surface-raised)] border border-[var(--border)] rounded-xl text-sm">
+                      <option value="self_use">Self use</option>
+                      <option value="investment">Investment</option>
+                      <option value="both">Both</option>
+                    </select>
+                  </div>
+                </div>
+                
+                <button type="submit" disabled={isLoading}
+                  className="w-full flex items-center justify-center gap-2 bg-[var(--primary)] text-white font-bold py-4 rounded-xl mt-6 disabled:opacity-70">
                   {isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : <CalendarDays className="w-5 h-5" />}
                   <span>{isLoading ? 'Submitting...' : 'Request Call Back'}</span>
                 </button>

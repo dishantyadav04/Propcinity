@@ -123,7 +123,12 @@ export default function UserIntentForm() {
     const supabase = (await import('@/lib/supabase')).createClient()
     const { data: { user } } = await supabase.auth.getUser()
     const name = user?.user_metadata?.full_name ?? ''
-    const phone = user?.user_metadata?.phone ?? ''
+    const { data: profileData } = await supabase
+      .from('user_profiles')
+      .select('phone')
+      .eq('id', user?.id)
+      .single()
+    const phone = user?.user_metadata?.phone ?? profileData?.phone ?? ''
     const email = user?.email ?? ''
 
     const intent = {
