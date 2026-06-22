@@ -31,6 +31,7 @@ export default function LeadQualificationSheet({ isOpen, onClose, project, unitC
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    const cleanPhone = phone.replace(/^\+91[\s-]?/, '').replace(/[\s-]/g, '');
     setIsLoading(true);
     try {
       const res = await fetch('/api/leads/qualify', {
@@ -38,7 +39,7 @@ export default function LeadQualificationSheet({ isOpen, onClose, project, unitC
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           name,
-          phone,
+          phone: cleanPhone,
           preferredTime,
           projectId: project.id,
           unitConfigId: unitConfig?.id,
@@ -69,6 +70,11 @@ export default function LeadQualificationSheet({ isOpen, onClose, project, unitC
   const handleNext = () => {
     if (!name.trim() || !phone.trim()) {
       toast.error('Please fill name and phone');
+      return;
+    }
+    const cleanPhone = phone.replace(/^\+91[\s-]?/, '').replace(/[\s-]/g, '');
+    if (!/^[6-9]\d{9}$/.test(cleanPhone)) {
+      toast.error('Please enter a valid 10-digit Indian mobile number');
       return;
     }
     setStep(2);
@@ -110,7 +116,7 @@ export default function LeadQualificationSheet({ isOpen, onClose, project, unitC
                 </div>
                 <div className="space-y-2">
                   <label className="text-sm font-bold text-[var(--text-primary)]">Phone Number</label>
-                  <input required type="tel" placeholder="+91 98765 43210"
+                  <input required type="tel" placeholder="98765 43210"
                     value={phone} onChange={e => setPhone(e.target.value)}
                     className="w-full px-4 py-3 bg-[var(--surface-raised)] border border-[var(--border)] rounded-xl text-sm focus:outline-none focus:border-[var(--primary)]" />
                 </div>

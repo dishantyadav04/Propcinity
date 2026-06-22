@@ -99,7 +99,7 @@ export default function ProjectForm({ initialData }: ProjectFormProps) {
     reraRegistrations: [],
     masterPlanImages: [],
     constructionStatus: 'under_construction',
-    constructionPercent: 0
+    constructionPercent: undefined
   });
 
   useEffect(() => {
@@ -130,7 +130,7 @@ export default function ProjectForm({ initialData }: ProjectFormProps) {
         total_units: project.totalUnits,
         available_units: project.availableUnits,
         construction_status: project.constructionStatus,
-        construction_percent: project.constructionPercent,
+        construction_percent: project.constructionPercent ?? 0,
         launch_date: project.launchDate,
         rera_id: project.reraId,
         rera_expiry: project.reraExpiry,

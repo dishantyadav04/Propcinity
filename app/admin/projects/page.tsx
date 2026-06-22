@@ -11,6 +11,7 @@ export default function AdminProjectsPage() {
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
   const [isLoading, setIsLoading] = useState(true);
+  const [togglingId, setTogglingId] = useState<string | null>(null);
   const limit = 20;
 
   const loadProjects = async (pageNum: number) => {
@@ -27,6 +28,41 @@ export default function AdminProjectsPage() {
       console.error(err);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleDelete = async (id: string, name: string) => {
+    if (!window.confirm(`Delete "${name}"? This cannot be undone.`)) return;
+    try {
+      const res = await fetch(`/api/admin/projects?id=${id}`, {
+        method: 'DELETE',
+        credentials: 'include',
+      });
+      if (!res.ok) throw new Error('Failed');
+      setProjects(prev => prev.filter(p => p.id !== id));
+      setTotal(prev => prev - 1);
+    } catch {
+      alert('Failed to delete project. Please try again.');
+    }
+  };
+
+  const handleTogglePublish = async (id: string, current: boolean) => {
+    setTogglingId(id);
+    try {
+      const res = await fetch(`/api/admin/projects?id=${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ isPublished: !current }),
+      });
+      if (!res.ok) throw new Error();
+      setProjects(prev =>
+        prev.map(p => p.id === id ? { ...p, isPublished: !current } : p)
+      );
+    } catch {
+      alert('Failed to update publish status');
+    } finally {
+      setTogglingId(null);
     }
   };
 
@@ -68,7 +104,10 @@ export default function AdminProjectsPage() {
             ) : projects.length === 0 ? (
               <tr><td colSpan={4} className="px-6 py-12 text-center text-[var(--text-muted)]">No projects found.</td></tr>
             ) : projects.map((project) => {
-              const minPrice = project.unitConfigs.length > 0 ? Math.min(...project.unitConfigs.map(u => u.priceMin)) : 0;
+              const configs = project.unitConfigs ?? [];
+              const minPrice = configs.length > 0
+                ? Math.min(...configs.map((u: any) => u.priceMin ?? u.price_min ?? 0))
+                : 0;
               return (
                 <tr key={project.id} className="border-b border-[var(--border)] hover:bg-[var(--surface-raised)]/50 transition-all">
                   <td className="px-6 py-4">
@@ -86,9 +125,22 @@ export default function AdminProjectsPage() {
                     <p className="text-sm font-medium text-[var(--text-secondary)]">{formatINR(minPrice)}+</p>
                   </td>
                   <td className="px-6 py-4 text-center">
-                    <span className="inline-block px-2 py-1 text-[10px] font-bold rounded-full bg-[var(--surface-raised)] text-[var(--text-secondary)] capitalize">
-                      {project.constructionStatus.replace('_', ' ')} ({project.constructionPercent}%)
-                    </span>
+                    <div className="flex flex-col items-center gap-2">
+                      <span className="inline-block px-2 py-1 text-[10px] font-bold rounded-full bg-[var(--surface-raised)] text-[var(--text-secondary)] capitalize">
+                        {project.constructionStatus?.replace(/_/g, ' ') ?? ''} ({project.constructionPercent ?? 0}%)
+                      </span>
+                      <button
+                        onClick={() => handleTogglePublish(project.id, project.isPublished)}
+                        disabled={togglingId === project.id}
+                        className={`text-[10px] font-bold px-2 py-0.5 rounded-full transition-all ${
+                          project.isPublished
+                            ? 'bg-green-100 text-green-700 hover:bg-green-200'
+                            : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+                        } disabled:opacity-50`}
+                      >
+                        {togglingId === project.id ? '…' : project.isPublished ? '● Live' : '○ Draft'}
+                      </button>
+                    </div>
                   </td>
                   <td className="px-6 py-4">
                     <div className="flex justify-end gap-2">
@@ -98,7 +150,9 @@ export default function AdminProjectsPage() {
                       <Link href={`/admin/projects/${project.id}/edit`} className="p-2 text-[var(--text-muted)] hover:text-[var(--primary)]">
                         <Edit className="w-4 h-4" />
                       </Link>
-                      <button className="p-2 text-[var(--text-muted)] hover:text-[var(--danger)]">
+                      <button
+                        onClick={() => handleDelete(project.id, project.name)}
+                        className="p-2 text-[var(--text-muted)] hover:text-[var(--danger)]">
                         <Trash2 className="w-4 h-4" />
                       </button>
                     </div>

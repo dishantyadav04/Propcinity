@@ -23,9 +23,9 @@ export default function UnitConfigForm({ units, onChange }: UnitConfigFormProps)
       floor: 'Mid Floor',
       facing: ['East'],
       highlights: ['Spacious Balcony'],
-      total: 0,
-      available: 0,
-      maintenancePerMonth: 0
+      total: undefined,
+      available: undefined,
+      maintenancePerMonth: undefined
     }]);
   };
 
@@ -221,8 +221,8 @@ export default function UnitConfigForm({ units, onChange }: UnitConfigFormProps)
                 </label>
                 <input
                   type="number"
-                  value={unit.maintenancePerMonth || 0}
-                  onChange={(e) => updateUnit(unit.id, { maintenancePerMonth: Number(e.target.value) })}
+                  value={unit.maintenancePerMonth ?? ''}
+                  onChange={(e) => updateUnit(unit.id, { maintenancePerMonth: e.target.value === '' ? undefined : Number(e.target.value) })}
                   className="w-full bg-[var(--surface)] border border-[var(--border)] rounded-lg px-3 py-1.5 text-xs text-[var(--text-primary)] focus:outline-none"
                 />
               </div>

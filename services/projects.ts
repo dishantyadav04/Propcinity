@@ -298,7 +298,26 @@ export async function adminGetAllProjects(page = 1, limit = 50): Promise<{ proje
     .order('created_at', { ascending: false })
     .range(from, to)
 
-  return { projects: data || [], total: count ?? 0, page, limit }
+  const mapped = (data || []).map((row: any) => ({
+    ...row,
+    unitConfigs: (row.unit_configs || []).map((u: any) => ({
+      id: u.id,
+      type: u.type,
+      area: Number(u.area),
+      priceMin: Number(u.price_min),
+      priceMax: Number(u.price_max),
+      pricePerSqFt: Number(u.price_per_sqft),
+      floor: u.floor,
+      facing: u.facing || [],
+      floorPlan: u.floor_plan,
+      highlights: u.highlights || [],
+      total: u.total,
+      available: u.available,
+      maintenancePerMonth: u.maintenance_per_month,
+      parking: u.parking,
+    })),
+  }))
+  return { projects: mapped, total: count ?? 0, page, limit }
 }
 
 export async function adminCreateProject(projectData: Record<string, unknown>): Promise<string> {
