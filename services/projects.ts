@@ -174,7 +174,11 @@ export async function getPublishedProjects(filters?: {
   }
 
   const { data: projects, error } = await query
-  if (error || !projects) return []
+  if (error) {
+    console.error('[getPublishedProjects] Supabase error:', error.message, error.code)
+    return []
+  }
+  if (!projects) return []
 
   const unitConfigMap = await fetchUnitConfigsByProjectIds(
     (projects as SupabaseProjectRow[]).map((project) => project.id)
@@ -216,7 +220,11 @@ export async function getProjectBySlug(slug: string): Promise<Project | null> {
     .eq('slug', slug)
     .single()
 
-  if (error || !project) return null
+  if (error) {
+    console.error('[getProjectBySlug] Supabase error:', error.message, error.code)
+    return null
+  }
+  if (!project) return null
 
   const unitConfigMap = await fetchUnitConfigsByProjectIds([project.id])
   return mapProject(project as SupabaseProjectRow, unitConfigMap.get(project.id) || [])

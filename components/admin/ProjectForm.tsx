@@ -131,6 +131,7 @@ export default function ProjectForm({ initialData }: ProjectFormProps) {
         available_units: project.availableUnits,
         construction_status: project.constructionStatus,
         construction_percent: project.constructionPercent ?? 0,
+        is_published: project.isPublished ?? true,
         launch_date: project.launchDate,
         rera_id: project.reraId,
         rera_expiry: project.reraExpiry,
@@ -192,6 +193,7 @@ export default function ProjectForm({ initialData }: ProjectFormProps) {
         externalAmenities: undefined,
         reraRegistrations: undefined,
         masterPlanImages: undefined,
+        isPublished: undefined,
       };
 
       const response = await fetch(initialData ? `/api/admin/projects?id=${initialData.id}` : '/api/admin/projects', {
