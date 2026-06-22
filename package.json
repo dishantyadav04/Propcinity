@@ -1,8 +1,8 @@
 {
-  "name": "propiq",
+  "name": "propcinity",
   "version": "1.0.0",
   "private": true,
-  "description": "Backend-only Next.js 14 App Router project for PropIQ",
+  "description": "Propcinity — Real estate decision intelligence platform for Pune",
   "scripts": {
     "dev": "next dev",
     "build": "next build",

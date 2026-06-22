@@ -15,7 +15,6 @@ import { getMatchPercent } from '@/lib/match-score';
 import { storage, STORAGE_KEYS } from '@/lib/storage';
 import { useGuestMode } from '@/hooks/useGuestMode';
 import PersonalizedWelcome from '@/components/onboarding/PersonalizedWelcome';
-import { RECO_CACHE_KEY } from '@/lib/storage-keys';
 import { hashIntent, getLocalAIRank, setLocalAIRank } from '@/lib/ai-rank-cache';
 
 function getSmartMatchLabel(project: Project, intent: any): string | null {
@@ -168,7 +167,7 @@ export default function DashboardPage() {
       const curated = storage.get<string[]>(STORAGE_KEYS.CURATED_IDS, []);
       const rejected = storage.get<string[]>(STORAGE_KEYS.REJECTED_IDS, []);
       const name = (intent as any)?.name?.split(' ')[0] || '';
-      const cachedReco = storage.get<string[]>(RECO_CACHE_KEY, []);
+      const cachedReco = storage.get<string[]>(STORAGE_KEYS.RECO_CACHE, []);
 
       setUserIntent(intent);
       setCuratedIds(curated);
@@ -237,7 +236,7 @@ export default function DashboardPage() {
     try {
       const scored = smartRankProjects(projects, userIntent)
       setAiRecommended(scored)
-      storage.set(RECO_CACHE_KEY, scored)
+      storage.set(STORAGE_KEYS.RECO_CACHE, scored)
     } finally {
       setAiLoading(false)
     }

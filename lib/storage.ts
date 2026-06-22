@@ -36,4 +36,5 @@ export const STORAGE_KEYS = {
   COMPARE_ITEMS:     'compareItems',
   ONBOARDING_DONE:   'onboarding_complete',
   AI_RANK_HASH:      'propcinity_ai_rank_hash',
+  RECO_CACHE:        'propcinity_reco_cache',
 } as const

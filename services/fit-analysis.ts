@@ -30,12 +30,12 @@ export function generateFitReasons(
     }
   }
 
-  const cityMatch = intent.subLocations?.some(
-    (loc: string) => project.city.toLowerCase().includes(loc.toLowerCase()) 
-      || loc.toLowerCase().includes(project.city.toLowerCase())
+  const locationMatch = intent.subLocations?.some(
+    (loc: string) => project.location.toLowerCase().includes(loc.toLowerCase()) 
+      || loc.toLowerCase().includes(project.location.toLowerCase())
   ) ?? false;
-  if (cityMatch) {
-    reasons.push({ icon: 'MapPin', text: 'Located in your preferred city', strength: 'strong' })
+  if (locationMatch) {
+    reasons.push({ icon: 'MapPin', text: 'Located in your preferred area', strength: 'strong' })
   }
 
   if (project.constructionStatus === 'ready_to_move') {

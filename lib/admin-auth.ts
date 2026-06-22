@@ -1,8 +1,8 @@
 // lib/admin-auth.ts
 import { createHash, timingSafeEqual, createHmac } from 'crypto'
 import { NextRequest } from 'next/server'
-import { Redis } from '@upstash/redis'
 import * as OTPAuth from 'otpauth'
+import { getRedis } from '@/lib/redis'
 
 export const ADMIN_COOKIE_NAME = 'admin_session'
 export const ADMIN_COOKIE_MAX_AGE = 60 * 60 * 24 * 7
@@ -118,17 +118,6 @@ export function extractTokenId(token: string): string {
 }
 
 // ── Redis — optional, for token revocation ─────────────────────
-
-let redisClient: Redis | null = null
-
-function getRedis(): Redis | null {
-  if (redisClient) return redisClient
-  const url = process.env.UPSTASH_REDIS_REST_URL
-  const token = process.env.UPSTASH_REDIS_REST_TOKEN
-  if (!url || !token) return null
-  redisClient = new Redis({ url, token })
-  return redisClient
-}
 
 export async function storeSessionToken(token: string): Promise<void> {
   const redis = getRedis()

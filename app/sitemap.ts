@@ -1,34 +1,30 @@
 import { MetadataRoute } from 'next'
+import { getPublishedProjects } from '@/services/projects'
+import { getPublishedBlogs } from '@/services/blogs'
 
 const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://propcinity.in'
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   let projectEntries: MetadataRoute.Sitemap = []
   try {
-    const res = await fetch(`${BASE_URL}/api/projects`, { next: { revalidate: 3600 } })
-    if (res.ok) {
-      const data = await res.json()
-      projectEntries = (Array.isArray(data) ? data : (data.projects || [])).map((p: any) => ({
-        url: `${BASE_URL}/projects/${p.slug}`,
-        lastModified: p.updatedAt || new Date(),
-        changeFrequency: 'weekly' as const,
-        priority: 0.8,
-      }))
-    }
+    const projects = await getPublishedProjects({})
+    projectEntries = projects.map((p) => ({
+      url: `${BASE_URL}/projects/${p.slug}`,
+      lastModified: new Date(),
+      changeFrequency: 'weekly' as const,
+      priority: 0.8,
+    }))
   } catch { /* silent fallback */ }
 
   let blogEntries: MetadataRoute.Sitemap = []
   try {
-    const res = await fetch(`${BASE_URL}/api/blogs?limit=1000`, { next: { revalidate: 3600 } })
-    if (res.ok) {
-      const data = await res.json()
-      blogEntries = (data.blogs || []).map((b: any) => ({
-        url: `${BASE_URL}/blogs/${b.slug}`,
-        lastModified: b.updatedAt || new Date(),
-        changeFrequency: 'weekly' as const,
-        priority: 0.7,
-      }))
-    }
+    const { blogs } = await getPublishedBlogs(1, 1000)
+    blogEntries = blogs.map((b) => ({
+      url: `${BASE_URL}/blogs/${b.slug}`,
+      lastModified: new Date(b.updatedAt),
+      changeFrequency: 'weekly' as const,
+      priority: 0.7,
+    }))
   } catch { /* silent fallback */ }
 
   return [

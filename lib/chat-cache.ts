@@ -2,19 +2,12 @@
 // Prevents paying for duplicate questions
 // Falls back to null (cache miss) if Redis is unavailable
 
-import { Redis } from '@upstash/redis'
+import { getRedis } from '@/lib/redis'
 
 interface CacheEntry {
   answer: string;
   provider: string;
   ts: number;
-}
-
-function getRedis(): Redis | null {
-  const url = process.env.UPSTASH_REDIS_REST_URL
-  const token = process.env.UPSTASH_REDIS_REST_TOKEN
-  if (!url || !token) return null
-  return new Redis({ url, token })
 }
 
 const CACHE_TTL = 30 * 60 * 1000 // 30 minutes

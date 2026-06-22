@@ -3,7 +3,7 @@ import { z } from 'zod'
 import { rankAI } from '@/lib/ai-fallback'
 import { createServerSupabaseClient } from '@/lib/supabase-server'
 import { aiRankLimiter, getClientIp, checkRateLimit } from '@/lib/rate-limit'
-import { Redis } from '@upstash/redis'
+import { getRedis } from '@/lib/redis'
 
 const AI_RANK_CACHE_TTL = 24 * 60 * 60 // 24 hours in seconds
 
@@ -40,13 +40,6 @@ const RankRequestSchema = z.object({
     cons: z.array(z.string()),
   })).max(15),
 })
-
-function getRedis(): Redis | null {
-  const url = process.env.UPSTASH_REDIS_REST_URL
-  const token = process.env.UPSTASH_REDIS_REST_TOKEN
-  if (!url || !token) return null
-  return new Redis({ url, token })
-}
 
 export async function POST(request: NextRequest) {
   const ip = getClientIp(request)

@@ -1,6 +1,5 @@
 // app/api/ai/ask/route.ts
 import { NextRequest, NextResponse } from 'next/server'
-import { Redis } from '@upstash/redis'
 import { z } from 'zod'
 import { askAI } from '@/lib/ai-fallback'
 import { buildSystemPrompt } from '@/lib/prompts'
@@ -8,6 +7,7 @@ import { getProjectsByIds } from '@/services/projects'
 import { getChatCache, setChatCache, makeCacheKey } from '@/lib/chat-cache'
 import { createServerSupabaseClient } from '@/lib/supabase-server'
 import { aiAskLimiter, getClientIp, checkRateLimit } from '@/lib/rate-limit'
+import { getRedis } from '@/lib/redis'
 
 const schema = z.object({
   question: z.string().trim().min(1).max(500),
@@ -30,16 +30,6 @@ const PutBodySchema = z.object({
     id: z.string().uuid(),
   })).max(20).optional(),
 })
-
-function getRedis(): Redis | null {
-  const url = process.env.UPSTASH_REDIS_REST_URL
-  const token = process.env.UPSTASH_REDIS_REST_TOKEN
-  if (!url || !token) {
-    console.warn('[AI] Upstash Redis not configured. Daily chat limits will not be enforced.')
-    return null
-  }
-  return new Redis({ url, token })
-}
 
 const DAILY_LIMIT = 5
 

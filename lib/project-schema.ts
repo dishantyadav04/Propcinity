@@ -35,8 +35,6 @@ export const projectSchema = z.object({
   lng: z.number().optional(),
   tagline: z.string().optional(),
   description: z.string().optional(),
-  trust_score: z.number().int().min(0).max(100).optional(), // DEPRECATED: trust_score removed from Project type, do not use — see types/project.ts
-  risk_label: z.enum(['low', 'medium', 'high']).optional(), // DEPRECATED: riskLabel removed from Project type, do not use — see types/project.ts
   rera_status: z.enum(['registered', 'expired', 'pending', 'not_registered']).optional(),
   rera_id: z.string().optional(),
   rera_expiry: z.string().optional().nullable().transform(v => v === '' ? null : v ?? null),
@@ -64,7 +62,6 @@ export const projectSchema = z.object({
   bank_approvals: z.array(z.object({ bankName: z.string(), logoUrl: z.string().optional() })).optional().default([]),
   videos: z.array(z.object({ label: z.string(), youtubeUrl: z.string() })).optional().default([]),
   brochure_url: z.string().optional().nullable(),
-  commission_rate: z.number().optional(),
   is_published: z.boolean().optional(),
   nearby_locations: z.array(z.object({
     id: z.string(),

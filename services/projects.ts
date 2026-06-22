@@ -49,10 +49,13 @@ type SupabaseUnitConfigRow = {
   price_per_sqft: number
   available: number
   total: number
-  floor_range: string
+  floor: string | null
+  floor_plan: string | null
   facing: string[] | null
   images: string[] | null
   highlights: string[] | null
+  parking: number | null
+  maintenance_per_month: number | null
 }
 
 function mapUnitConfig(row: SupabaseUnitConfigRow): UnitConfig {
@@ -63,14 +66,14 @@ function mapUnitConfig(row: SupabaseUnitConfigRow): UnitConfig {
     priceMin: Number(row.price_min),
     priceMax: Number(row.price_max),
     pricePerSqFt: Number(row.price_per_sqft),
-    floor: row.floor_range,
+    floor: row.floor ?? undefined,
     facing: row.facing || [],
-    floorPlan: (row as any).floor_plan_url,
+    floorPlan: row.floor_plan ?? undefined,
     highlights: row.highlights || [],
     total: row.total,
     available: row.available,
-    maintenancePerMonth: (row as any).maintenance_cost,
-    parking: (row as any).parking,
+    maintenancePerMonth: row.maintenance_per_month ?? undefined,
+    parking: row.parking ?? undefined,
   }
 }
 
@@ -361,7 +364,7 @@ export async function adminUpdateProject(
 
   const {
     unitConfigs,
-    // Strip camelCase fields that leak through
+    // Strip camelCase fields — mapped to snake_case below
     builderName, builderLogo, builderYearsExperience, builderCompletedProjects,
     builderCities, builderTopProjects, builderDescription,
     reraId, reraExpiry, reraLink, reraStatus, launchDate, possessionDate, reraPossessionDate,
@@ -373,9 +376,36 @@ export async function adminUpdateProject(
     ...project
   } = projectData as any
 
+  // Re-map camelCase fields that have DB columns to their snake_case equivalents
+  const snakeMapped: Record<string, unknown> = {
+    ...(nearbyLocations !== undefined && { nearby_locations: nearbyLocations }),
+    ...(internalAmenities !== undefined && { internal_amenities: internalAmenities }),
+    ...(externalAmenities !== undefined && { external_amenities: externalAmenities }),
+    ...(reraRegistrations !== undefined && { rera_registrations: reraRegistrations }),
+    ...(masterPlanImages !== undefined && { master_plan_images: masterPlanImages }),
+    ...(reraStatus !== undefined && { rera_status: reraStatus }),
+    ...(launchDate !== undefined && { launch_date: launchDate }),
+    ...(possessionDate !== undefined && { possession_date: possessionDate }),
+    ...(reraPossessionDate !== undefined && { rera_possession_date: reraPossessionDate }),
+    ...(constructionStatus !== undefined && { construction_status: constructionStatus }),
+    ...(constructionPercent !== undefined && { construction_percent: constructionPercent }),
+    ...(totalUnits !== undefined && { total_units: totalUnits }),
+    ...(availableUnits !== undefined && { available_units: availableUnits }),
+    ...(landParcelAcres !== undefined && { land_parcel_acres: landParcelAcres }),
+    ...(totalTowers !== undefined && { total_towers: totalTowers }),
+    ...(floorsPerTower !== undefined && { floors_per_tower: floorsPerTower }),
+    ...(litigationDetails !== undefined && { litigation_details: litigationDetails }),
+    ...(commencementCertificate !== undefined && { commencement_certificate: commencementCertificate }),
+    ...(occupancyCertificate !== undefined && { occupancy_certificate: occupancyCertificate }),
+    ...(legalNotes !== undefined && { legal_notes: legalNotes }),
+    ...(brochureUrl !== undefined && { brochure_url: brochureUrl }),
+    ...(paymentPlans !== undefined && { payment_plans: paymentPlans }),
+    ...(bankApprovals !== undefined && { bank_approvals: bankApprovals }),
+  }
+
   await supabase
     .from('projects')
-    .update(sanitizeDates(project as Record<string, unknown>))
+    .update(sanitizeDates({ ...project, ...snakeMapped } as Record<string, unknown>))
     .eq('id', id)
 
   if (unitConfigs !== undefined) {

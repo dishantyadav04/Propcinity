@@ -8,7 +8,7 @@ interface AdminMapPreviewProps {
 }
 
 const AdminMapPreviewInner = dynamic(
-  () => import('./AdminMapPreviewInner'),
+  () => import('@/components/map/ProjectMapInner'),
   {
     ssr: false,
     loading: () => (

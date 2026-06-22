@@ -7,6 +7,14 @@ import { getProjectsByIds } from '@/services/projects'
 import { calculateIntentScore } from '@/services/leads'
 import { leadsLimiter, getClientIp, checkRateLimit } from '@/lib/rate-limit'
 
+function generateBookingRef(): string {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
+  const randomPart = Array.from({ length: 8 }, () =>
+    chars[Math.floor(Math.random() * chars.length)]
+  ).join('')
+  return `REF-${randomPart}`
+}
+
 const schema = z.object({
   projectId: z.string().uuid(),
   unitConfigId: z.string().uuid().optional(),
@@ -56,6 +64,8 @@ export async function POST(request: NextRequest) {
     userId = user?.id ?? null
   }
 
+  const bookingRef = generateBookingRef()
+
   const { data: lead, error } = await supabase
     .from('leads')
     .insert({
@@ -78,8 +88,9 @@ export async function POST(request: NextRequest) {
       intent_score: leadWithScore.intentScore,
       intent_label: leadWithScore.intentLabel,
       trigger_source: leadData.triggerSource || 'unknown',
+      booking_ref: bookingRef,
     })
-    .select('booking_ref')
+    .select('id')
     .single()
 
   if (error || !lead) {
@@ -92,8 +103,6 @@ export async function POST(request: NextRequest) {
     console.error('Lead insert error:', error)
     return NextResponse.json({ error: 'Failed to save consultation' }, { status: 500 })
   }
-
-  const bookingRef = lead.booking_ref
 
   // Fire PostHog server-side conversion event (non-blocking)
   // intentLabel intentionally NOT included — stays internal

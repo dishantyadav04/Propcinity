@@ -3,15 +3,11 @@ import { Project } from '@/types/project'
 // Fields that should NEVER be sent to the AI (internal ops data)
 function sanitizeProjectForAI(project: Project): Partial<Project> {
   const {
-    // Remove internal fields
+    // Remove internal/sensitive fields before sending to AI
     legalNotes,
     litigationDetails,
-    commissionRate,
-    builderScore,
-    trustScore,
-    riskLabel,
     ...safeFields
-  } = project as any
+  } = project
   return safeFields
 }
 
