@@ -161,7 +161,7 @@ export default function UserIntentForm() {
         }, { onConflict: 'id' })
 
         // 2. Save intent answers to user_intents
-        const { error: intentError } = await supabase.from('user_intents').upsert({
+        const intentPayload = {
           user_id: user.id,
           city: form.city,
           bhk_types: form.bhkType,
@@ -187,10 +187,31 @@ export default function UserIntentForm() {
             preferences: form.preferences,
           },
           updated_at: new Date().toISOString(),
-        }, { onConflict: 'user_id' })
+        }
+
+        const { error: intentError } = await supabase
+          .from('user_intents')
+          .upsert(intentPayload, { onConflict: 'user_id' })
 
         if (intentError) {
-          console.error('[onboarding] user_intents upsert failed:', intentError)
+          if (intentError.code === '42P10') {
+            // Unique constraint missing on user_id — SQL migration not run yet.
+            // Fall back to manual check-then-insert/update.
+            console.warn('[onboarding] upsert fallback: unique constraint missing on user_intents.user_id')
+            const { data: existing } = await supabase
+              .from('user_intents')
+              .select('id')
+              .eq('user_id', user.id)
+              .maybeSingle()
+
+            if (existing) {
+              await supabase.from('user_intents').update(intentPayload).eq('user_id', user.id)
+            } else {
+              await supabase.from('user_intents').insert(intentPayload)
+            }
+          } else {
+            console.error('[onboarding] user_intents upsert failed:', intentError)
+          }
         }
 
         // 3. Trigger AI embedding — fire-and-forget, never block the user
@@ -207,12 +228,15 @@ export default function UserIntentForm() {
     // 4. Create cold lead — OUTSIDE try/catch so it always fires even if upserts above fail
     //    Fire-and-forget. Never block the user. Never show this error in UI.
     if (user) {
+      // Strip +91 prefix before sending — API expects 10 bare digits
+      const cleanPhone = phone.replace(/^\+91[\s-]?/, '').replace(/^0/, '').replace(/[\s-]/g, '')
+
       fetch('/api/leads/cold', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           name,
-          phone,
+          phone: cleanPhone,
           email,
           timeline: form.timeline,
           purpose: form.purpose,
