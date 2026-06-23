@@ -14,12 +14,15 @@ import { motion } from "framer-motion";
 
 import { storage, STORAGE_KEYS } from "@/lib/storage";
 import { useGuestMode } from "@/hooks/useGuestMode";
+import { signOut } from "@/lib/supabase-auth";
+import { createClient } from "@/lib/supabase";
 
 export default function ProfilePage() {
   const router = useRouter();
   const { isGuest, isChecking } = useGuestMode();
   const [intent, setIntent] = useState<UserIntent | null>(null);
   const [curatedCount, setCuratedCount] = useState(0);
+  const [profile, setProfile] = useState<{ display_name?: string; email?: string; phone?: string } | null>(null);
 
   useEffect(() => {
     if (isGuest) router.replace('/onboarding');
@@ -30,6 +33,21 @@ export default function ProfilePage() {
     if (saved) setIntent(saved);
     const ids = storage.get<string[]>(STORAGE_KEYS.CURATED_IDS, []);
     setCuratedCount(ids.length);
+  }, []);
+
+  useEffect(() => {
+    const fetchProfile = async () => {
+      const supabase = createClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      const { data } = await supabase
+        .from('user_profiles')
+        .select('display_name, phone, email')
+        .eq('id', user.id)
+        .single();
+      if (data) setProfile(data);
+    };
+    fetchProfile();
   }, []);
 
   if (isChecking || isGuest) {
@@ -43,6 +61,11 @@ export default function ProfilePage() {
   const formatBudget = (val: number) => {
     if (val >= 10000000) return `₹${(val / 10000000).toFixed(1)} Cr`;
     return `₹${(val / 100000).toFixed(0)} L`;
+  };
+
+  const handleLogOut = async () => {
+    await signOut();
+    router.push('/');
   };
 
   const menuItems = [
@@ -68,10 +91,10 @@ export default function ProfilePage() {
           <div className="space-y-1">
             <h1 className="text-3xl font-black text-[var(--text-primary)]"
               style={{ fontFamily: 'var(--font-display)' }}>
-              {intent?.name || 'Your Profile'}
+              {intent?.name || profile?.display_name || 'Your Profile'}
             </h1>
             <p className="text-[var(--text-secondary)] font-medium">
-              {intent?.phone ? `+91 ${intent.phone}` : intent?.email || 'Setup your profile'}
+              {intent?.phone ? `+91 ${intent.phone}` : profile?.phone || profile?.email || 'Setup your profile'}
             </p>
           </div>
         </SectionContainer>
@@ -190,7 +213,9 @@ export default function ProfilePage() {
         </section>
 
         {/* Logout */}
-        <button className="w-full flex items-center justify-center gap-3 p-5
+        <button
+          onClick={handleLogOut}
+          className="w-full flex items-center justify-center gap-3 p-5
           bg-white border border-[var(--border)] rounded-[var(--radius)]
           hover:bg-[var(--danger-light)] transition-colors group">
           <LogOut className="w-5 h-5 text-[var(--danger)]" />

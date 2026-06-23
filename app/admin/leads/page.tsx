@@ -14,15 +14,28 @@ const INTENT_CONFIG = {
   cold: { icon: Snowflake,     bg: 'bg-blue-50',   text: 'text-blue-600',   border: 'border-blue-200',   label: 'COLD', note: 'Follow up' },
 };
 
-const STATUS_OPTIONS = ['new', 'contacted', 'site_visit_scheduled', 'negotiating', 'converted', 'lost'];
+const STATUS_OPTIONS = [
+  'new',
+  'contacted',
+  'site_visit_scheduled',
+  'site_visit_done',
+  'qualified',
+  'negotiating',
+  'closed_won',
+  'closed_lost',
+  'rejected',
+];
 
 const STATUS_STYLE: Record<string, string> = {
-  new: 'bg-blue-50 text-blue-700',
-  contacted: 'bg-amber-50 text-amber-700',
-  site_visit_scheduled: 'bg-purple-50 text-purple-700',
-  negotiating: 'bg-orange-50 text-orange-700',
-  converted: 'bg-green-50 text-green-700',
-  lost: 'bg-gray-100 text-gray-500',
+  new:                    'bg-blue-50 text-blue-700',
+  contacted:              'bg-amber-50 text-amber-700',
+  site_visit_scheduled:   'bg-purple-50 text-purple-700',
+  site_visit_done:        'bg-indigo-50 text-indigo-700',
+  qualified:              'bg-teal-50 text-teal-700',
+  negotiating:            'bg-orange-50 text-orange-700',
+  closed_won:             'bg-green-50 text-green-700',
+  closed_lost:            'bg-gray-100 text-gray-500',
+  rejected:               'bg-red-50 text-red-500',
 };
 
 export default function AdminLeadsPage() {
@@ -88,9 +101,19 @@ export default function AdminLeadsPage() {
             {total} total leads · Full buyer profiles for your advisors
           </p>
         </div>
-        <button className="flex items-center gap-2 px-4 py-2 border border-[var(--border)]
-          text-sm font-bold rounded-[var(--radius)] hover:bg-[var(--surface-raised)] transition-colors">
-          <Download className="w-4 h-4" /> Export
+        <button
+          onClick={() => {
+            const params = new URLSearchParams({
+              format: 'csv',
+              ...(search && { search }),
+              ...(intentFilter && { intent: intentFilter }),
+              ...(statusFilter && { status: statusFilter }),
+            });
+            window.open(`/api/admin/leads?${params}`, '_blank');
+          }}
+          className="flex items-center gap-2 px-4 py-2 border border-[var(--border)]
+            text-sm font-bold rounded-[var(--radius)] hover:bg-[var(--surface-raised)] transition-colors">
+          <Download className="w-4 h-4" /> Export CSV
         </button>
       </div>
 

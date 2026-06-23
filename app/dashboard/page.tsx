@@ -179,6 +179,28 @@ export default function DashboardPage() {
 
     loadFromStorage();
 
+    // Also fetch saved projects from Supabase and merge
+    const loadSavedFromSupabase = async () => {
+      try {
+        const { createClient } = await import('@/lib/supabase');
+        const supabase = createClient();
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+        const { data } = await supabase
+          .from('saved_projects')
+          .select('project_id')
+          .eq('user_id', user.id);
+        if (!data?.length) return;
+        const remoteIds = data.map((r: any) => r.project_id);
+        const localIds = storage.get<string[]>(STORAGE_KEYS.SAVED_IDS, []);
+        const merged = Array.from(new Set([...localIds, ...remoteIds]));
+        storage.set(STORAGE_KEYS.SAVED_IDS, merged);
+      } catch {
+        // Supabase unavailable — localStorage fallback is fine
+      }
+    };
+    loadSavedFromSupabase();
+
     const handleCuratedUpdate = () => {
       const curated = storage.get<string[]>(STORAGE_KEYS.CURATED_IDS, []);
       setCuratedIds(curated);

@@ -32,6 +32,9 @@ const schema = z.object({
   weekendPreferred: z.boolean().optional(),
   virtualTourFirst: z.boolean().optional(),
   triggerSource: z.string().trim().max(100).optional(),
+  savedProjectIds:    z.array(z.string().uuid()).optional(),
+  rejectedProjectIds: z.array(z.string().uuid()).optional(),
+  curatedProjectIds:  z.array(z.string().uuid()).optional(),
 })
 
 export async function POST(request: NextRequest) {
@@ -87,7 +90,12 @@ export async function POST(request: NextRequest) {
       virtual_tour_first: leadData.virtualTourFirst,
       intent_score: leadWithScore.intentScore,
       intent_label: leadWithScore.intentLabel,
-      trigger_source: leadData.triggerSource || 'unknown',
+      trigger_source: [
+        leadData.triggerSource || 'unknown',
+        `saved:${(leadData.savedProjectIds ?? []).length}`,
+        `rejected:${(leadData.rejectedProjectIds ?? []).length}`,
+        `curated:${(leadData.curatedProjectIds ?? []).length}`,
+      ].join('|'),
       booking_ref: bookingRef,
     })
     .select('id')
@@ -119,6 +127,9 @@ export async function POST(request: NextRequest) {
         projectName,
         timeline: leadData.timeline,
         triggerSource: leadData.triggerSource || 'unknown',
+        savedCount:         leadData.savedProjectIds?.length ?? 0,
+        rejectedCount:      leadData.rejectedProjectIds?.length ?? 0,
+        curatedCount:       leadData.curatedProjectIds?.length ?? 0,
         // intentLabel and intentScore deliberately excluded
       },
     })

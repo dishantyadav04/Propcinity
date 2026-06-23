@@ -62,8 +62,8 @@ export default function PersonalInfoPage() {
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
         await supabase.from('user_profiles').upsert(
-          { user_id: user.id, full_name: form.name, phone: form.phone, city: form.city },
-          { onConflict: 'user_id' }
+          { id: user.id, display_name: form.name, phone: form.phone, city: form.city, updated_at: new Date().toISOString() },
+          { onConflict: 'id' }
         );
       }
     } catch {

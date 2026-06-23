@@ -146,8 +146,17 @@ export async function signOut() {
   const { error } = await supabase.auth.signOut()
   if (error) console.error('Sign out error:', error)
   if (typeof window !== 'undefined') {
-    localStorage.removeItem('onboarding_complete')
-    localStorage.removeItem('userIntent')
+    const keysToRemove = [
+      'onboarding_complete',
+      'userIntent',
+      'curatedIds',
+      'savedIds',
+      'rejectedProjectIds',
+      'compareItems',
+      'propcinity_ai_rank_hash',
+      'propcinity_reco_cache',
+    ]
+    keysToRemove.forEach(k => localStorage.removeItem(k))
   }
 }
 

@@ -21,6 +21,8 @@ export async function GET(req: NextRequest) {
 
   const supabase = createAdminSupabaseClient()
   if (!supabase) return NextResponse.json({ error: 'Config error' }, { status: 500 })
+  const format = searchParams.get('format')
+
   let query = supabase
     .from('leads')
     .select('*, projects(name, location, city)', { count: 'exact' })
@@ -35,6 +37,38 @@ export async function GET(req: NextRequest) {
   if (error) {
     console.error('[admin/leads] DB error:', error)
     return NextResponse.json({ error: 'Database operation failed' }, { status: 500 })
+  }
+
+  if (format === 'csv') {
+    const headers = [
+      'booking_ref','name','phone','email','project','status',
+      'intent_label','intent_score','timeline','budget_ready',
+      'finance_type','purpose','trigger_source','created_at'
+    ];
+    const rows = (data ?? []).map((l: any) => [
+      l.booking_ref ?? '',
+      l.name ?? '',
+      l.phone ?? '',
+      l.email ?? '',
+      l.projects?.name ?? '',
+      l.status ?? '',
+      l.intent_label ?? '',
+      l.intent_score ?? '',
+      l.timeline ?? '',
+      l.budget_ready ?? '',
+      l.finance_type ?? '',
+      l.purpose ?? '',
+      l.trigger_source ?? '',
+      l.created_at ?? '',
+    ].map(v => `"${String(v).replace(/"/g, '""')}"`).join(','));
+
+    const csv = [headers.join(','), ...rows].join('\n');
+    return new NextResponse(csv, {
+      headers: {
+        'Content-Type': 'text/csv',
+        'Content-Disposition': `attachment; filename="propcinity-leads-${new Date().toISOString().slice(0,10)}.csv"`,
+      },
+    });
   }
 
   return NextResponse.json({ leads: data, total: count, page, limit })

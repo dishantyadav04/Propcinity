@@ -5,6 +5,7 @@ import { Drawer } from "vaul";
 import { X, CalendarDays, CheckCircle2, Loader2, ArrowLeft } from "lucide-react";
 import { Project, UnitConfig } from "@/types/project";
 import { toast } from "sonner";
+import { storage, STORAGE_KEYS } from "@/lib/storage";
 
 interface LeadQualificationSheetProps {
   isOpen: boolean;
@@ -29,10 +30,31 @@ export default function LeadQualificationSheet({ isOpen, onClose, project, unitC
     if (!isOpen) setStep(1);
   }, [isOpen]);
 
+  // Pre-fill from stored onboarding intent
+  useEffect(() => {
+    if (!isOpen) return;
+    const intent = storage.get<Record<string, any> | null>(STORAGE_KEYS.USER_INTENT, null);
+    if (!intent) return;
+    if (intent.name)    setName(intent.name);
+    if (intent.phone)   setPhone(intent.phone);
+    if (intent.purpose) {
+      // onboarding uses 'self-use' / 'investment' / 'both'
+      // sheet uses 'self_use' / 'investment' / 'both'
+      const mapped = intent.purpose === 'self-use' ? 'self_use' : intent.purpose;
+      setPurpose(mapped);
+    }
+    if (intent.timeline) setTimeline(intent.timeline);
+  }, [isOpen]);
+
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const cleanPhone = phone.replace(/^\+91[\s-]?/, '').replace(/[\s-]/g, '');
     setIsLoading(true);
+
+    const savedIds   = storage.get<string[]>(STORAGE_KEYS.SAVED_IDS, []);
+    const rejectedIds = storage.get<string[]>(STORAGE_KEYS.REJECTED_IDS, []);
+    const curatedIds  = storage.get<string[]>(STORAGE_KEYS.CURATED_IDS, []);
+
     try {
       const res = await fetch('/api/leads/qualify', {
         method: 'POST',
@@ -49,6 +71,10 @@ export default function LeadQualificationSheet({ isOpen, onClose, project, unitC
           decisionMaker: 'myself',
           purpose,
           triggerSource: 'consultation_sheet',
+          // Buyer context
+          savedProjectIds:    savedIds,
+          rejectedProjectIds: rejectedIds,
+          curatedProjectIds:  curatedIds,
         }),
       });
       if (res.status === 409) {

@@ -144,6 +144,29 @@ export default function ProjectDetailPage() {
     tabEl?.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
   };
 
+  const syncSaveToSupabase = async (projectId: string, isSaving: boolean) => {
+    try {
+      const { createClient } = await import('@/lib/supabase');
+      const supabase = createClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      if (isSaving) {
+        await supabase.from('saved_projects').upsert(
+          { user_id: user.id, project_id: projectId },
+          { onConflict: 'user_id,project_id' }
+        );
+      } else {
+        await supabase.from('saved_projects')
+          .delete()
+          .eq('user_id', user.id)
+          .eq('project_id', projectId);
+      }
+    } catch {
+      // Non-critical — localStorage already updated
+    }
+  };
+
   const handleSaveToShortlist = () => {
     if (!project) return;
     if (isGuest) {
@@ -157,6 +180,7 @@ export default function ProjectDetailPage() {
     const next = isAlready ? saved.filter(id => id !== project.id) : [...saved, project.id];
     storage.set(STORAGE_KEYS.SAVED_IDS, next);
     setSavedToShortlist(!isAlready);
+    syncSaveToSupabase(project.id, !isAlready);
     toast(isAlready ? 'Removed from shortlist' : 'Saved to shortlist ❤️');
   };
 

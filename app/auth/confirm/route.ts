@@ -67,16 +67,22 @@ async function writePhoneToProfile(
   user: { id: string; user_metadata?: Record<string, unknown> }
 ) {
   const phone = user.user_metadata?.phone as string | undefined
-  if (!phone) return
+  const displayName = (user.user_metadata?.full_name ?? user.user_metadata?.name) as string | undefined
+
+  if (!phone && !displayName) return
+
+  const payload: Record<string, unknown> = {
+    id: user.id,
+    updated_at: new Date().toISOString(),
+  }
+  if (phone) payload.phone = phone
+  if (displayName) payload.display_name = displayName
 
   const { error } = await supabase
     .from('user_profiles')
-    .upsert(
-      { id: user.id, phone, updated_at: new Date().toISOString() },
-      { onConflict: 'id' }
-    )
+    .upsert(payload, { onConflict: 'id' })
 
   if (error) {
-    console.error('[auth/confirm] Failed to write phone to user_profiles:', error)
+    console.error('[auth/confirm] Failed to write profile fields:', error)
   }
 }
