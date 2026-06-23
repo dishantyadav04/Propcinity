@@ -160,11 +160,10 @@ export default function UserIntentForm() {
           last_active: new Date().toISOString(),
         }, { onConflict: 'id' })
 
-        // 2. Save intent answers to user_intents so admin panel can read them
+        // 2. Save intent answers to user_intents
         const { error: intentError } = await supabase.from('user_intents').upsert({
           user_id: user.id,
           city: form.city,
-          location: form.city.toLowerCase(),
           bhk_types: form.bhkType,
           purpose: form.purpose,
           timeline: form.timeline,
@@ -202,7 +201,24 @@ export default function UserIntentForm() {
         }).catch((err) => console.warn('[onboarding] embed call failed (non-blocking):', err))
       }
     } catch (err) {
-      console.warn('Profile/intent upsert failed:', err)
+      console.warn('[onboarding] Profile/intent upsert failed:', err)
+    }
+
+    // 4. Create cold lead — OUTSIDE try/catch so it always fires even if upserts above fail
+    //    Fire-and-forget. Never block the user. Never show this error in UI.
+    if (user) {
+      fetch('/api/leads/cold', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name,
+          phone,
+          email,
+          timeline: form.timeline,
+          purpose: form.purpose,
+          city: form.city,
+        }),
+      }).catch(err => console.error('[onboarding] cold lead creation failed silently:', err))
     }
 
     await new Promise(r => setTimeout(r, 1000));

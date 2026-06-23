@@ -67,49 +67,144 @@ export async function POST(request: NextRequest) {
     userId = user?.id ?? null
   }
 
-  const bookingRef = generateBookingRef()
+  // NEW: Find-or-upgrade pattern — upgrade cold lead if exists, otherwise fresh insert
+  let bookingRef = generateBookingRef()
+  let leadId: string
 
-  const { data: lead, error } = await supabase
-    .from('leads')
-    .insert({
-      project_id: leadData.projectId,
-      unit_config_id: leadData.unitConfigId,
-      user_id: userId,
-      name: leadData.name,
-      phone: leadData.phone,
-      email: leadData.email,
-      timeline: leadData.timeline,
-      budget_ready: leadData.budgetReady,
-      finance_type: leadData.financeType,
-      decision_maker: leadData.decisionMaker,
-      purpose: leadData.purpose,
-      preferred_date: leadData.preferredDate,
-      preferred_time: leadData.preferredTime,
-      family_joining: leadData.familyJoining,
-      weekend_preferred: leadData.weekendPreferred,
-      virtual_tour_first: leadData.virtualTourFirst,
-      intent_score: leadWithScore.intentScore,
-      intent_label: leadWithScore.intentLabel,
-      trigger_source: [
-        leadData.triggerSource || 'unknown',
-        `saved:${(leadData.savedProjectIds ?? []).length}`,
-        `rejected:${(leadData.rejectedProjectIds ?? []).length}`,
-        `curated:${(leadData.curatedProjectIds ?? []).length}`,
-      ].join('|'),
-      booking_ref: bookingRef,
-    })
-    .select('id')
-    .single()
+  if (userId) {
+    const { data: coldLead } = await supabase
+      .from('leads')
+      .select('id, booking_ref')
+      .eq('user_id', userId)
+      .is('project_id', null)
+      .eq('journey_stage', 'onboarding')
+      .maybeSingle()
 
-  if (error || !lead) {
-    if ((error as any)?.code === '23505') {
-      return NextResponse.json(
-        { error: "You've already submitted a consultation request for this project." },
-        { status: 409 }
-      )
+    if (coldLead) {
+      // UPGRADE path — update the cold lead in-place
+      bookingRef = coldLead.booking_ref  // keep original booking ref
+      const { error: updateError } = await supabase
+        .from('leads')
+        .update({
+          project_id: leadData.projectId,
+          unit_config_id: leadData.unitConfigId ?? null,
+          timeline: leadData.timeline,
+          budget_ready: leadData.budgetReady,
+          finance_type: leadData.financeType,
+          decision_maker: leadData.decisionMaker,
+          purpose: leadData.purpose,
+          preferred_date: leadData.preferredDate ?? null,
+          preferred_time: leadData.preferredTime ?? null,
+          family_joining: leadData.familyJoining ?? null,
+          weekend_preferred: leadData.weekendPreferred ?? null,
+          virtual_tour_first: leadData.virtualTourFirst ?? null,
+          intent_score: leadWithScore.intentScore,
+          intent_label: leadWithScore.intentLabel,
+          trigger_source: 'consultation_sheet|upgraded_from_onboarding',
+          journey_stage: 'consultation_requested',
+          status: 'new',
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', coldLead.id)
+
+      if (updateError) {
+        console.error('[leads/qualify] Upgrade error:', updateError)
+        return NextResponse.json({ error: 'Failed to save consultation' }, { status: 500 })
+      }
+
+      leadId = coldLead.id
+    } else {
+      // FRESH INSERT path — signed-in user with no cold lead
+      const { data: newLead, error: insertError } = await supabase
+        .from('leads')
+        .insert({
+          project_id: leadData.projectId,
+          unit_config_id: leadData.unitConfigId,
+          user_id: userId,
+          name: leadData.name,
+          phone: leadData.phone,
+          email: leadData.email,
+          timeline: leadData.timeline,
+          budget_ready: leadData.budgetReady,
+          finance_type: leadData.financeType,
+          decision_maker: leadData.decisionMaker,
+          purpose: leadData.purpose,
+          preferred_date: leadData.preferredDate,
+          preferred_time: leadData.preferredTime,
+          family_joining: leadData.familyJoining,
+          weekend_preferred: leadData.weekendPreferred,
+          virtual_tour_first: leadData.virtualTourFirst,
+          intent_score: leadWithScore.intentScore,
+          intent_label: leadWithScore.intentLabel,
+          trigger_source: leadData.triggerSource || 'consultation_sheet',
+          journey_stage: 'consultation_requested',
+          status: 'new',
+          booking_ref: bookingRef,
+        })
+        .select('id')
+        .single()
+
+      if (insertError || !newLead) {
+        if ((insertError as any)?.code === '23505') {
+          return NextResponse.json(
+            { error: "You've already submitted a consultation request for this project." },
+            { status: 409 }
+          )
+        }
+        console.error('[leads/qualify] Insert error:', insertError)
+        return NextResponse.json({ error: 'Failed to save consultation' }, { status: 500 })
+      }
+
+      leadId = newLead.id
     }
-    console.error('Lead insert error:', error)
-    return NextResponse.json({ error: 'Failed to save consultation' }, { status: 500 })
+  } else {
+    // GUEST path — no user session, always fresh insert
+    const { data: guestLead, error: guestError } = await supabase
+      .from('leads')
+      .insert({
+        project_id: leadData.projectId,
+        unit_config_id: leadData.unitConfigId,
+        user_id: null,
+        name: leadData.name,
+        phone: leadData.phone,
+        email: leadData.email,
+        timeline: leadData.timeline,
+        budget_ready: leadData.budgetReady,
+        finance_type: leadData.financeType,
+        decision_maker: leadData.decisionMaker,
+        purpose: leadData.purpose,
+        preferred_date: leadData.preferredDate,
+        preferred_time: leadData.preferredTime,
+        family_joining: leadData.familyJoining,
+        weekend_preferred: leadData.weekendPreferred,
+        virtual_tour_first: leadData.virtualTourFirst,
+        intent_score: leadWithScore.intentScore,
+        intent_label: leadWithScore.intentLabel,
+        trigger_source: [
+          leadData.triggerSource || 'unknown',
+          `saved:${(leadData.savedProjectIds ?? []).length}`,
+          `rejected:${(leadData.rejectedProjectIds ?? []).length}`,
+          `curated:${(leadData.curatedProjectIds ?? []).length}`,
+        ].join('|'),
+        journey_stage: 'consultation_requested',
+        status: 'new',
+        booking_ref: bookingRef,
+      })
+      .select('id')
+      .single()
+
+    if (guestError || !guestLead) {
+      if ((guestError as any)?.code === '23505') {
+        return NextResponse.json(
+          { error: "You've already submitted a consultation request for this project." },
+          { status: 409 }
+        )
+      }
+      console.error('[leads/qualify] Guest insert error:', guestError)
+      return NextResponse.json({ error: 'Failed to save consultation' }, { status: 500 })
+    }
+
+    leadId = guestLead.id
   }
 
   // Fire PostHog server-side conversion event (non-blocking)

@@ -30,21 +30,69 @@ export default function LeadQualificationSheet({ isOpen, onClose, project, unitC
     if (!isOpen) setStep(1);
   }, [isOpen]);
 
-  // Pre-fill from stored onboarding intent
+  // Pre-fill from storage + Supabase for signed-in users
   useEffect(() => {
-    if (!isOpen) return;
-    const intent = storage.get<Record<string, any> | null>(STORAGE_KEYS.USER_INTENT, null);
-    if (!intent) return;
-    if (intent.name)    setName(intent.name);
-    if (intent.phone)   setPhone(intent.phone);
-    if (intent.purpose) {
-      // onboarding uses 'self-use' / 'investment' / 'both'
-      // sheet uses 'self_use' / 'investment' / 'both'
-      const mapped = intent.purpose === 'self-use' ? 'self_use' : intent.purpose;
-      setPurpose(mapped);
+    if (!isOpen) return
+
+    // 1. localStorage first (fast, works offline)
+    const intent = storage.get<Record<string, any> | null>(STORAGE_KEYS.USER_INTENT, null)
+    if (intent?.name)    setName(intent.name)
+    if (intent?.phone)   setPhone(intent.phone)
+    if (intent?.purpose) {
+      const mapped = intent.purpose === 'self-use' ? 'self_use' : intent.purpose
+      setPurpose(mapped)
     }
-    if (intent.timeline) setTimeline(intent.timeline);
-  }, [isOpen]);
+    if (intent?.timeline) setTimeline(intent.timeline)
+
+    // 2. Supabase fallback for signed-in users (cross-device)
+    import('@/lib/supabase').then(({ createClient }) => {
+      const supabase = createClient()
+      supabase.auth.getUser().then(({ data: { user } }) => {
+        if (!user) return
+
+        supabase.from('user_profiles')
+          .select('display_name, phone')
+          .eq('id', user.id)
+          .single()
+          .then(({ data }) => {
+            if (data?.display_name) setName(prev => prev || data.display_name)
+            if (data?.phone) setPhone(prev => prev || data.phone.replace('+91', ''))
+          })
+
+        supabase.from('user_intents')
+          .select('purpose, timeline')
+          .eq('user_id', user.id)
+          .maybeSingle()
+          .then(({ data }) => {
+            if (data?.purpose) {
+              const mapped = data.purpose === 'self-use' ? 'self_use' : data.purpose
+              setPurpose(prev => prev || (mapped as any))
+            }
+            if (data?.timeline) {
+              const map: Record<string, string> = {
+                under_1_year: 'within_3_months',
+                '1_to_2_years': '3_6_months',
+                '3_to_5_years': '6_12_months',
+                '5_plus': 'exploring',
+              }
+              setTimeline(prev => prev || (map[data.timeline] ?? data.timeline))
+            }
+          })
+      })
+    })
+  }, [isOpen])
+
+  const TIMELINE_MAP: Record<string, string> = {
+    under_1_year:  'within_3_months',
+    '1_to_2_years': '3_6_months',
+    '3_to_5_years': '6_12_months',
+    '5_plus':       'exploring',
+    // pass-through if already in leads format
+    within_3_months: 'within_3_months',
+    '3_6_months':    '3_6_months',
+    '6_12_months':   '6_12_months',
+    exploring:       'exploring',
+  }
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -65,7 +113,7 @@ export default function LeadQualificationSheet({ isOpen, onClose, project, unitC
           preferredTime,
           projectId: project.id,
           unitConfigId: unitConfig?.id,
-          timeline,
+          timeline: TIMELINE_MAP[timeline] ?? 'exploring',
           budgetReady,
           financeType,
           decisionMaker: 'myself',

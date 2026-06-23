@@ -32,6 +32,8 @@ export async function GET(req: NextRequest) {
   if (search) query = query.or(`name.ilike.%${search}%,phone.ilike.%${search}%`)
   if (status) query = query.eq('status', status)
   if (intentLabel) query = query.eq('intent_label', intentLabel)
+  const journeyStage = searchParams.get('journey') || ''
+  if (journeyStage) query = query.eq('journey_stage', journeyStage)
 
   const { data, count, error } = await query
   if (error) {
@@ -43,7 +45,7 @@ export async function GET(req: NextRequest) {
     const headers = [
       'booking_ref','name','phone','email','project','status',
       'intent_label','intent_score','timeline','budget_ready',
-      'finance_type','purpose','trigger_source','created_at'
+      'finance_type','purpose','journey_stage','trigger_source','created_at'
     ];
     const rows = (data ?? []).map((l: any) => [
       l.booking_ref ?? '',
@@ -58,6 +60,7 @@ export async function GET(req: NextRequest) {
       l.budget_ready ?? '',
       l.finance_type ?? '',
       l.purpose ?? '',
+      l.journey_stage ?? '',
       l.trigger_source ?? '',
       l.created_at ?? '',
     ].map(v => `"${String(v).replace(/"/g, '""')}"`).join(','));

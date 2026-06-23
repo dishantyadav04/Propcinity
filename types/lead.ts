@@ -15,6 +15,7 @@ export interface LeadQualification {
   weekendPreferred?: boolean
   virtualTourFirst?: boolean
   triggerSource?: string
+  journeyStage?: 'onboarding' | 'project_interest' | 'consultation_requested'
 }
 
 export interface LeadWithScore extends LeadQualification {

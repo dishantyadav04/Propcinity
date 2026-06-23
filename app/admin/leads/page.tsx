@@ -47,6 +47,7 @@ export default function AdminLeadsPage() {
   const [statusFilter, setStatusFilter] = useState('');
   const [page, setPage] = useState(1);
   const [expandedLead, setExpandedLead] = useState<string | null>(null);
+  const [journeyFilter, setJourneyFilter] = useState('');
 
   const load = useCallback(() => {
     setIsLoading(true);
@@ -55,6 +56,7 @@ export default function AdminLeadsPage() {
       ...(search && { search }),
       ...(intentFilter && { intent: intentFilter }),
       ...(statusFilter && { status: statusFilter }),
+      ...(journeyFilter && { journey: journeyFilter }),
     });
     fetch(`/api/admin/leads?${params}`, { credentials: 'include' })
       .then(r => {
@@ -68,7 +70,7 @@ export default function AdminLeadsPage() {
       })
       .catch(console.error)
       .finally(() => setIsLoading(false));
-  }, [page, search, intentFilter, statusFilter]);
+  }, [page, search, intentFilter, statusFilter, journeyFilter]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -115,6 +117,27 @@ export default function AdminLeadsPage() {
             text-sm font-bold rounded-[var(--radius)] hover:bg-[var(--surface-raised)] transition-colors">
           <Download className="w-4 h-4" /> Export CSV
         </button>
+      </div>
+
+      {/* Journey Stage Tabs */}
+      <div className="flex gap-1 p-1 bg-[var(--surface-raised)] rounded-[var(--radius-xs)] w-fit mb-4">
+        {[
+          { value: '', label: 'All Leads' },
+          { value: 'onboarding', label: '🧊 Cold Pool' },
+          { value: 'consultation_requested', label: '🔥 Active Consultations' },
+        ].map(tab => (
+          <button
+            key={tab.value}
+            onClick={() => { setJourneyFilter(tab.value); setPage(1) }}
+            className={`px-3 py-1.5 text-xs font-bold rounded-[var(--radius-xs)] transition-all ${
+              journeyFilter === tab.value
+                ? 'bg-white shadow-sm text-[var(--text-primary)]'
+                : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'
+            }`}
+          >
+            {tab.label}
+          </button>
+        ))}
       </div>
 
       {/* Filters */}
@@ -320,20 +343,26 @@ export default function AdminLeadsPage() {
                       </div>
                     </div>
 
-                    {/* Interested project */}
+                    {/* Interested In */}
                     <div className="bg-white rounded-[var(--radius-xs)] p-4 space-y-2 border border-[var(--border)]">
                       <p className="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-wider">Interested In</p>
-                      <div className="space-y-1.5">
-                        <p className="font-bold text-[var(--text-primary)]">
-                          {lead.projects?.name || 'Unknown project'}
-                        </p>
-                        <p className="text-xs text-[var(--text-muted)]">
-                          {lead.projects?.location}, {lead.projects?.city}
-                        </p>
-                        <p className="text-xs text-[var(--text-muted)]">
-                          Ref: {lead.booking_ref}
-                        </p>
-                      </div>
+                      {lead.project_id ? (
+                        <div className="space-y-1.5">
+                          <p className="font-bold text-[var(--text-primary)]">{lead.projects?.name || 'Unknown project'}</p>
+                          <p className="text-xs text-[var(--text-muted)]">{lead.projects?.location}, {lead.projects?.city}</p>
+                          <p className="text-xs text-[var(--text-muted)]">Ref: {lead.booking_ref}</p>
+                        </div>
+                      ) : (
+                        <div className="space-y-1.5">
+                          <p className="text-sm text-[var(--text-muted)] italic">No project yet</p>
+                          <p className="text-xs text-[var(--text-muted)]">
+                            Completed onboarding. Waiting for project interest.
+                          </p>
+                          <span className="inline-block text-[9px] font-black px-2 py-0.5 bg-blue-50 text-blue-600 rounded-full">
+                            COLD POOL
+                          </span>
+                        </div>
+                      )}
                     </div>
 
                     {/* Agent actions */}
