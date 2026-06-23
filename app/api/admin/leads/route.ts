@@ -25,7 +25,10 @@ export async function GET(req: NextRequest) {
 
   let query = supabase
     .from('leads')
-    .select('*, projects(name, location, city)', { count: 'exact' })
+    .select(
+      '*, projects(name, location, city), user_intents(city, bhk_types, budget_min, budget_max, is_open_budget, sub_locations, property_type, preferences)',
+      { count: 'exact' }
+    )
     .order('created_at', { ascending: false })
     .range(offset, offset + limit - 1)
 
@@ -43,9 +46,10 @@ export async function GET(req: NextRequest) {
 
   if (format === 'csv') {
     const headers = [
-      'booking_ref','name','phone','email','project','status',
-      'intent_label','intent_score','timeline','budget_ready',
-      'finance_type','purpose','journey_stage','trigger_source','created_at'
+      'booking_ref','name','phone','email','project','location','status',
+      'intent_label','intent_score','timeline','budget_ready','finance_type',
+      'purpose','city','bhk_types','budget_min','budget_max','sub_locations',
+      'property_type','preferences','journey_stage','trigger_source','created_at'
     ];
     const rows = (data ?? []).map((l: any) => [
       l.booking_ref ?? '',
@@ -53,6 +57,7 @@ export async function GET(req: NextRequest) {
       l.phone ?? '',
       l.email ?? '',
       l.projects?.name ?? '',
+      l.projects?.location ?? '',
       l.status ?? '',
       l.intent_label ?? '',
       l.intent_score ?? '',
@@ -60,6 +65,13 @@ export async function GET(req: NextRequest) {
       l.budget_ready ?? '',
       l.finance_type ?? '',
       l.purpose ?? '',
+      l.projects?.city ?? l.city ?? '',
+      (l.bhk_types  ?? l.user_intents?.bhk_types  ?? []).join('; '),
+      l.budget_min  ?? l.user_intents?.budget_min  ?? '',
+      l.budget_max  ?? l.user_intents?.budget_max  ?? '',
+      (l.sub_locations ?? l.user_intents?.sub_locations ?? []).join('; '),
+      (l.property_type ?? l.user_intents?.property_type ?? []).join('; '),
+      (l.preferences   ?? l.user_intents?.preferences   ?? []).join('; '),
       l.journey_stage ?? '',
       l.trigger_source ?? '',
       l.created_at ?? '',

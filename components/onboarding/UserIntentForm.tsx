@@ -236,11 +236,18 @@ export default function UserIntentForm() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           name,
-          phone: cleanPhone,
+          phone:        cleanPhone,
           email,
-          timeline: form.timeline,
-          purpose: form.purpose,
-          city: form.city,
+          timeline:     form.timeline,
+          purpose:      form.purpose,
+          city:         form.city,
+          budgetMin:    form.budgetMin  || 0,
+          budgetMax:    form.isOpenMax  ? null : (form.budgetMax || 0),
+          isOpenBudget: form.isOpenMax,
+          bhkTypes:     form.bhkType,
+          subLocations: form.subLocations,
+          propertyType: form.propertyType,
+          preferences:  form.preferences,
         }),
       }).catch(err => console.error('[onboarding] cold lead creation failed silently:', err))
     }

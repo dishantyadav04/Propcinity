@@ -24,12 +24,19 @@ const PURPOSE_MAP: Record<string, string> = {
 }
 
 const schema = z.object({
-  name: z.string().trim().min(1).max(100).default(''),
-  phone: z.string().min(1).max(20),
-  email: z.string().email().optional(),
-  timeline: z.string().optional(),
-  purpose: z.string().optional(),
-  city: z.string().optional(),
+  name:         z.string().trim().min(1).max(100).default(''),
+  phone:        z.string().min(1).max(20),
+  email:        z.string().email().optional(),
+  timeline:     z.string().optional(),
+  purpose:      z.string().optional(),
+  city:         z.string().optional(),
+  budgetMin:    z.number().min(0).optional(),
+  budgetMax:    z.number().min(0).optional(),
+  isOpenBudget: z.boolean().optional(),
+  bhkTypes:     z.array(z.string()).max(10).optional(),
+  subLocations: z.array(z.string()).max(20).optional(),
+  propertyType: z.array(z.string()).max(5).optional(),
+  preferences:  z.array(z.string()).max(20).optional(),
 })
 
 export async function POST(request: NextRequest) {
@@ -47,7 +54,11 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Invalid data' }, { status: 400 })
   }
 
-  const { name, email, timeline, purpose, city } = parsed.data
+  const {
+    name, email, timeline, purpose, city,
+    budgetMin, budgetMax, isOpenBudget,
+    bhkTypes, subLocations, propertyType, preferences,
+  } = parsed.data
 
   // Strip +91 / 0 prefix and any spaces or dashes — normalise to 10 bare digits
   const phone = parsed.data.phone
@@ -83,12 +94,19 @@ export async function POST(request: NextRequest) {
   if (existing) {
     // 4a. Update existing cold lead
     await supabase.from('leads').update({
-      name: safeName,
+      name:          safeName,
       phone,
       email,
-      timeline: mappedTimeline,
-      purpose: mappedPurpose,
-      updated_at: new Date().toISOString(),
+      timeline:      mappedTimeline,
+      purpose:       mappedPurpose,
+      budget_min:    budgetMin    ?? null,
+      budget_max:    budgetMax    ?? null,
+      is_open_budget: isOpenBudget ?? false,
+      bhk_types:     bhkTypes     ?? [],
+      sub_locations: subLocations  ?? [],
+      property_type: propertyType  ?? [],
+      preferences:   preferences   ?? [],
+      updated_at:    new Date().toISOString(),
     }).eq('id', existing.id)
 
     return NextResponse.json({ success: true, leadId: existing.id })
@@ -105,6 +123,13 @@ export async function POST(request: NextRequest) {
       phone,
       email,
       timeline: mappedTimeline,
+      budget_min:     budgetMin    ?? null,
+      budget_max:     budgetMax    ?? null,
+      is_open_budget: isOpenBudget ?? false,
+      bhk_types:      bhkTypes     ?? [],
+      sub_locations:  subLocations  ?? [],
+      property_type:  propertyType  ?? [],
+      preferences:    preferences   ?? [],
       budget_ready: 'no_still_planning',
       finance_type: 'unsure',
       decision_maker: 'myself',

@@ -85,11 +85,19 @@ export default function AdminLeadsPage() {
     else toast.error('Failed to update');
   };
 
-  const formatBudget = (min: number, max: number) => {
-    const fmt = (v: number) => v >= 10000000 ? `₹${(v/10000000).toFixed(1)}Cr` : `₹${(v/100000).toFixed(0)}L`;
-    if (!min && !max) return 'Not set';
-    if (!max) return `${fmt(min)}+`;
-    return `${fmt(min)} – ${fmt(max)}`;
+  const formatBudget = (min: number, max: number, isOpen = false) => {
+    const fmt = (v: number) => {
+      if (!v || v <= 0) return null
+      return v >= 10000000
+        ? `₹${(v / 10000000).toFixed(1)}Cr`
+        : `₹${(v / 100000).toFixed(0)}L`
+    }
+    const fMin = fmt(min)
+    const fMax = fmt(max)
+    if (!fMin && !fMax) return 'Not set'
+    if (isOpen || !fMax) return `${fMin}+`
+    if (!fMin) return `Up to ${fMax}`
+    return `${fMin} – ${fMax}`
   };
 
   return (
@@ -274,22 +282,55 @@ export default function AdminLeadsPage() {
                       </div>
                     </div>
 
-                    {/* Property intent */}
+                    {/* Property Intent */}
                     <div className="bg-white rounded-[var(--radius-xs)] p-4 space-y-2 border border-[var(--border)]">
                       <p className="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-wider">Property Intent</p>
                       <div className="space-y-1.5">
+
                         <p className="flex items-center gap-2 text-sm text-[var(--text-secondary)]">
                           <Home className="w-3.5 h-3.5 text-[var(--primary)]" />
                           <span className="capitalize">{(lead.purpose || 'self_use').replace(/_/g, ' ')}</span>
                         </p>
+
                         <p className="flex items-center gap-2 text-sm text-[var(--text-secondary)]">
                           <Wallet className="w-3.5 h-3.5 text-[var(--primary)]" />
-                          {formatBudget(0, 0)}
+                          {formatBudget(
+                            lead.budget_min ?? lead.user_intents?.budget_min ?? 0,
+                            lead.budget_max ?? lead.user_intents?.budget_max ?? 0,
+                            lead.is_open_budget ?? false
+                          )}
                         </p>
+
                         <p className="flex items-center gap-2 text-sm text-[var(--text-secondary)]">
                           <Clock className="w-3.5 h-3.5 text-[var(--primary)]" />
-                          {(lead.timeline || '').replace(/_/g, ' ')}
+                          {(lead.timeline || '').replace(/_/g, ' ') || 'Timeline not set'}
                         </p>
+
+                        {(lead.bhk_types ?? lead.user_intents?.bhk_types)?.length > 0 && (
+                          <p className="flex items-start gap-2 text-sm text-[var(--text-secondary)]">
+                            <Building2 className="w-3.5 h-3.5 text-[var(--primary)] mt-0.5 shrink-0" />
+                            {(lead.bhk_types ?? lead.user_intents?.bhk_types).join(', ')}
+                          </p>
+                        )}
+
+                        {(lead.sub_locations ?? lead.user_intents?.sub_locations)?.length > 0 && (
+                          <p className="flex items-start gap-2 text-sm text-[var(--text-secondary)]">
+                            <MapPin className="w-3.5 h-3.5 text-[var(--primary)] mt-0.5 shrink-0" />
+                            {(lead.sub_locations ?? lead.user_intents?.sub_locations).join(', ')}
+                          </p>
+                        )}
+
+                        {(lead.preferences ?? lead.user_intents?.preferences)?.length > 0 && (
+                          <div className="flex flex-wrap gap-1 pt-0.5">
+                            {(lead.preferences ?? lead.user_intents?.preferences).map((p: string) => (
+                              <span key={p}
+                                className="px-1.5 py-0.5 text-[9px] font-bold bg-[var(--surface-raised)] text-[var(--text-muted)] rounded-full">
+                                {p}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+
                       </div>
                     </div>
 
