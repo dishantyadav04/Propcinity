@@ -90,27 +90,25 @@ export async function fetchNearbyPlaces(
   let data: { elements?: unknown[] } | null = null
   let lastError: Error | null = null
 
-  for (const endpoint of OVERPASS_ENDPOINTS) {
-    try {
-      const response = await fetch(endpoint, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-          'User-Agent': 'PropIQ/1.0',
-        },
-        body: `data=${encodeURIComponent(query)}`,
-        signal: AbortSignal.timeout(8000),
-      })
-
-      if (!response.ok) {
-        throw new Error(`Overpass error: ${response.status}`)
-      }
-
-      data = await response.json()
-      break
-    } catch (error) {
-      lastError = error instanceof Error ? error : new Error('Unknown Overpass error')
-    }
+  try {
+    data = await Promise.any(
+      OVERPASS_ENDPOINTS.map(endpoint =>
+        fetch(endpoint, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'User-Agent': 'Propcinity/1.0',
+          },
+          body: `data=${encodeURIComponent(query)}`,
+          signal: AbortSignal.timeout(8000),
+        }).then(res => {
+          if (!res.ok) throw new Error(`Overpass ${res.status}`)
+          return res.json() as Promise<{ elements?: unknown[] }>
+        })
+      )
+    )
+  } catch (error) {
+    lastError = error instanceof Error ? error : new Error('All Overpass endpoints failed')
   }
 
   if (!data) {

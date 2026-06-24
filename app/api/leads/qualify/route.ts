@@ -103,7 +103,6 @@ export async function POST(request: NextRequest) {
           trigger_source: 'consultation_sheet|upgraded_from_onboarding',
           journey_stage: 'consultation_requested',
           status: 'new',
-          updated_at: new Date().toISOString(),
         })
         .eq('id', coldLead.id)
 

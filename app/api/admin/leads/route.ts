@@ -26,7 +26,7 @@ export async function GET(req: NextRequest) {
   let query = supabase
     .from('leads')
     .select(
-      '*, projects(name, location, city), user_intents(city, bhk_types, budget_min, budget_max, is_open_budget, sub_locations, property_type, preferences)',
+      '*, projects(name, location, city)',
       { count: 'exact' }
     )
     .order('created_at', { ascending: false })
