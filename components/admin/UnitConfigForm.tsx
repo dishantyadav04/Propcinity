@@ -12,6 +12,16 @@ interface UnitConfigFormProps {
 export default function UnitConfigForm({ units, onChange }: UnitConfigFormProps) {
   const [uploadingId, setUploadingId] = useState<string | null>(null);
 
+  const parseIntInput = (val: string): number | undefined => {
+    const n = parseInt(val.replace(/^0+/, ''), 10)
+    return isNaN(n) ? undefined : n
+  }
+
+  const parseFloatInput = (val: string): number | undefined => {
+    const n = parseFloat(val)
+    return isNaN(n) ? undefined : n
+  }
+
   const addUnit = () => {
     onChange([...units, {
       id: crypto.randomUUID(),
@@ -146,9 +156,10 @@ export default function UnitConfigForm({ units, onChange }: UnitConfigFormProps)
               <div className="space-y-1">
                 <label className="text-[10px] text-[var(--text-muted)] uppercase font-bold">Total Units</label>
                 <input
-                  type="number" min="0"
+                  type="text"
+                  inputMode="numeric"
                   value={unit.total ?? ''}
-                  onChange={(e) => updateUnit(unit.id, { total: e.target.value ? Number(e.target.value) : undefined })}
+                  onChange={(e) => updateUnit(unit.id, { total: parseIntInput(e.target.value) })}
                   className="w-full bg-[var(--surface)] border border-[var(--border)] rounded-lg px-3 py-2 text-sm"
                   placeholder="0"
                 />
@@ -156,9 +167,10 @@ export default function UnitConfigForm({ units, onChange }: UnitConfigFormProps)
               <div className="space-y-1">
                 <label className="text-[10px] text-[var(--text-muted)] uppercase font-bold">Available</label>
                 <input
-                  type="number" min="0"
+                  type="text"
+                  inputMode="numeric"
                   value={unit.available ?? ''}
-                  onChange={(e) => updateUnit(unit.id, { available: e.target.value ? Number(e.target.value) : undefined })}
+                  onChange={(e) => updateUnit(unit.id, { available: parseIntInput(e.target.value) })}
                   className="w-full bg-[var(--surface)] border border-[var(--border)] rounded-lg px-3 py-2 text-sm"
                   placeholder="0"
                 />
@@ -172,9 +184,10 @@ export default function UnitConfigForm({ units, onChange }: UnitConfigFormProps)
                 <div className="flex items-center gap-2 bg-[var(--surface)] border border-[var(--border)] rounded-lg px-2 py-1.5">
                   <IndianRupee className="w-3.5 h-3.5 text-[var(--text-muted)]" />
                   <input
-                    type="number"
+                    type="text"
+                    inputMode="numeric"
                     value={unit.priceMin}
-                    onChange={(e) => updateUnit(unit.id, { priceMin: Number(e.target.value) })}
+                    onChange={(e) => updateUnit(unit.id, { priceMin: parseIntInput(e.target.value) ?? 0 })}
                     className="w-full bg-transparent border-none text-xs text-[var(--text-primary)] focus:outline-none"
                   />
                 </div>
@@ -184,9 +197,10 @@ export default function UnitConfigForm({ units, onChange }: UnitConfigFormProps)
                 <div className="flex items-center gap-2 bg-[var(--surface)] border border-[var(--border)] rounded-lg px-2 py-1.5">
                   <IndianRupee className="w-3.5 h-3.5 text-[var(--text-muted)]" />
                   <input
-                    type="number"
+                    type="text"
+                    inputMode="numeric"
                     value={unit.priceMax}
-                    onChange={(e) => updateUnit(unit.id, { priceMax: Number(e.target.value) })}
+                    onChange={(e) => updateUnit(unit.id, { priceMax: parseIntInput(e.target.value) ?? 0 })}
                     className="w-full bg-transparent border-none text-xs text-[var(--text-primary)] focus:outline-none"
                   />
                 </div>
@@ -196,9 +210,10 @@ export default function UnitConfigForm({ units, onChange }: UnitConfigFormProps)
                 <div className="flex items-center gap-2 bg-[var(--surface)] border border-[var(--border)] rounded-lg px-2 py-1.5">
                   <Maximize className="w-3.5 h-3.5 text-[var(--text-muted)]" />
                   <input
-                    type="number"
+                    type="text"
+                    inputMode="numeric"
                     value={unit.area}
-                    onChange={(e) => updateUnit(unit.id, { area: Number(e.target.value) })}
+                    onChange={(e) => updateUnit(unit.id, { area: parseFloatInput(e.target.value) ?? 0 })}
                     className="w-full bg-transparent border-none text-xs text-[var(--text-primary)] focus:outline-none"
                   />
                 </div>
@@ -220,9 +235,10 @@ export default function UnitConfigForm({ units, onChange }: UnitConfigFormProps)
                   <Zap className="w-3 h-3" /> Maint. /mo (₹)
                 </label>
                 <input
-                  type="number"
+                  type="text"
+                  inputMode="numeric"
                   value={unit.maintenancePerMonth ?? ''}
-                  onChange={(e) => updateUnit(unit.id, { maintenancePerMonth: e.target.value === '' ? undefined : Number(e.target.value) })}
+                  onChange={(e) => updateUnit(unit.id, { maintenancePerMonth: parseIntInput(e.target.value) })}
                   className="w-full bg-[var(--surface)] border border-[var(--border)] rounded-lg px-3 py-1.5 text-xs text-[var(--text-primary)] focus:outline-none"
                 />
               </div>
@@ -231,9 +247,10 @@ export default function UnitConfigForm({ units, onChange }: UnitConfigFormProps)
                 <div className="flex items-center gap-2 bg-[var(--surface)] border border-[var(--border)] rounded-lg px-2 py-1.5">
                   <IndianRupee className="w-3.5 h-3.5 text-[var(--text-muted)]" />
                   <input
-                    type="number"
+                    type="text"
+                    inputMode="numeric"
                     value={unit.pricePerSqFt}
-                    onChange={(e) => updateUnit(unit.id, { pricePerSqFt: Number(e.target.value) })}
+                    onChange={(e) => updateUnit(unit.id, { pricePerSqFt: parseIntInput(e.target.value) ?? 0 })}
                     className="w-full bg-transparent border-none text-xs text-[var(--text-primary)] focus:outline-none"
                   />
                 </div>
@@ -246,13 +263,11 @@ export default function UnitConfigForm({ units, onChange }: UnitConfigFormProps)
                 Parking Spots
               </label>
               <input
-                type="number"
-                min={0}
-                max={5}
-                step={1}
+                type="text"
+                inputMode="numeric"
                 value={unit.parking ?? ''}
                 onChange={(e) => updateUnit(unit.id, {
-                  parking: e.target.value === '' ? undefined : Number(e.target.value)
+                  parking: parseIntInput(e.target.value)
                 })}
                 placeholder="0"
                 className="w-full bg-[var(--surface)] border border-[var(--border)] rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-[var(--primary)]"

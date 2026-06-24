@@ -186,33 +186,29 @@ export default function AIChatPage() {
   // ── Common SEO shell that always renders for crawlers ─────────────────────
   return (
     <div className="flex flex-col h-[calc(100vh-64px)]">
-      {/* Static SEO block — visible to crawlers before JS hydration */}
-      <div className="sr-only md:not-sr-only md:mb-2 px-4 sm:px-6 max-w-6xl mx-auto">
-        <h1 className="text-sm font-bold">Ask Propcinity&apos;s AI anything about a property</h1>
-        <p className="text-xs text-[var(--text-muted)]">
-          Get honest, data-backed answers about Pune properties using RERA data and AI
-          — no brochures, no sales calls. Ask about pricing, construction status,
-          builder track records, and more.
-        </p>
-      </div>
       {isChecking ? (
         <div className="flex items-center justify-center flex-1">
           <Loader2 className="w-6 h-6 animate-spin text-[var(--text-muted)]" />
         </div>
       ) : isGuest ? (
         <>
-          <div className="flex-shrink-0 bg-white border-b border-[var(--border)] py-4">
+          <div className="flex-shrink-0 bg-white border-b border-[var(--border)] pb-8 pt-6">
             <SectionContainer wide>
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-[var(--primary-light)] rounded-full flex items-center justify-center text-[var(--primary)]">
-                  <Bot className="w-6 h-6" />
+              <div className="space-y-2">
+                <div className="flex items-center gap-2 text-[var(--primary)] text-xs font-bold uppercase tracking-wider">
+                  <Sparkles className="w-3.5 h-3.5" />
+                  <span>AI Advisor</span>
                 </div>
-                <div>
-                  <h1 className="font-bold text-lg leading-tight">AI Advisor</h1>
-                  <p className="text-xs text-[var(--text-muted)] flex items-center gap-1">
-                    <Sparkles className="w-3 h-3 text-yellow-500" /> Pune Real Estate Expert
-                  </p>
-                </div>
+                <h1 className="text-2xl sm:text-3xl font-black text-[var(--text-primary)]"
+                  style={{ fontFamily: 'var(--font-display)' }}>
+                  Ask Propcinity&apos;s AI anything about a property
+                </h1>
+                <p className="text-sm text-[var(--text-secondary)] flex items-center gap-1.5">
+                  <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-[var(--primary-light)] text-[var(--primary)]">
+                    <Sparkles className="w-2.5 h-2.5" /> AI
+                  </span>
+                  Get honest, data-backed answers about Pune properties using RERA data and AI
+                </p>
               </div>
             </SectionContainer>
           </div>
@@ -221,19 +217,24 @@ export default function AIChatPage() {
       ) : (
         <div className="flex flex-col flex-1 overflow-hidden">
           {/* Header */}
-          <div className="flex-shrink-0 bg-white border-b border-[var(--border)] py-4">
+          <div className="flex-shrink-0 bg-white border-b border-[var(--border)] pb-8 pt-6">
             <SectionContainer wide>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-[var(--primary-light)] rounded-full flex items-center justify-center text-[var(--primary)]">
-                    <Bot className="w-6 h-6" />
+              <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2 text-[var(--primary)] text-xs font-bold uppercase tracking-wider">
+                    <Sparkles className="w-3.5 h-3.5" />
+                    <span>AI Advisor</span>
                   </div>
-                  <div>
-                    <h1 className="font-bold text-lg leading-tight">AI Advisor</h1>
-                    <p className="text-xs text-[var(--text-muted)] flex items-center gap-1">
-                      <Sparkles className="w-3 h-3 text-yellow-500" /> Pune Real Estate Expert
-                    </p>
-                  </div>
+                  <h1 className="text-2xl sm:text-3xl font-black text-[var(--text-primary)]"
+                    style={{ fontFamily: 'var(--font-display)' }}>
+                    Ask Propcinity&apos;s AI anything about a property
+                  </h1>
+                  <p className="text-sm text-[var(--text-secondary)] flex items-center gap-1.5">
+                    <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-[var(--primary-light)] text-[var(--primary)]">
+                      <Sparkles className="w-2.5 h-2.5" /> AI
+                    </span>
+                    Get honest, data-backed answers about Pune properties using RERA data and AI
+                  </p>
                 </div>
                 <div
                   className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold ${

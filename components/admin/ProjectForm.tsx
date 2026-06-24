@@ -112,6 +112,16 @@ export default function ProjectForm({ initialData }: ProjectFormProps) {
   const [newPro, setNewPro] = useState("");
   const [newCon, setNewCon] = useState("");
 
+  const parseIntInput = (val: string): number | undefined => {
+    const n = parseInt(val.replace(/^0+/, ''), 10)
+    return isNaN(n) ? undefined : n
+  }
+
+  const parseFloatInput = (val: string): number | undefined => {
+    const n = parseFloat(val)
+    return isNaN(n) ? undefined : n
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
@@ -157,14 +167,14 @@ export default function ProjectForm({ initialData }: ProjectFormProps) {
           area: u.area,
           price_min: u.priceMin,
           price_max: u.priceMax,
-          floor_range: u.floor || '',
+          floor: u.floor || '',
+          floor_plan: u.floorPlan?.startsWith('http') ? u.floorPlan : undefined,
           facing: u.facing || [],
           highlights: u.highlights || [],
           total: u.total || 0,
           available: u.available || 0,
           parking: u.parking,
-          floor_plan_url: u.floorPlan?.startsWith('http') ? u.floorPlan : undefined,
-          maintenance_cost: u.maintenancePerMonth,
+          maintenance_per_month: u.maintenancePerMonth,
         })),
         builderName: undefined,  // Bug 2 fixed: prevent camelCase leak through ...project spread
         possessionDate: undefined,
@@ -351,18 +361,20 @@ export default function ProjectForm({ initialData }: ProjectFormProps) {
             <div className="space-y-2">
               <label className="text-[10px] text-[var(--text-muted)] uppercase font-bold">Latitude</label>
               <input
-                type="number" step="any"
-                value={project.lat}
-                onChange={(e) => setProject({...project, lat: Number(e.target.value)})}
+                type="text"
+                inputMode="numeric"
+                value={project.lat ?? ''}
+                onChange={(e) => setProject({...project, lat: parseFloatInput(e.target.value) ?? 18.5204})}
                 className="w-full bg-[var(--surface-raised)] border border-[var(--border)] rounded-xl px-4 py-2.5 text-sm"
               />
             </div>
             <div className="space-y-2">
               <label className="text-[10px] text-[var(--text-muted)] uppercase font-bold">Longitude</label>
               <input
-                type="number" step="any"
-                value={project.lng}
-                onChange={(e) => setProject({...project, lng: Number(e.target.value)})}
+                type="text"
+                inputMode="numeric"
+                value={project.lng ?? ''}
+                onChange={(e) => setProject({...project, lng: parseFloatInput(e.target.value) ?? 73.8567})}
                 className="w-full bg-[var(--surface-raised)] border border-[var(--border)] rounded-xl px-4 py-2.5 text-sm"
               />
             </div>
@@ -415,36 +427,40 @@ export default function ProjectForm({ initialData }: ProjectFormProps) {
           <div className="space-y-2">
             <label className="text-[10px] text-[var(--text-muted)] uppercase font-bold">Total Units</label>
             <input
-              type="number" min="0"
+              type="text"
+              inputMode="numeric"
               value={project.totalUnits ?? ''}
-              onChange={(e) => setProject({...project, totalUnits: e.target.value ? Number(e.target.value) : undefined})}
+              onChange={(e) => setProject({...project, totalUnits: parseIntInput(e.target.value)})}
               className="w-full bg-[var(--surface-raised)] border border-[var(--border)] rounded-xl px-4 py-2.5 text-sm"
             />
           </div>
           <div className="space-y-2">
             <label className="text-[10px] text-[var(--text-muted)] uppercase font-bold">Available Units</label>
             <input
-              type="number" min="0"
+              type="text"
+              inputMode="numeric"
               value={project.availableUnits ?? ''}
-              onChange={(e) => setProject({...project, availableUnits: e.target.value ? Number(e.target.value) : undefined})}
+              onChange={(e) => setProject({...project, availableUnits: parseIntInput(e.target.value)})}
               className="w-full bg-[var(--surface-raised)] border border-[var(--border)] rounded-xl px-4 py-2.5 text-sm"
             />
           </div>
           <div className="space-y-2">
             <label className="text-[10px] text-[var(--text-muted)] uppercase font-bold">Land Parcel (acres)</label>
             <input
-              type="number" step="any" min="0"
+              type="text"
+              inputMode="numeric"
               value={project.landParcelAcres ?? ''}
-              onChange={(e) => setProject({...project, landParcelAcres: e.target.value ? Number(e.target.value) : undefined})}
+              onChange={(e) => setProject({...project, landParcelAcres: parseFloatInput(e.target.value)})}
               className="w-full bg-[var(--surface-raised)] border border-[var(--border)] rounded-xl px-4 py-2.5 text-sm"
             />
           </div>
           <div className="space-y-2">
             <label className="text-[10px] text-[var(--text-muted)] uppercase font-bold">Total Towers</label>
             <input
-              type="number" min="1"
+              type="text"
+              inputMode="numeric"
               value={project.totalTowers ?? ''}
-              onChange={(e) => setProject({...project, totalTowers: e.target.value ? Number(e.target.value) : undefined})}
+              onChange={(e) => setProject({...project, totalTowers: parseIntInput(e.target.value)})}
               className="w-full bg-[var(--surface-raised)] border border-[var(--border)] rounded-xl px-4 py-2.5 text-sm"
             />
           </div>
@@ -474,9 +490,10 @@ export default function ProjectForm({ initialData }: ProjectFormProps) {
           <div className="space-y-2">
             <label className="text-[10px] text-[var(--text-muted)] uppercase font-bold">Construction %</label>
             <input
-              type="number" min="0" max="100"
+              type="text"
+              inputMode="numeric"
               value={project.constructionPercent ?? ''}
-              onChange={(e) => setProject({...project, constructionPercent: e.target.value === '' ? 0 : Number(e.target.value)})}
+              onChange={(e) => setProject({...project, constructionPercent: parseIntInput(e.target.value) ?? 0})}
               className="w-full bg-[var(--surface-raised)] border border-[var(--border)] rounded-xl px-4 py-2.5 text-sm"
             />
           </div>

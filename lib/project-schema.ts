@@ -8,13 +8,13 @@ export const unitConfigSchema = z.object({
   price_max: z.number(),
   available: z.number().int().nonnegative().optional().default(0),
   total: z.number().int().nonnegative().optional().default(0),
-  floor_range: z.string(),
+  floor: z.string().optional().default(''),
   facing: z.array(z.string()).optional().default([]),
   images: z.array(z.string()).optional().default([]),
   highlights: z.array(z.string()).optional().default([]),
   parking: z.number().optional(),
-  maintenance_cost: z.number().optional(),
-  floor_plan_url: z.string().optional(),
+  maintenance_per_month: z.number().optional(),
+  floor_plan: z.string().optional(),
 })
 
 export const projectSchema = z.object({
