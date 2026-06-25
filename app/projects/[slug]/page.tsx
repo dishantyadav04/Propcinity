@@ -611,14 +611,17 @@ export default function ProjectDetailPage() {
                   )}
                 </div>
 
-                {/* Floor Plans sub-section — per-unit images */}
+                {/* Floor Plans sub-section — project-level + per-unit images */}
                 <div>
                   <h3 className="text-xs font-black text-[var(--text-muted)] uppercase tracking-widest mb-4">
                     Floor Plans
                   </h3>
                   {(() => {
+                    const projectFloorPlans = project.floorPlanImages || [];
                     const unitsWithPlans = (project.unitConfigs || []).filter(u => u.floorPlan);
-                    if (unitsWithPlans.length === 0) {
+                    const hasAny = projectFloorPlans.length > 0 || unitsWithPlans.length > 0;
+
+                    if (!hasAny) {
                       return (
                         <div className="h-32 bg-[var(--surface-raised)] border border-[var(--border)] rounded-[var(--radius)] flex flex-col items-center justify-center text-[var(--text-muted)] gap-2">
                           <div className="w-10 h-10 bg-[var(--border)] rounded-lg flex items-center justify-center">
@@ -628,24 +631,33 @@ export default function ProjectDetailPage() {
                         </div>
                       );
                     }
+
                     const groups = new Map<string, typeof unitsWithPlans>();
                     unitsWithPlans.forEach(u => {
                       const base = u.type.split(/[-–(]/)[0].trim();
                       if (!groups.has(base)) groups.set(base, []);
                       groups.get(base)!.push(u);
                     });
+
                     return (
                       <div className="space-y-6">
-                        {Array.from(groups.entries()).map(([baseType, units]) => (
-                          <div key={baseType}>
-                            <p className="text-xs font-bold text-[var(--text-secondary)] mb-3">{baseType}</p>
-                            <PlanImageGallery
-                              images={units.map(u => u.floorPlan!)}
-                              labels={units.map(u => `${u.type} · ${u.area} sqft`)}
-                              label={`${baseType} Floor Plan`}
-                            />
+                        {projectFloorPlans.length > 0 && (
+                          <PlanImageGallery images={projectFloorPlans} label="Floor Plan" />
+                        )}
+                        {unitsWithPlans.length > 0 && (
+                          <div className={projectFloorPlans.length > 0 ? 'mt-6' : ''}>
+                            {Array.from(groups.entries()).map(([baseType, units]) => (
+                              <div key={baseType} className="mb-6 last:mb-0">
+                                <p className="text-xs font-bold text-[var(--text-secondary)] mb-3">{baseType}</p>
+                                <PlanImageGallery
+                                  images={units.map(u => u.floorPlan!)}
+                                  labels={units.map(u => `${u.type} · ${u.area} sqft`)}
+                                  label={`${baseType} Floor Plan`}
+                                />
+                              </div>
+                            ))}
                           </div>
-                        ))}
+                        )}
                       </div>
                     );
                   })()}

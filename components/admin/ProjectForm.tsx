@@ -98,6 +98,7 @@ export default function ProjectForm({ initialData }: ProjectFormProps) {
     nearbyLocations: [],
     reraRegistrations: [],
     masterPlanImages: [],
+    floorPlanImages: [],
     constructionStatus: 'under_construction',
     constructionPercent: undefined
   });
@@ -161,6 +162,7 @@ export default function ProjectForm({ initialData }: ProjectFormProps) {
         external_amenities: project.externalAmenities || [],
         rera_registrations: project.reraRegistrations || [],
         master_plan_images: project.masterPlanImages || [],
+        floor_plan_images: project.floorPlanImages || [],
         unitConfigs: (project.unitConfigs || []).map(u => ({
           id: u.id,
           type: u.type,
@@ -203,6 +205,7 @@ export default function ProjectForm({ initialData }: ProjectFormProps) {
         externalAmenities: undefined,
         reraRegistrations: undefined,
         masterPlanImages: undefined,
+        floorPlanImages: undefined,
         isPublished: undefined,
       };
 
@@ -522,6 +525,21 @@ export default function ProjectForm({ initialData }: ProjectFormProps) {
           onUpload={(url) => setProject({...project, masterPlanImages: [...(project.masterPlanImages || []), url]})}
           onRemove={(url) => setProject({...project, masterPlanImages: (project.masterPlanImages || []).filter(i => i !== url)})}
           value={project.masterPlanImages || []}
+        />
+      </div>
+
+      {/* Floor Plan Images */}
+      <div className="bg-[var(--surface)] p-6 rounded-2xl border border-[var(--border)] space-y-4">
+        <h3 className="text-sm font-bold text-[var(--text-primary)] uppercase tracking-widest">
+          Floor Plan Images
+        </h3>
+        <p className="text-xs text-[var(--text-muted)]">
+          Upload general floor plan images. These appear in the Floor Plans section alongside per-unit plans.
+        </p>
+        <ImageUpload
+          onUpload={(url) => setProject({...project, floorPlanImages: [...(project.floorPlanImages || []), url]})}
+          onRemove={(url) => setProject({...project, floorPlanImages: (project.floorPlanImages || []).filter(i => i !== url)})}
+          value={project.floorPlanImages || []}
         />
       </div>
 

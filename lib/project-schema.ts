@@ -78,6 +78,7 @@ export const projectSchema = z.object({
     description: z.string().optional(),
   })).optional().default([]),
   master_plan_images: z.array(z.string()).optional().default([]),
+  floor_plan_images: z.array(z.string()).optional().default([]),
   unitConfigs: z.array(unitConfigSchema).optional(),
 })
 

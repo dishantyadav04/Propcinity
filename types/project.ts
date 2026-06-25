@@ -106,6 +106,7 @@ export interface Project {
   externalAmenities?: string[]
   nearbyLocations?: ManualNearbyLocation[]
   masterPlanImages?: string[]          // project-level master layout images
+  floorPlanImages?: string[]           // project-level floor plan images
   reraRegistrations?: ReraRegistration[]  // multiple RERA numbers
   images: string[]
 

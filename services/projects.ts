@@ -128,6 +128,7 @@ function mapProject(row: any, unitConfigs: SupabaseUnitConfigRow[]): Project {
     brochureUrl: row.brochure_url,
     nearbyLocations: row.nearby_locations || [],
     masterPlanImages: row.master_plan_images || [],
+    floorPlanImages: row.floor_plan_images || [],
     reraRegistrations: row.rera_registrations || [],
     isPublished: row.is_published,
   }
@@ -378,7 +379,7 @@ export async function adminUpdateProject(
     constructionStatus, constructionPercent,
     litigationDetails, commencementCertificate, occupancyCertificate, legalNotes,
     brochureUrl, paymentPlans, bankApprovals,
-    nearbyLocations, internalAmenities, externalAmenities, reraRegistrations, masterPlanImages,
+    nearbyLocations, internalAmenities, externalAmenities, reraRegistrations, masterPlanImages, floorPlanImages,
     ...project
   } = projectData as any
 
@@ -389,6 +390,7 @@ export async function adminUpdateProject(
     ...(externalAmenities !== undefined && { external_amenities: externalAmenities }),
     ...(reraRegistrations !== undefined && { rera_registrations: reraRegistrations }),
     ...(masterPlanImages !== undefined && { master_plan_images: masterPlanImages }),
+    ...(floorPlanImages !== undefined && { floor_plan_images: floorPlanImages }),
     ...(reraStatus !== undefined && { rera_status: reraStatus }),
     ...(launchDate !== undefined && { launch_date: launchDate }),
     ...(possessionDate !== undefined && { possession_date: possessionDate }),
@@ -440,7 +442,7 @@ export async function adminDeleteProject(id: string): Promise<void> {
   // 1. Fetch project and its unit_configs to collect all R2 URLs before deletion
   const { data: project } = await supabase
     .from('projects')
-    .select('images, master_plan_images, brochure_url, unit_configs(floor_plan)')
+    .select('images, master_plan_images, floor_plan_images, brochure_url, unit_configs(floor_plan)')
     .eq('id', id)
     .single()
 
@@ -452,6 +454,7 @@ export async function adminDeleteProject(id: string): Promise<void> {
     const r2Urls: string[] = [
       ...(project.images ?? []),
       ...(project.master_plan_images ?? []),
+      ...((project as any).floor_plan_images ?? []),
       ...(project.brochure_url ? [project.brochure_url] : []),
       ...((project as any).unit_configs ?? [])
         .map((u: any) => u.floor_plan)
