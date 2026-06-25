@@ -13,6 +13,9 @@ export const R2_BUCKET = process.env.R2_BUCKET_NAME!
 export const R2_PUBLIC_URL = process.env.NEXT_PUBLIC_R2_PUBLIC_URL!
 
 export function getPublicUrl(key: string): string {
+  if (!R2_PUBLIC_URL) {
+    throw new Error('NEXT_PUBLIC_R2_PUBLIC_URL is not set. Images cannot be served.')
+  }
   return `${R2_PUBLIC_URL}/${key}`
 }
 

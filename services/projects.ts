@@ -1,6 +1,7 @@
 import { createAdminSupabaseClient, createServerSupabaseClient } from '@/lib/supabase-server'
 import { Project, UnitConfig } from '@/types/project'
 import { MOCK_PROJECTS } from '@/lib/mock-data'
+import { deleteFromR2 } from '@/lib/r2'
 
 function sanitizeDates(obj: Record<string, unknown>): Record<string, unknown> {
   const DATE_FIELDS = ['launch_date', 'possession_date', 'rera_expiry', 'rera_possession_date', 'rera_expiry']
@@ -311,6 +312,11 @@ export async function adminGetAllProjects(page = 1, limit = 50): Promise<{ proje
 
   const mapped = (data || []).map((row: any) => ({
     ...row,
+    // Explicit camelCase mappings — list page reads Project type (camelCase),
+    // but the DB row spread only gives snake_case. Without these, values are undefined.
+    isPublished: !!row.is_published,
+    constructionStatus: row.construction_status,
+    constructionPercent: row.construction_percent,
     unitConfigs: (row.unit_configs || []).map((u: any) => ({
       id: u.id,
       type: u.type,
@@ -403,10 +409,15 @@ export async function adminUpdateProject(
     ...(bankApprovals !== undefined && { bank_approvals: bankApprovals }),
   }
 
-  await supabase
+  const { error: updateError } = await supabase
     .from('projects')
     .update(sanitizeDates({ ...project, ...snakeMapped } as Record<string, unknown>))
     .eq('id', id)
+
+  if (updateError) {
+    console.error('[adminUpdateProject] project update failed:', updateError.message)
+    throw new Error(`Project update failed: ${updateError.message}`)
+  }
 
   if (unitConfigs !== undefined) {
     await supabase
@@ -425,10 +436,31 @@ export async function adminUpdateProject(
 export async function adminDeleteProject(id: string): Promise<void> {
   const supabase = createAdminSupabaseClient()
   if (!supabase) return
-  await supabase
+
+  // 1. Fetch project and its unit_configs to collect all R2 URLs before deletion
+  const { data: project } = await supabase
     .from('projects')
-    .delete()
+    .select('images, master_plan_images, brochure_url, unit_configs(floor_plan)')
     .eq('id', id)
+    .single()
+
+  // 2. Delete the project row (unit_configs cascade via FK)
+  await supabase.from('projects').delete().eq('id', id)
+
+  // 3. Clean up R2 files — fire-and-forget, don't block on failures
+  if (project) {
+    const r2Urls: string[] = [
+      ...(project.images ?? []),
+      ...(project.master_plan_images ?? []),
+      ...(project.brochure_url ? [project.brochure_url] : []),
+      ...((project as any).unit_configs ?? [])
+        .map((u: any) => u.floor_plan)
+        .filter(Boolean),
+    ].filter((url: string) => url && url.startsWith('http'))
+
+    // Delete in parallel, silently ignore individual failures
+    await Promise.allSettled(r2Urls.map(url => deleteFromR2(url)))
+  }
 }
 
 export async function adminTogglePublished(id: string, isPublished: boolean): Promise<void> {

@@ -118,6 +118,9 @@ export default function AdminProjectsPage() {
                       <div>
                         <p className="text-sm font-bold text-[var(--text-primary)]">{project.name}</p>
                         <p className="text-[10px] text-[var(--text-muted)] uppercase tracking-wider">{project.location}</p>
+                        <p className="text-[10px] text-[var(--text-muted)] capitalize mt-0.5">
+                          {project.constructionStatus?.replace(/_/g, ' ') ?? ''} · {project.constructionPercent ?? 0}%
+                        </p>
                       </div>
                     </div>
                   </td>
@@ -125,22 +128,17 @@ export default function AdminProjectsPage() {
                     <p className="text-sm font-medium text-[var(--text-secondary)]">{formatINR(minPrice)}+</p>
                   </td>
                   <td className="px-6 py-4 text-center">
-                    <div className="flex flex-col items-center gap-2">
-                      <span className="inline-block px-2 py-1 text-[10px] font-bold rounded-full bg-[var(--surface-raised)] text-[var(--text-secondary)] capitalize">
-                        {project.constructionStatus?.replace(/_/g, ' ') ?? ''} ({project.constructionPercent ?? 0}%)
-                      </span>
-                      <button
-                        onClick={() => handleTogglePublish(project.id, project.isPublished)}
-                        disabled={togglingId === project.id}
-                        className={`text-[10px] font-bold px-2 py-0.5 rounded-full transition-all ${
-                          project.isPublished
-                            ? 'bg-green-100 text-green-700 hover:bg-green-200'
-                            : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
-                        } disabled:opacity-50`}
-                      >
-                        {togglingId === project.id ? '…' : project.isPublished ? '● Live' : '○ Draft'}
-                      </button>
-                    </div>
+                    <button
+                      onClick={() => handleTogglePublish(project.id, project.isPublished)}
+                      disabled={togglingId === project.id}
+                      className={`text-[10px] font-bold px-3 py-1 rounded-full transition-all ${
+                        project.isPublished
+                          ? 'bg-green-100 text-green-700 hover:bg-green-200'
+                          : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+                      } disabled:opacity-50`}
+                    >
+                      {togglingId === project.id ? '…' : project.isPublished ? '● Live' : '○ Draft'}
+                    </button>
                   </td>
                   <td className="px-6 py-4">
                     <div className="flex justify-end gap-2">

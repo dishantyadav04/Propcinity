@@ -29,6 +29,7 @@ export default function ImageUpload({ onUpload, value = [], onRemove }: ImageUpl
     try {
       const response = await fetch('/api/admin/upload', {
         method: 'POST',
+        credentials: 'include',
         body: formData,
       });
 

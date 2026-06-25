@@ -69,8 +69,13 @@ export async function PUT(request: NextRequest) {
     return NextResponse.json({ error: 'Invalid project payload' }, { status: 400 })
   }
 
-  await adminUpdateProject(idParsed.data.id, parsed.data)
-  return NextResponse.json({ success: true })
+  try {
+    await adminUpdateProject(idParsed.data.id, parsed.data)
+    return NextResponse.json({ success: true })
+  } catch (err: any) {
+    console.error('[PUT /api/admin/projects]', err.message)
+    return NextResponse.json({ error: err.message || 'Update failed' }, { status: 500 })
+  }
 }
 
 export async function DELETE(request: NextRequest) {
