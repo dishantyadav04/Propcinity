@@ -522,8 +522,8 @@ export default function ProjectForm({ initialData }: ProjectFormProps) {
           Upload layout/site plan images. These appear in the Master Plan section.
         </p>
         <ImageUpload
-          onUpload={(url) => setProject({...project, masterPlanImages: [...(project.masterPlanImages || []), url]})}
-          onRemove={(url) => setProject({...project, masterPlanImages: (project.masterPlanImages || []).filter(i => i !== url)})}
+          onUpload={(url) => setProject(prev => ({...prev, masterPlanImages: [...(prev.masterPlanImages || []), url]}))}
+          onRemove={(url) => setProject(prev => ({...prev, masterPlanImages: (prev.masterPlanImages || []).filter(i => i !== url)}))}
           value={project.masterPlanImages || []}
         />
       </div>
@@ -537,8 +537,8 @@ export default function ProjectForm({ initialData }: ProjectFormProps) {
           Upload general floor plan images. These appear in the Floor Plans section alongside per-unit plans.
         </p>
         <ImageUpload
-          onUpload={(url) => setProject({...project, floorPlanImages: [...(project.floorPlanImages || []), url]})}
-          onRemove={(url) => setProject({...project, floorPlanImages: (project.floorPlanImages || []).filter(i => i !== url)})}
+          onUpload={(url) => setProject(prev => ({...prev, floorPlanImages: [...(prev.floorPlanImages || []), url]}))}
+          onRemove={(url) => setProject(prev => ({...prev, floorPlanImages: (prev.floorPlanImages || []).filter(i => i !== url)}))}
           value={project.floorPlanImages || []}
         />
       </div>

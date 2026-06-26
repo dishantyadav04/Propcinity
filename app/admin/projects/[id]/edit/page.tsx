@@ -75,6 +75,7 @@ export default function EditProjectPage() {
           externalAmenities: raw.external_amenities || [],
           images: raw.images || [],
           masterPlanImages: raw.master_plan_images || [],
+          floorPlanImages: raw.floor_plan_images || [],
           reraRegistrations: raw.rera_registrations || [],
           nearbyLocations: raw.nearby_locations || [],
           constructionStatus: raw.construction_status || 'under_construction',
