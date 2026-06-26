@@ -354,9 +354,13 @@ export async function adminCreateProject(projectData: Record<string, unknown>): 
   if (error || !data) throw new Error(error?.message || 'Create failed')
 
   if (unitConfigs?.length) {
-    await supabase.from('unit_configs').insert(
+    const { error: unitError } = await supabase.from('unit_configs').insert(
       unitConfigs.map((unit) => ({ ...unit, project_id: data.id }))
     )
+    if (unitError) {
+      console.error('[adminCreateProject] unit_configs insert failed:', unitError.message)
+      throw new Error(`unit_configs insert failed: ${unitError.message}`)
+    }
   }
 
   return data.id
@@ -428,9 +432,13 @@ export async function adminUpdateProject(
       .eq('project_id', id)
 
     if (unitConfigs.length) {
-      await supabase.from('unit_configs').insert(
+      const { error: unitError } = await supabase.from('unit_configs').insert(
         unitConfigs.map((unit: Record<string, unknown>) => ({ ...unit, project_id: id }))
       )
+      if (unitError) {
+        console.error('[adminUpdateProject] unit_configs insert failed:', unitError.message)
+        throw new Error(`unit_configs insert failed: ${unitError.message}`)
+      }
     }
   }
 }

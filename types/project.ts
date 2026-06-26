@@ -8,6 +8,7 @@ export interface UnitConfig {
   floor?: string
   facing?: string[]
   floorPlan?: string      // URL to floor plan image
+  images?: string[]       // per-unit gallery images
   highlights?: string[]
   total?: number
   available?: number

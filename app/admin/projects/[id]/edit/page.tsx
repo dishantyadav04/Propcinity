@@ -62,6 +62,7 @@ export default function EditProjectPage() {
             floor: u.floor || '',
             facing: u.facing || [],
             floorPlan: u.floor_plan || '',
+            images: u.images || [],
             highlights: u.highlights || [],
             maintenancePerMonth: u.maintenance_per_month ?? undefined,
             parking: u.parking,

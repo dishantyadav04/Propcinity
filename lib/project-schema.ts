@@ -6,6 +6,7 @@ export const unitConfigSchema = z.object({
   area: z.number(),
   price_min: z.number(),
   price_max: z.number(),
+  price_per_sqft: z.number().optional(),
   available: z.number().int().nonnegative().optional().default(0),
   total: z.number().int().nonnegative().optional().default(0),
   floor: z.string().optional().default(''),
