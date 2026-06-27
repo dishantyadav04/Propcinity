@@ -4,7 +4,7 @@ import { MOCK_PROJECTS } from '@/lib/mock-data'
 import { deleteFromR2 } from '@/lib/r2'
 
 function sanitizeDates(obj: Record<string, unknown>): Record<string, unknown> {
-  const DATE_FIELDS = ['launch_date', 'possession_date', 'rera_expiry', 'rera_possession_date', 'rera_expiry']
+  const DATE_FIELDS = ['possession_date', 'rera_expiry', 'rera_possession_date', 'rera_expiry']
   return Object.fromEntries(
     Object.entries(obj).map(([k, v]) =>
       DATE_FIELDS.includes(k) && v === '' ? [k, null] : [k, v]
@@ -28,10 +28,7 @@ type SupabaseProjectRow = {
   // trust_score and risk_label are deprecated — removed from Project type
   rera_id: string
   rera_expiry: string
-  launch_date: string
   possession_date: string
-  total_units: number
-  available_units: number
   pros: string[] | null
   cons: string[] | null
   amenities: string[] | null
@@ -45,18 +42,15 @@ type SupabaseUnitConfigRow = {
   id: string
   type: string
   area: number
-  price_min: number
-  price_max: number
+  price: number
+  price_is_plus: boolean
   price_per_sqft: number
-  available: number
-  total: number
-  floor: string | null
   floor_plan: string | null
   facing: string[] | null
   images: string[] | null
   highlights: string[] | null
   parking: number | null
-  maintenance_per_month: number | null
+  min_downpayment: number | null
 }
 
 function mapUnitConfig(row: SupabaseUnitConfigRow): UnitConfig {
@@ -64,16 +58,13 @@ function mapUnitConfig(row: SupabaseUnitConfigRow): UnitConfig {
     id: row.id,
     type: row.type,
     area: Number(row.area),
-    priceMin: Number(row.price_min),
-    priceMax: Number(row.price_max),
+    price: Number(row.price),
+    priceIsPlus: !!row.price_is_plus,
     pricePerSqFt: Number(row.price_per_sqft),
-    floor: row.floor ?? undefined,
     facing: row.facing || [],
     floorPlan: row.floor_plan ?? undefined,
     highlights: row.highlights || [],
-    total: row.total,
-    available: row.available,
-    maintenancePerMonth: row.maintenance_per_month ?? undefined,
+    minDownpayment: row.min_downpayment ?? undefined,
     parking: row.parking ?? undefined,
   }
 }
@@ -100,14 +91,11 @@ function mapProject(row: any, unitConfigs: SupabaseUnitConfigRow[]): Project {
     reraExpiry: row.rera_expiry,
     reraLink: row.rera_link,
     reraStatus: row.rera_status || 'not_registered',
-    launchDate: row.launch_date,
     possessionDate: row.possession_date,
     reraPossessionDate: row.rera_possession_date,
     landParcelAcres: row.land_parcel_acres,
     totalTowers: row.total_towers,
     floorsPerTower: row.floors_per_tower,
-    totalUnits: row.total_units,
-    availableUnits: row.available_units,
     unitConfigs: unitConfigs.map(mapUnitConfig),
     pros: row.pros || [],
     cons: row.cons && row.cons.length > 0 ? row.cons : ['No major downside data available yet.'],
@@ -201,8 +189,8 @@ export async function getPublishedProjects(filters?: {
 
     if (filters?.budgetMin || filters?.budgetMax) {
       const hasMatch = matchingUnits.some((unit) =>
-        (!filters.budgetMin || Number(unit.price_max) >= filters.budgetMin) &&
-        (!filters.budgetMax || Number(unit.price_min) <= filters.budgetMax)
+        (!filters.budgetMin || Number(unit.price) >= filters.budgetMin) &&
+        (!filters.budgetMax || Number(unit.price) <= filters.budgetMax)
       )
 
       if (!hasMatch) continue
@@ -322,16 +310,13 @@ export async function adminGetAllProjects(page = 1, limit = 50): Promise<{ proje
       id: u.id,
       type: u.type,
       area: Number(u.area),
-      priceMin: Number(u.price_min),
-      priceMax: Number(u.price_max),
+      price: Number(u.price),
+      priceIsPlus: !!u.price_is_plus,
       pricePerSqFt: Number(u.price_per_sqft),
-      floor: u.floor,
       facing: u.facing || [],
       floorPlan: u.floor_plan,
       highlights: u.highlights || [],
-      total: u.total,
-      available: u.available,
-      maintenancePerMonth: u.maintenance_per_month,
+      minDownpayment: u.min_downpayment,
       parking: u.parking,
     })),
   }))
@@ -378,8 +363,8 @@ export async function adminUpdateProject(
     // Strip camelCase fields — mapped to snake_case below
     builderName, builderLogo, builderYearsExperience, builderCompletedProjects,
     builderCities, builderTopProjects, builderDescription,
-    reraId, reraExpiry, reraLink, reraStatus, launchDate, possessionDate, reraPossessionDate,
-    landParcelAcres, totalTowers, floorsPerTower, totalUnits, availableUnits,
+    reraId, reraExpiry, reraLink, reraStatus, possessionDate, reraPossessionDate,
+    landParcelAcres, totalTowers, floorsPerTower,
     constructionStatus, constructionPercent,
     litigationDetails, commencementCertificate, occupancyCertificate, legalNotes,
     brochureUrl, paymentPlans, bankApprovals,
@@ -396,13 +381,10 @@ export async function adminUpdateProject(
     ...(masterPlanImages !== undefined && { master_plan_images: masterPlanImages }),
     ...(floorPlanImages !== undefined && { floor_plan_images: floorPlanImages }),
     ...(reraStatus !== undefined && { rera_status: reraStatus }),
-    ...(launchDate !== undefined && { launch_date: launchDate }),
     ...(possessionDate !== undefined && { possession_date: possessionDate }),
     ...(reraPossessionDate !== undefined && { rera_possession_date: reraPossessionDate }),
     ...(constructionStatus !== undefined && { construction_status: constructionStatus }),
     ...(constructionPercent !== undefined && { construction_percent: constructionPercent }),
-    ...(totalUnits !== undefined && { total_units: totalUnits }),
-    ...(availableUnits !== undefined && { available_units: availableUnits }),
     ...(landParcelAcres !== undefined && { land_parcel_acres: landParcelAcres }),
     ...(totalTowers !== undefined && { total_towers: totalTowers }),
     ...(floorsPerTower !== undefined && { floors_per_tower: floorsPerTower }),

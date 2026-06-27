@@ -125,7 +125,7 @@ export default function CompareBar() {
                   <AnimatePresence mode="popLayout">
                     {compareItems.map(item => {
                       const minPrice = (item.unitConfigs || []).length
-                        ? Math.min(...item.unitConfigs.map(u => u.priceMin)) : 0;
+                        ? Math.min(...item.unitConfigs.map(u => u.price)) : 0;
                       return (
                         <motion.div key={item.id} layout
                           initial={{ opacity: 0, scale: 0.8 }}

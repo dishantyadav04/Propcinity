@@ -367,9 +367,9 @@ export default function ProjectDetailPage() {
   );
 
   const minPrice = project.unitConfigs?.length
-    ? Math.min(...project.unitConfigs.map(u => u.priceMin)) : 0;
+    ? Math.min(...project.unitConfigs.map(u => u.price)) : 0;
   const maxPrice = project.unitConfigs?.length
-    ? Math.max(...project.unitConfigs.map(u => u.priceMax)) : 0;
+    ? Math.max(...project.unitConfigs.map(u => u.price)) : 0;
   const configSummary = Array.from(new Set(project.unitConfigs.map(u =>
     u.type.match(/^(\d+(?:\.\d+)?(?:\s*BHK|RK)?)/i)?.[0] || u.type
   ))).join(', ');
@@ -687,7 +687,7 @@ export default function ProjectDetailPage() {
                           </thead>
                           <tbody className="divide-y divide-[var(--border)]">
                             {activeUnits.map(unit => {
-                              const downpayment = Math.round(unit.priceMin * 0.15);
+                              const downpayment = Math.round(unit.price * 0.15);
                               const isExpanded = expandedEMIRow === unit.id && !isGuest;
                               return (
                                 <React.Fragment key={unit.id}>
@@ -698,10 +698,8 @@ export default function ProjectDetailPage() {
                                     </td>
                                     {/* All Inc. Price */}
                                     <td className="px-4 py-3 font-bold text-[var(--primary)] whitespace-nowrap">
-                                      {formatINR(unit.priceMin)}
-                                      {unit.priceMax > unit.priceMin && (
-                                        <span className="text-[var(--text-muted)] font-normal"> – {formatINR(unit.priceMax)}</span>
-                                      )}
+                                      {formatINR(unit.price)}
+                                      {unit.priceIsPlus && <span className="text-[var(--text-muted)] font-normal"> +</span>}
                                     </td>
                                     {/* Min Downpayment + EMI button */}
                                     <td className="px-4 py-3 whitespace-nowrap">
@@ -759,7 +757,7 @@ export default function ProjectDetailPage() {
                                           <div className="flex items-center justify-between mb-2">
                                             <p className="text-xs font-black text-[var(--text-primary)] uppercase tracking-wider">EMI Calculator</p>
                                             <p className="text-lg font-black text-[var(--primary)]">
-                                              {formatINR(calcEMI(unit.priceMin * 0.85, emiRate, emiTenure))}/mo
+                                              {formatINR(calcEMI(unit.price * 0.85, emiRate, emiTenure))}/mo
                                             </p>
                                           </div>
                                           <div className="grid grid-cols-2 gap-4">
@@ -782,9 +780,9 @@ export default function ProjectDetailPage() {
                                           </div>
                                           <div className="grid grid-cols-3 gap-2 pt-1">
                                             {[
-                                              { label: 'Loan Amount', value: formatINR(Math.round(unit.priceMin * 0.85)) },
-                                              { label: 'Down Payment', value: formatINR(Math.round(unit.priceMin * 0.15)) },
-                                              { label: 'Total Interest', value: formatINR(Math.max(0, calcEMI(unit.priceMin * 0.85, emiRate, emiTenure) * emiTenure * 12 - Math.round(unit.priceMin * 0.85))) },
+                                              { label: 'Loan Amount', value: formatINR(Math.round(unit.price * 0.85)) },
+                                              { label: 'Down Payment', value: formatINR(Math.round(unit.price * 0.15)) },
+                                              { label: 'Total Interest', value: formatINR(Math.max(0, calcEMI(unit.price * 0.85, emiRate, emiTenure) * emiTenure * 12 - Math.round(unit.price * 0.85))) },
                                             ].map(item => (
                                               <div key={item.label} className="bg-[var(--surface-raised)] p-2 rounded-[var(--radius-xs)]">
                                                 <p className="text-[9px] text-[var(--text-muted)] uppercase font-bold">{item.label}</p>

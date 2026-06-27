@@ -75,14 +75,11 @@ export default function ProjectForm({ initialData }: ProjectFormProps) {
     reraExpiry: '',
     reraLink: '',
     reraStatus: 'not_registered',
-    launchDate: '',
     possessionDate: '',
     reraPossessionDate: '',
     landParcelAcres: undefined,
     totalTowers: undefined,
     floorsPerTower: '',
-    totalUnits: undefined,
-    availableUnits: undefined,
     isPublished: true,
     litigation: false,
     litigationDetails: '',
@@ -131,19 +128,16 @@ export default function ProjectForm({ initialData }: ProjectFormProps) {
       const body: Record<string, unknown> = {
         ...project,
         builder_id: selectedBuilderId || null,
-        builder_name: project.builderName, // Bug 2 fixed: map camelCase to snake_case for Zod
+        builder_name: project.builderName,
         tagline: project.tagline,
         possession_date: project.possessionDate,
         rera_possession_date: project.reraPossessionDate,
         land_parcel_acres: project.landParcelAcres,
         total_towers: project.totalTowers,
         floors_per_tower: project.floorsPerTower,
-        total_units: project.totalUnits,
-        available_units: project.availableUnits,
         construction_status: project.constructionStatus,
         construction_percent: project.constructionPercent ?? 0,
         is_published: project.isPublished ?? true,
-        launch_date: project.launchDate,
         rera_id: project.reraId,
         rera_expiry: project.reraExpiry,
         rera_link: project.reraLink,
@@ -163,34 +157,33 @@ export default function ProjectForm({ initialData }: ProjectFormProps) {
         rera_registrations: project.reraRegistrations || [],
         master_plan_images: project.masterPlanImages || [],
         floor_plan_images: project.floorPlanImages || [],
-        unitConfigs: (project.unitConfigs || []).map(u => ({
-          id: u.id,
-          type: u.type,
-          area: u.area,
-          price_min: u.priceMin,
-          price_max: u.priceMax,
-          price_per_sqft: u.pricePerSqFt,
-          floor: u.floor || '',
-          floor_plan: u.floorPlan?.startsWith('http') ? u.floorPlan : undefined,
-          facing: u.facing || [],
-          images: u.images || [],
-          highlights: u.highlights || [],
-          total: u.total || 0,
-          available: u.available || 0,
-          parking: u.parking,
-          maintenance_per_month: u.maintenancePerMonth,
-        })),
-        builderName: undefined,  // Bug 2 fixed: prevent camelCase leak through ...project spread
+        unitConfigs: (project.unitConfigs || []).map(u => {
+          const area = u.area ?? 0;
+          const price = u.price ?? 0;
+          const pricePerSqft = area > 0 ? Math.round(price / area) : 0;
+          return {
+            id: u.id,
+            type: u.type,
+            area: u.area,
+            price: u.price,
+            price_is_plus: u.priceIsPlus ?? false,
+            price_per_sqft: pricePerSqft,
+            floor_plan: u.floorPlan?.startsWith('http') ? u.floorPlan : undefined,
+            facing: u.facing || [],
+            images: u.images || [],
+            highlights: u.highlights || [],
+            parking: u.parking,
+            min_downpayment: u.minDownpayment,
+          };
+        }),
+        builderName: undefined,
         possessionDate: undefined,
         reraPossessionDate: undefined,
         landParcelAcres: undefined,
         totalTowers: undefined,
         floorsPerTower: undefined,
-        totalUnits: undefined,
-        availableUnits: undefined,
         constructionStatus: undefined,
         constructionPercent: undefined,
-        launchDate: undefined,
         reraId: undefined,
         reraExpiry: undefined,
         reraLink: undefined,
@@ -403,15 +396,6 @@ export default function ProjectForm({ initialData }: ProjectFormProps) {
             />
           </div>
           <div className="space-y-2">
-            <label className="text-[10px] text-[var(--text-muted)] uppercase font-bold">Launch Date</label>
-            <input
-              type="date"
-              value={project.launchDate || ''}
-              onChange={(e) => setProject({...project, launchDate: e.target.value})}
-              className="w-full bg-[var(--surface-raised)] border border-[var(--border)] rounded-xl px-4 py-2.5 text-sm"
-            />
-          </div>
-          <div className="space-y-2">
             <label className="text-[10px] text-[var(--text-muted)] uppercase font-bold">Target Possession</label>
             <input
               type="date"
@@ -426,26 +410,6 @@ export default function ProjectForm({ initialData }: ProjectFormProps) {
               type="date"
               value={project.reraPossessionDate || ''}
               onChange={(e) => setProject({...project, reraPossessionDate: e.target.value})}
-              className="w-full bg-[var(--surface-raised)] border border-[var(--border)] rounded-xl px-4 py-2.5 text-sm"
-            />
-          </div>
-          <div className="space-y-2">
-            <label className="text-[10px] text-[var(--text-muted)] uppercase font-bold">Total Units</label>
-            <input
-              type="text"
-              inputMode="numeric"
-              value={project.totalUnits ?? ''}
-              onChange={(e) => setProject({...project, totalUnits: parseIntInput(e.target.value)})}
-              className="w-full bg-[var(--surface-raised)] border border-[var(--border)] rounded-xl px-4 py-2.5 text-sm"
-            />
-          </div>
-          <div className="space-y-2">
-            <label className="text-[10px] text-[var(--text-muted)] uppercase font-bold">Available Units</label>
-            <input
-              type="text"
-              inputMode="numeric"
-              value={project.availableUnits ?? ''}
-              onChange={(e) => setProject({...project, availableUnits: parseIntInput(e.target.value)})}
               className="w-full bg-[var(--surface-raised)] border border-[var(--border)] rounded-xl px-4 py-2.5 text-sm"
             />
           </div>

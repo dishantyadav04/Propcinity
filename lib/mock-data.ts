@@ -15,19 +15,15 @@ export const MOCK_PROJECTS: Project[] = [
     reraStatus: "registered",
     reraId: "P52100012345",
     reraExpiry: "2028-12-31",
-    launchDate: "2023-01-01",
     possessionDate: "2027-06-30",
-    totalUnits: 450,
-    availableUnits: 120,
     unitConfigs: [
       {
         id: "u1",
         type: "2BHK",
         area: 1150,
-        priceMin: 11500000,
-        priceMax: 12500000,
+        price: 11500000,
+        priceIsPlus: false,
         pricePerSqFt: 10000,
-        floor: "High",
         facing: ["East", "Garden"],
         highlights: ["Spacious balcony", "Smart home automation"]
       },
@@ -35,10 +31,9 @@ export const MOCK_PROJECTS: Project[] = [
         id: "u2",
         type: "3BHK",
         area: 1650,
-        priceMin: 16500000,
-        priceMax: 18500000,
+        price: 16500000,
+        priceIsPlus: false,
         pricePerSqFt: 10000,
-        floor: "Any",
         facing: ["West", "Clubhouse"],
         highlights: ["Walk-in wardrobe", "Premium marble flooring"]
       }
@@ -66,19 +61,15 @@ export const MOCK_PROJECTS: Project[] = [
     reraStatus: "registered",
     reraId: "P52100054321",
     reraExpiry: "2026-06-30",
-    launchDate: "2021-06-01",
     possessionDate: "2026-03-31",
-    totalUnits: 800,
-    availableUnits: 50,
     unitConfigs: [
       {
         id: "u3",
         type: "1BHK",
         area: 650,
-        priceMin: 5500000,
-        priceMax: 6000000,
+        price: 5500000,
+        priceIsPlus: false,
         pricePerSqFt: 8461,
-        floor: "Mid",
         facing: ["East"],
         highlights: ["Compact design", "Excellent ventilation"]
       }

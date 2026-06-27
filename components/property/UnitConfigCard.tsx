@@ -98,18 +98,18 @@ export default function UnitConfigCard({ unit, project }: UnitConfigCardProps) {
               <p className="text-xs text-[var(--text-muted)] mt-0.5">{unit.area} sq.ft carpet area</p>
             </div>
             <div className="text-right flex-shrink-0">
-              <p className="text-base font-black text-[var(--primary)]">{formatINR(unit.priceMin)}</p>
-              {unit.priceMax && unit.priceMax > unit.priceMin && (
-                <p className="text-[10px] text-[var(--text-muted)]">up to {formatINR(unit.priceMax)}</p>
+              <p className="text-base font-black text-[var(--primary)]">{formatINR(unit.price)}</p>
+              {unit.priceIsPlus && (
+                <p className="text-[10px] text-[var(--text-muted)]">+</p>
               )}
               <p className="text-[10px] text-[var(--text-muted)] font-bold">
-                ~{formatINR(unit.pricePerSqFt)}/sqft
+                ~{formatINR(unit.pricePerSqFt)}{unit.priceIsPlus ? '+' : ''}/sqft
               </p>
             </div>
           </div>
 
           {/* Stats row */}
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 gap-3">
             <div className="flex items-center gap-2.5">
               <div className="w-7 h-7 bg-[var(--surface-raised)] rounded-lg flex items-center justify-center">
                 <Maximize className="w-3.5 h-3.5 text-[var(--text-muted)]" />
@@ -119,17 +119,6 @@ export default function UnitConfigCard({ unit, project }: UnitConfigCardProps) {
                 <p className="text-xs font-bold text-[var(--text-primary)]">{unit.area} sqft</p>
               </div>
             </div>
-            {unit.floor && (
-              <div className="flex items-center gap-2.5">
-                <div className="w-7 h-7 bg-[var(--surface-raised)] rounded-lg flex items-center justify-center">
-                  <Compass className="w-3.5 h-3.5 text-[var(--text-muted)]" />
-                </div>
-                <div>
-                  <p className="text-[9px] text-[var(--text-muted)] uppercase font-bold tracking-wider">Floor</p>
-                  <p className="text-xs font-bold text-[var(--text-primary)]">{unit.floor}</p>
-                </div>
-              </div>
-            )}
           </div>
 
           {/* Facing chips */}

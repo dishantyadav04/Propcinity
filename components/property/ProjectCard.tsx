@@ -30,7 +30,7 @@ export default function ProjectCard({
 }: ProjectCardProps) {
   const displayUnit = matchedUnit || project.unitConfigs[0];
   const minPrice = project.unitConfigs.length > 0
-    ? Math.min(...project.unitConfigs.map(u => u.priceMin))
+    ? Math.min(...project.unitConfigs.map(u => u.price))
     : 0;
 
   const { isGuest: isGuestRaw, isChecking } = useGuestMode();
@@ -147,7 +147,7 @@ export default function ProjectCard({
           {/* Property Fit Badge */}
           {displayUnit && (
             <div className="absolute top-3 left-3 z-30">
-              <PropertyFitBadge score={Math.min(100, Math.round((displayUnit.priceMin / 100000) % 100))} />
+              <PropertyFitBadge score={Math.min(100, Math.round((displayUnit.price / 100000) % 100))} />
             </div>
           )}
         </div>

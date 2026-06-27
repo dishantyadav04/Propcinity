@@ -8,7 +8,7 @@ import { UserIntent } from '@/types/user';
 // Convert a project to a rich text description for embedding
 export function projectToEmbeddingText(project: Project): string {
   const price = (project.unitConfigs || [])
-    .map((u: any) => `${u.type} at ₹${((u.priceMin || 0) / 100000).toFixed(0)}L`)
+    .map((u: any) => `${u.type} at ₹${((u.price || 0) / 100000).toFixed(0)}L`)
     .join(', ');
 
   return [

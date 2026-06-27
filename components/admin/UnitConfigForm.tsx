@@ -3,14 +3,20 @@
 import { useState } from "react";
 import { Plus, Trash2, Maximize, IndianRupee, ImageIcon, X, Zap, Loader2 } from "lucide-react";
 import { UnitConfig } from "@/types/project";
+import { toast } from "sonner";
 
 interface UnitConfigFormProps {
   units: UnitConfig[];
   onChange: (units: UnitConfig[]) => void;
 }
 
+function formatIndianCurrency(num: number): string {
+  return num.toLocaleString('en-IN');
+}
+
 export default function UnitConfigForm({ units, onChange }: UnitConfigFormProps) {
   const [uploadingId, setUploadingId] = useState<string | null>(null);
+  const [priceInputs, setPriceInputs] = useState<Record<string, string>>({});
 
   const parseIntInput = (val: string): number | undefined => {
     const n = parseInt(val.replace(/^0+/, ''), 10)
@@ -22,21 +28,23 @@ export default function UnitConfigForm({ units, onChange }: UnitConfigFormProps)
     return isNaN(n) ? undefined : n
   }
 
+  const calcPricePerSqft = (price: number, area: number): number => {
+    return area > 0 ? Math.round(price / area) : 0;
+  }
+
   const addUnit = () => {
     onChange([...units, {
       id: crypto.randomUUID(),
       type: '2 BHK Apartment',
       area: 1000,
-      priceMin: 8000000,
-      priceMax: 8500000,
-      pricePerSqFt: 8000,
-      floor: 'Mid Floor',
+      price: 8500000,
+      priceIsPlus: false,
+      pricePerSqFt: 8500,
       facing: ['East'],
       highlights: ['Spacious Balcony'],
-      total: undefined,
-      available: undefined,
-      maintenancePerMonth: undefined
+      minDownpayment: undefined,
     }]);
+    toast("New config added", { duration: 2500 });
   };
 
   const removeUnit = (id: string) => {
@@ -44,7 +52,14 @@ export default function UnitConfigForm({ units, onChange }: UnitConfigFormProps)
   };
 
   const updateUnit = (id: string, updates: Partial<UnitConfig>) => {
-    onChange(units.map(u => u.id === id ? { ...u, ...updates } : u));
+    onChange(units.map(u => {
+      if (u.id !== id) return u;
+      const merged = { ...u, ...updates };
+      const newPrice = 'price' in updates ? updates.price : merged.price;
+      const newArea = 'area' in updates ? updates.area : merged.area;
+      const newPricePerSqft = calcPricePerSqft(newPrice ?? 0, newArea ?? 0);
+      return { ...merged, pricePerSqFt: newPricePerSqft };
+    }));
   };
 
   const handleFloorPlanUpload = async (id: string, e: React.ChangeEvent<HTMLInputElement>) => {
@@ -77,21 +92,16 @@ export default function UnitConfigForm({ units, onChange }: UnitConfigFormProps)
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h3 className="text-sm font-bold text-[var(--text-primary)] uppercase tracking-widest">
-          Configurations & Pricing
-        </h3>
-        <button
-          type="button"
-          onClick={addUnit}
-          className="flex items-center gap-2 px-3 py-1.5 bg-[var(--primary)]/10 text-[var(--primary)] rounded-lg text-xs font-bold hover:bg-[var(--primary)]/20 transition-all"
-        >
-          <Plus className="w-3.5 h-3.5" /> Add Configuration
-        </button>
-      </div>
+      <h3 className="text-sm font-bold text-[var(--text-primary)] uppercase tracking-widest">
+        Configurations & Pricing
+      </h3>
 
       <div className="space-y-4">
-        {units.map((unit) => (
+        {units.map((unit) => {
+          const pricePerSqft = calcPricePerSqft(unit.price ?? 0, unit.area ?? 0);
+          const displayPricePerSqft = `${formatIndianCurrency(pricePerSqft)}${unit.priceIsPlus ? '+' : ''}`;
+
+          return (
           <div key={unit.id} className="p-4 bg-[var(--surface-raised)] border border-[var(--border)] rounded-xl space-y-4">
 
             {/* Config name + delete */}
@@ -151,60 +161,55 @@ export default function UnitConfigForm({ units, onChange }: UnitConfigFormProps)
               )}
             </div>
 
-            {/* Total + Available */}
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1">
-                <label className="text-[10px] text-[var(--text-muted)] uppercase font-bold">Total Units</label>
-                <input
-                  type="text"
-                  inputMode="numeric"
-                  value={unit.total ?? ''}
-                  onChange={(e) => updateUnit(unit.id, { total: parseIntInput(e.target.value) })}
-                  className="w-full bg-[var(--surface)] border border-[var(--border)] rounded-lg px-3 py-2 text-sm"
-                  placeholder="0"
-                />
-              </div>
-              <div className="space-y-1">
-                <label className="text-[10px] text-[var(--text-muted)] uppercase font-bold">Available</label>
-                <input
-                  type="text"
-                  inputMode="numeric"
-                  value={unit.available ?? ''}
-                  onChange={(e) => updateUnit(unit.id, { available: parseIntInput(e.target.value) })}
-                  className="w-full bg-[var(--surface)] border border-[var(--border)] rounded-lg px-3 py-2 text-sm"
-                  placeholder="0"
-                />
-              </div>
-            </div>
-
             {/* Pricing & Details Grid */}
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-2 gap-4">
+              {/* Price field with + toggle */}
               <div className="space-y-1">
-                <label className="text-[10px] text-[var(--text-muted)] uppercase font-bold">Price Min (₹)</label>
-                <div className="flex items-center gap-2 bg-[var(--surface)] border border-[var(--border)] rounded-lg px-2 py-1.5">
-                  <IndianRupee className="w-3.5 h-3.5 text-[var(--text-muted)]" />
-                  <input
-                    type="text"
-                    inputMode="numeric"
-                    value={unit.priceMin}
-                    onChange={(e) => updateUnit(unit.id, { priceMin: parseIntInput(e.target.value) ?? 0 })}
-                    className="w-full bg-transparent border-none text-xs text-[var(--text-primary)] focus:outline-none"
-                  />
+                <label className="text-[10px] text-[var(--text-muted)] uppercase font-bold">Price (₹)</label>
+                <div className="flex items-center gap-1 bg-[var(--surface)] border border-[var(--border)] rounded-lg overflow-hidden">
+                  <div className="flex items-center gap-1.5 px-2 py-1.5 flex-1">
+                    <IndianRupee className="w-3.5 h-3.5 text-[var(--text-muted)] shrink-0" />
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      value={priceInputs[unit.id] ?? (unit.price ? formatIndianCurrency(unit.price) : '')}
+                      onFocus={(e) => {
+                        setPriceInputs(prev => ({ ...prev, [unit.id]: String(unit.price ?? '') }));
+                      }}
+                      onChange={(e) => {
+                        const raw = e.target.value.replace(/[^0-9]/g, '');
+                        setPriceInputs(prev => ({ ...prev, [unit.id]: raw }));
+                        const num = parseInt(raw, 10);
+                        if (!isNaN(num)) {
+                          updateUnit(unit.id, { price: num });
+                        }
+                      }}
+                      onBlur={() => {
+                        setPriceInputs(prev => {
+                          const next = { ...prev };
+                          delete next[unit.id];
+                          return next;
+                        });
+                      }}
+                      className="w-full bg-transparent border-none text-xs text-[var(--text-primary)] focus:outline-none"
+                      placeholder="8500000"
+                    />
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => updateUnit(unit.id, { priceIsPlus: !unit.priceIsPlus })}
+                    className={`px-2 py-1.5 text-xs font-bold border-l border-[var(--border)] transition-colors ${
+                      unit.priceIsPlus
+                        ? 'bg-[var(--primary)] text-white'
+                        : 'bg-[var(--surface-raised)] text-[var(--text-muted)] hover:bg-[var(--primary)]/10'
+                    }`}
+                    title="Append + to price"
+                  >
+                    +
+                  </button>
                 </div>
               </div>
-              <div className="space-y-1">
-                <label className="text-[10px] text-[var(--text-muted)] uppercase font-bold">Price Max (₹)</label>
-                <div className="flex items-center gap-2 bg-[var(--surface)] border border-[var(--border)] rounded-lg px-2 py-1.5">
-                  <IndianRupee className="w-3.5 h-3.5 text-[var(--text-muted)]" />
-                  <input
-                    type="text"
-                    inputMode="numeric"
-                    value={unit.priceMax}
-                    onChange={(e) => updateUnit(unit.id, { priceMax: parseIntInput(e.target.value) ?? 0 })}
-                    className="w-full bg-transparent border-none text-xs text-[var(--text-primary)] focus:outline-none"
-                  />
-                </div>
-              </div>
+
               <div className="space-y-1">
                 <label className="text-[10px] text-[var(--text-muted)] uppercase font-bold">Area (sq.ft)</label>
                 <div className="flex items-center gap-2 bg-[var(--surface)] border border-[var(--border)] rounded-lg px-2 py-1.5">
@@ -218,42 +223,34 @@ export default function UnitConfigForm({ units, onChange }: UnitConfigFormProps)
                   />
                 </div>
               </div>
+
+              {/* Price / sq.ft — auto-calculated, read-only */}
               <div className="space-y-1">
-                <label className="text-[10px] text-[var(--text-muted)] uppercase font-bold">Floor</label>
-                <select
-                  value={unit.floor}
-                  onChange={(e) => updateUnit(unit.id, { floor: e.target.value })}
-                  className="w-full bg-[var(--surface)] border border-[var(--border)] rounded-lg px-3 py-1.5 text-xs text-[var(--text-primary)] focus:outline-none focus:border-[var(--primary)]"
-                >
-                  {['Low Floor', 'Mid Floor', 'High Floor', 'Top Floor', 'Ground Floor'].map(f => (
-                    <option key={f} value={f}>{f}</option>
-                  ))}
-                </select>
+                <label className="text-[10px] text-[var(--text-muted)] uppercase font-bold">Price / sq.ft (₹)</label>
+                <div className="flex items-center gap-2 bg-[var(--surface-muted)] border border-[var(--border)] rounded-lg px-2 py-1.5 opacity-80">
+                  <IndianRupee className="w-3.5 h-3.5 text-[var(--text-muted)]" />
+                  <input
+                    type="text"
+                    value={displayPricePerSqft}
+                    disabled
+                    className="w-full bg-transparent border-none text-xs text-[var(--text-muted)] focus:outline-none cursor-default"
+                  />
+                </div>
               </div>
+
+              {/* Min Downpayment (formerly maintenance_per_month) */}
               <div className="space-y-1">
                 <label className="text-[10px] text-[var(--text-muted)] uppercase font-bold flex items-center gap-1">
-                  <Zap className="w-3 h-3" /> Maint. /mo (₹)
+                  <Zap className="w-3 h-3" /> Min Downpayment (₹)
                 </label>
                 <input
                   type="text"
                   inputMode="numeric"
-                  value={unit.maintenancePerMonth ?? ''}
-                  onChange={(e) => updateUnit(unit.id, { maintenancePerMonth: parseIntInput(e.target.value) })}
+                  value={unit.minDownpayment ?? ''}
+                  onChange={(e) => updateUnit(unit.id, { minDownpayment: parseIntInput(e.target.value) })}
                   className="w-full bg-[var(--surface)] border border-[var(--border)] rounded-lg px-3 py-1.5 text-xs text-[var(--text-primary)] focus:outline-none"
+                  placeholder="0"
                 />
-              </div>
-              <div className="space-y-1">
-                <label className="text-[10px] text-[var(--text-muted)] uppercase font-bold">Price / sq.ft (₹)</label>
-                <div className="flex items-center gap-2 bg-[var(--surface)] border border-[var(--border)] rounded-lg px-2 py-1.5">
-                  <IndianRupee className="w-3.5 h-3.5 text-[var(--text-muted)]" />
-                  <input
-                    type="text"
-                    inputMode="numeric"
-                    value={unit.pricePerSqFt}
-                    onChange={(e) => updateUnit(unit.id, { pricePerSqFt: parseIntInput(e.target.value) ?? 0 })}
-                    className="w-full bg-transparent border-none text-xs text-[var(--text-primary)] focus:outline-none"
-                  />
-                </div>
               </div>
             </div>
 
@@ -294,14 +291,23 @@ export default function UnitConfigForm({ units, onChange }: UnitConfigFormProps)
               💡 For multiple 2 BHK variants with different areas, add separate configurations (e.g. "2 BHK Classic 950sqft", "2 BHK Premium 1100sqft").
             </p>
           </div>
-        ))}
+        )})}
 
         {units.length === 0 && (
           <div className="text-center py-8 text-[var(--text-muted)] text-sm border-2 border-dashed border-[var(--border)] rounded-xl">
-            No configurations yet. Click "Add Configuration" to get started.
+            No configurations yet. Click "Add Configuration" below to get started.
           </div>
         )}
       </div>
+
+      {/* Add Configuration button at bottom */}
+      <button
+        type="button"
+        onClick={addUnit}
+        className="w-full flex items-center justify-center gap-2 px-4 py-2.5 border-2 border-dashed border-[var(--border)] text-[var(--text-muted)] rounded-xl text-sm font-semibold hover:border-[var(--primary)] hover:text-[var(--primary)] hover:bg-[var(--primary)]/5 transition-all"
+      >
+        <Plus className="w-4 h-4" /> Add Configuration
+      </button>
     </div>
   );
 }

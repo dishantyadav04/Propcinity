@@ -183,7 +183,7 @@ function ExplorePageContent() {
       };
       const [min, max] = ranges[budgetFilter] || [0, Infinity];
       result = result.filter(p => {
-        const prices = (p.unitConfigs || []).map(u => u.priceMin).filter(Boolean);
+        const prices = (p.unitConfigs || []).map(u => u.price).filter(Boolean);
         if (prices.length === 0) return true;
         const pMin = Math.min(...prices);
         return pMin >= min && pMin <= max;
@@ -207,17 +207,17 @@ function ExplorePageContent() {
     // Explicit sort (overrides relevance)
     if (sortBy === 'price_asc') {
       result.sort((a, b) =>
-        (a.unitConfigs?.[0]?.priceMin || 0) - (b.unitConfigs?.[0]?.priceMin || 0)
+        (a.unitConfigs?.[0]?.price || 0) - (b.unitConfigs?.[0]?.price || 0)
       );
     }
     if (sortBy === 'price_desc') {
       result.sort((a, b) =>
-        (b.unitConfigs?.[0]?.priceMin || 0) - (a.unitConfigs?.[0]?.priceMin || 0)
+        (b.unitConfigs?.[0]?.price || 0) - (a.unitConfigs?.[0]?.price || 0)
       );
     }
     if (sortBy === 'newest') {
       result.sort((a, b) =>
-        new Date(b.launchDate || 0).getTime() - new Date(a.launchDate || 0).getTime()
+        new Date(b.possessionDate || 0).getTime() - new Date(a.possessionDate || 0).getTime()
       );
     }
 
@@ -629,7 +629,7 @@ function ExplorePageContent() {
           <div className="space-y-3">
             {visibleProjects.map((project, index) => {
               const minPrice = project.unitConfigs?.length
-                ? Math.min(...project.unitConfigs.map(u => u.priceMin)) : 0;
+                ? Math.min(...project.unitConfigs.map(u => u.price)) : 0;
               const configs = Array.from(new Set((project.unitConfigs || []).map(u => u.type)));
               return (
                 <motion.div key={project.id}

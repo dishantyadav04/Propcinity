@@ -82,7 +82,7 @@ function CompareContent() {
     {
       label: 'Price From', render: p => (
         <span className="font-black text-[var(--primary)]">
-          {p.unitConfigs?.length ? formatINR(Math.min(...(p.unitConfigs || []).map(u => u.priceMin))) : '—'}
+          {p.unitConfigs?.length ? formatINR(Math.min(...(p.unitConfigs || []).map(u => u.price))) : '—'}
         </span>
       )
     },
@@ -191,7 +191,7 @@ function CompareContent() {
               <div className="p-2 text-center">
                 <p className="text-xs font-bold text-[var(--text-primary)] line-clamp-2 leading-tight">{p.name}</p>
                 <p className="text-[9px] text-[var(--primary)] font-black mt-0.5">
-                  {p.unitConfigs?.length ? formatINR(Math.min(...(p.unitConfigs || []).map(u => u.priceMin))) : '—'}
+                  {p.unitConfigs?.length ? formatINR(Math.min(...(p.unitConfigs || []).map(u => u.price))) : '—'}
                 </p>
                 {viewDetailsLink(p)}
               </div>

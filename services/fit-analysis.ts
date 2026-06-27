@@ -21,11 +21,11 @@ export function generateFitReasons(
   const reasons: FitReason[] = []
 
   if (matchedUnit) {
-    if (matchedUnit.priceMin <= intent.budget.max * 0.9) {
+    if (matchedUnit.price <= intent.budget.max * 0.9) {
       reasons.push({ icon: 'IndianRupee', text: 'Comfortably within your budget', strength: 'strong' })
-    } else if (matchedUnit.priceMin <= intent.budget.max) {
+    } else if (matchedUnit.price <= intent.budget.max) {
       reasons.push({ icon: 'IndianRupee', text: 'Within your stated budget', strength: 'moderate' })
-    } else if (matchedUnit.priceMin <= intent.budget.max * 1.1) {
+    } else if (matchedUnit.price <= intent.budget.max * 1.1) {
       reasons.push({ icon: 'IndianRupee', text: 'Slightly above budget but strong value', strength: 'weak' })
     }
   }

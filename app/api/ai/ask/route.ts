@@ -163,7 +163,7 @@ export async function PUT(request: NextRequest) {
       name: p.name,
       location: p.location,
       unitTypes: (p.unitConfigs || []).map((u: any) => u.type).join(', '),
-      priceMin: p.unitConfigs?.[0]?.priceMin || 0,
+      priceMin: p.unitConfigs?.[0]?.price || 0,
       possession: p.possessionDate,
       reraStatus: (p as any).reraStatus || 'not_registered',
       pros: (p.pros || []).slice(0, 2).join('; '),

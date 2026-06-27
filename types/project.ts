@@ -2,17 +2,14 @@ export interface UnitConfig {
   id: string
   type: string            // "2BHK", "3BHK", "3.5BHK" etc.
   area: number            // carpet area in sqft
-  priceMin: number
-  priceMax: number
-  pricePerSqFt: number
-  floor?: string
+  price: number           // raw numeric price
+  priceIsPlus: boolean    // whether to append "+"
+  pricePerSqFt: number    // auto-calculated, read-only
   facing?: string[]
   floorPlan?: string      // URL to floor plan image
   images?: string[]       // per-unit gallery images
   highlights?: string[]
-  total?: number
-  available?: number
-  maintenancePerMonth?: number
+  minDownpayment?: number // formerly maintenance_per_month
   parking?: number        // number of parking spots for this config
 }
 
@@ -85,7 +82,6 @@ export interface Project {
   reraLink?: string
 
   // Dates
-  launchDate: string
   possessionDate: string        // Target possession
   reraPossessionDate?: string   // RERA possession
 
@@ -93,8 +89,6 @@ export interface Project {
   landParcelAcres?: number      // e.g. 7.5
   totalTowers?: number          // e.g. 6
   floorsPerTower?: string       // e.g. "G+33"
-  totalUnits: number
-  availableUnits?: number
 
   // Config summary (derived from unitConfigs)
   unitConfigs: UnitConfig[]
