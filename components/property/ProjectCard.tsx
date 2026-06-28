@@ -144,13 +144,14 @@ export default function ProjectCard({
             </div>
           </div>
 
-          {/* Property Fit Badge */}
-          {displayUnit && (
-            <div className="absolute top-3 left-3 z-30">
-              <PropertyFitBadge score={Math.min(100, Math.round((displayUnit.price / 100000) % 100))} />
-            </div>
-          )}
         </div>
+
+        {/* Match Badge — sits between image and body */}
+        {displayUnit && (
+          <div className="px-4 pt-3 pb-0">
+            <PropertyFitBadge score={Math.min(100, Math.round((displayUnit.price / 100000) % 100))} />
+          </div>
+        )}
 
         {/* Body */}
         <div className="p-4 space-y-3 flex flex-col flex-1">

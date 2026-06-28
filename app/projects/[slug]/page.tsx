@@ -582,34 +582,19 @@ export default function ProjectDetailPage() {
             </div>
 
             {/* ── AMENITIES ──────────────────────────── */}
-            <div id="section-amenities" className="scroll-mt-36 py-10 border-b border-[var(--border)]">
-              <h2 className="text-lg font-black text-[var(--text-primary)] mb-6"
-                style={{ fontFamily: 'var(--font-display)' }}>
-                {project.name} Amenities
-              </h2>
-
-              {/* Internal */}
-              {project.internalAmenities && project.internalAmenities.length > 0 && (
-                <div className="mb-8">
-                  <h3 className="text-xs font-black text-[var(--text-muted)] uppercase tracking-widest mb-4">
-                    Internal Amenities
-                  </h3>
-                  <AmenityGrid amenities={project.internalAmenities} />
-                </div>
-              )}
-
-              {/* External */}
-              {(project.externalAmenities?.length || project.amenities?.length) ? (
-                <div>
-                  <h3 className="text-xs font-black text-[var(--text-muted)] uppercase tracking-widest mb-4">
-                    {project.internalAmenities?.length ? 'External Amenities' : 'All Amenities'}
-                  </h3>
-                  <AmenityGrid amenities={project.externalAmenities?.length ? project.externalAmenities : project.amenities} />
-                </div>
-              ) : null}
-
-              {/* No amenity data available — section hidden */}
-            </div>
+            {((project.internalAmenities?.length || project.externalAmenities?.length || project.amenities?.length)) && (
+              <div id="section-amenities" className="scroll-mt-36 py-10 border-b border-[var(--border)]">
+                <h2 className="text-lg font-black text-[var(--text-primary)] mb-6"
+                  style={{ fontFamily: 'var(--font-display)' }}>
+                  {project.name} Amenities
+                </h2>
+                <AmenityGrid
+                  internalAmenities={project.internalAmenities}
+                  externalAmenities={project.externalAmenities}
+                  amenities={project.amenities}
+                />
+              </div>
+            )}
 
             {/* ── FLOOR PLANS ──────────────────────────── */}
             <div id="section-floor-plans" className="scroll-mt-36 py-10 border-b border-[var(--border)]">
