@@ -503,21 +503,13 @@ export default function DashboardPage() {
                     exit={{ opacity: 0, scale: 0.9 }}
                     className="relative group"
                   >
-                    <ProjectCard project={project} index={index} hideRiskBadge={true} hideCuratedButton={true} priority={index === 0} />
+                    <ProjectCard project={project} index={index} hideRiskBadge={true} hideCuratedButton={true} priority={index === 0} matchScore={userIntent ? getMatchPercent(project, userIntent) : undefined} />
 
                     {userIntent && (() => {
-                      const pct = getMatchPercent(project, userIntent);
                       const fallbackLabel = getSmartMatchLabel(project, userIntent);
+                      if (!fallbackLabel && !reasoning[project.id]) return null;
                       return (
                         <div className="absolute top-3 left-3 z-30 pointer-events-none flex flex-col gap-1">
-                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-black whitespace-nowrap shadow-sm"
-                            style={{
-                              background: pct >= 75 ? '#DCFCE7' : pct >= 50 ? '#FEF9C3' : '#FEE2E2',
-                              color: pct >= 75 ? '#16A34A' : pct >= 50 ? '#CA8A04' : '#DC2626',
-                            }}>
-                            <Sparkles className="w-2.5 h-2.5" />
-                            {pct}% Match
-                          </span>
                           {fallbackLabel && (
                             <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-bold whitespace-nowrap shadow-sm bg-blue-50 text-blue-700">
                               {fallbackLabel}

@@ -614,26 +614,14 @@ function ExplorePageContent() {
                 transition={{ delay: Math.min(index * 0.04, 0.3) }}
                 className="relative group"
               >
-                <ProjectCard project={project} index={index} hideCuratedButton={true} priority={index === 0} />
+                <ProjectCard
+                  project={project}
+                  index={index}
+                  hideCuratedButton={true}
+                  priority={index === 0}
+                  matchScore={userIntent ? Math.min(100, Math.round((scoreByIntent(project, userIntent) / 90) * 100)) : undefined}
+                />
 
-                {/* % Matched badge — top-left */}
-                {userIntent && (() => {
-                  const score = scoreByIntent(project, userIntent);
-                  const pct = Math.min(100, Math.round((score / 90) * 100));
-                  if (score < 0) return null;
-                  return (
-                    <div className="absolute top-3 left-3 z-30 pointer-events-none">
-                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-black whitespace-nowrap shadow-sm"
-                        style={{
-                          background: pct >= 75 ? '#DCFCE7' : pct >= 50 ? '#FEF9C3' : '#FEE2E2',
-                          color: pct >= 75 ? '#16A34A' : pct >= 50 ? '#CA8A04' : '#DC2626',
-                        }}>
-                        <Sparkles className="w-2.5 h-2.5" />
-                        {pct}% Match
-                      </span>
-                    </div>
-                  );
-                })()}
 
                 {/* Round + / ✓ button — top-right */}
                 <button

@@ -23,10 +23,11 @@ interface ProjectCardProps {
   hideRiskBadge?: boolean;
   hideCuratedButton?: boolean;
   priority?: boolean;
+  matchScore?: number;
 }
 
 export default function ProjectCard({
-  project, matchedUnit, index = 0, hideCuratedButton, priority = false
+  project, matchedUnit, index = 0, hideCuratedButton, priority = false, matchScore
 }: ProjectCardProps) {
   const displayUnit = matchedUnit || project.unitConfigs[0];
   const minPrice = project.unitConfigs.length > 0
@@ -146,10 +147,10 @@ export default function ProjectCard({
 
         </div>
 
-        {/* Match Badge — sits between image and body */}
-        {displayUnit && (
+        {/* Match Badge — only shown when real score is passed */}
+        {typeof matchScore === 'number' && matchScore >= 0 && (
           <div className="px-4 pt-3 pb-0">
-            <PropertyFitBadge score={Math.min(100, Math.round((displayUnit.price / 100000) % 100))} />
+            <PropertyFitBadge score={matchScore} />
           </div>
         )}
 
