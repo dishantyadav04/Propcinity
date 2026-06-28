@@ -42,7 +42,7 @@ export default function Footer() {
               <li><Link href="/ai-chat" className={linkClass}>AI Chat</Link></li>
               <li><Link href="/compare" className={linkClass}>Compare</Link></li>
               <li><Link href="/blogs" className={linkClass}>Blogs</Link></li>
-              <li><Link href="/saved" className={linkClass}>Saved</Link></li>
+              <li><Link href="/dashboard" className={linkClass}>Dashboard</Link></li>
             </ul>
           </div>
 

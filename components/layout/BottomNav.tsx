@@ -14,7 +14,7 @@ const GUEST_NAV_ITEMS = [
 ];
 
 const USER_NAV_ITEMS = [
-  { label: 'Home', href: '/dashboard', icon: Home },
+  { label: 'Dashboard', href: '/dashboard', icon: Home },
   { label: 'Explore', href: '/explore', icon: Compass },
   { label: 'AI Chat', href: '/ai-chat', icon: Sparkles },
   { label: 'Compare', href: '/compare', icon: GitCompareArrows },

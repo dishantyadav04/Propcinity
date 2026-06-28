@@ -69,6 +69,15 @@ export default function ProjectCard({
 
   const unitTypes = Array.from(new Set(project.unitConfigs.map(u => u.type)));
 
+  const shortLabel = (type: string) => {
+    const match = type.match(/(\d+\s*BHK)/i);
+    return match ? match[1].replace(/\s+/, '') : type.split(' ')[0];
+  };
+
+  const MAX_VISIBLE_CONFIGS = 3;
+  const visibleTypes = unitTypes.slice(0, MAX_VISIBLE_CONFIGS);
+  const hiddenCount = unitTypes.length - MAX_VISIBLE_CONFIGS;
+
   useEffect(() => {
     const checkCompare = () => {
       const current = storage.get<any[]>(STORAGE_KEYS.COMPARE_ITEMS, []);
@@ -141,10 +150,9 @@ export default function ProjectCard({
           className={`absolute top-3 right-3 z-30 w-7 h-7 rounded-full
             flex items-center justify-center
             transition-all duration-150 shadow-sm backdrop-blur-sm
-            hover:scale-110 ${
-              isCurated
-                ? 'bg-[var(--primary)] text-white'
-                : 'bg-black/40 text-white hover:bg-[var(--primary)]'
+            hover:scale-110 ${isCurated
+              ? 'bg-[var(--primary)] text-white'
+              : 'bg-black/40 text-white hover:bg-[var(--primary)]'
             }`}
         >
           {isCurated
@@ -169,10 +177,18 @@ export default function ProjectCard({
 
           {/* RERA Verified badge — top-left overlay */}
           {project.reraStatus === 'registered' && (
-            <div className="absolute top-2.5 left-2.5 z-10 flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold text-green-100 backdrop-blur-sm"
-              style={{ background: 'rgba(22,163,74,0.18)', border: '1px solid rgba(22,163,74,0.35)' }}>
-              <ShieldCheck className="w-3 h-3" />
-              RERA Verified
+            <div className="absolute top-2.5 left-2.5 z-10 group/rera">
+              <div className="flex items-center justify-center w-6 h-6 rounded-full backdrop-blur-sm cursor-default"
+                style={{ background: 'rgba(22,163,74,0.22)', border: '1px solid rgba(22,163,74,0.4)' }}>
+                <ShieldCheck className="w-3.5 h-3.5 text-green-300" />
+              </div>
+              {/* Tooltip */}
+              <div className="absolute top-8 left-0 whitespace-nowrap px-2 py-1 rounded-lg text-[10px] font-bold
+                bg-[var(--text-primary)] text-[var(--background)] shadow-lg pointer-events-none
+                opacity-0 group-hover/rera:opacity-100 transition-opacity duration-150 z-50">
+                RERA Verified
+                <div className="absolute -top-1 left-2 w-2 h-2 bg-[var(--text-primary)] rotate-45 rounded-[1px]" />
+              </div>
             </div>
           )}
 
@@ -213,25 +229,36 @@ export default function ProjectCard({
             <p className="text-[9px] text-[var(--text-muted)] uppercase tracking-widest font-bold mb-0.5">
               Starting from
             </p>
-            <p className="text-[21px] font-black text-[var(--text-primary)] tracking-tight leading-none">
+            <p className="text-[22px] font-black text-[var(--text-primary)] tracking-tight leading-none">
               {formatINR(minPrice)}
             </p>
           </div>
 
           <div className="text-right shrink-0">
-            <div className="flex items-center gap-1 justify-end mb-1.5">
+            <div className="flex items-center gap-1 justify-end mb-0.5">
               <span className="text-[9px] text-[var(--text-muted)] uppercase tracking-widest font-bold">
                 Configurations
               </span>
               <ConfigTooltip />
             </div>
-            <div className="flex flex-wrap gap-1 justify-end">
-              {unitTypes.map(type => (
-                <span key={type}
-                  className="px-2 py-0.5 rounded-full bg-[var(--surface-raised)] border border-[var(--border)] text-[10.5px] font-semibold text-[var(--text-secondary)]">
-                  {type}
+            <div className="flex items-center gap-1 justify-end flex-wrap">
+              {visibleTypes.map(type => (
+                <span
+                  key={type}
+                  className="px-2 py-0.5 rounded-md border border-[var(--border)] text-[10px] font-bold tracking-wide text-[var(--text-secondary)] bg-transparent"
+                >
+                  {shortLabel(type)}
                 </span>
               ))}
+              {hiddenCount > 0 && (
+                <Link
+                  href={`/projects/${project.slug}`}
+                  onClick={e => e.stopPropagation()}
+                  className="px-2 py-0.5 rounded-md border border-[var(--primary)]/30 text-[10px] font-bold text-[var(--primary)] hover:bg-[var(--primary-light)] transition-colors"
+                >
+                  +{hiddenCount}
+                </Link>
+              )}
             </div>
           </div>
         </div>
@@ -246,18 +273,27 @@ export default function ProjectCard({
         <InsightsPanel pros={project.pros} cons={project.cons} variant="card" />
 
         {/* Footer */}
-        <div className="flex items-center justify-between pt-1">
+        <div className="flex items-center justify-between pt-1 gap-2">
           <button
             onClick={handleCompare}
-            className="text-[11.5px] font-bold text-[var(--text-muted)] hover:text-[var(--primary)] transition-colors bg-transparent border-0 p-0 cursor-pointer"
+            className={`flex items-center gap-1 px-3 py-1.5 rounded-full text-[11px] font-bold
+              border transition-all duration-150 cursor-pointer
+              ${isComparing
+                ? 'bg-[var(--primary)] text-white border-[var(--primary)]'
+                : 'bg-transparent text-[var(--primary)] border-[var(--primary)] hover:bg-[var(--primary-light)]'
+              }`}
           >
             {isComparing ? '✓ Comparing' : '+ Compare'}
           </button>
 
-          <Link href={`/projects/${project.slug}`}
-            className="flex items-center gap-0.5 text-[11.5px] font-bold text-[var(--primary)] hover:underline">
+          <Link
+            href={`/projects/${project.slug}`}
+            className="flex items-center gap-1 px-3 py-1.5 rounded-full text-[11px] font-bold
+              bg-[var(--primary)] text-white border border-[var(--primary)]
+              hover:opacity-90 transition-opacity"
+          >
             View Full Audit
-            <ChevronRight className="w-3.5 h-3.5" />
+            <ChevronRight className="w-3 h-3" />
           </Link>
         </div>
       </div>

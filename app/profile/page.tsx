@@ -16,6 +16,7 @@ import { storage, STORAGE_KEYS } from "@/lib/storage";
 import { useGuestMode } from "@/hooks/useGuestMode";
 import { signOut } from "@/lib/supabase-auth";
 import { createClient } from "@/lib/supabase";
+import { fetchIntentFromSupabase } from "@/lib/intent-sync";
 
 export default function ProfilePage() {
   const router = useRouter();
@@ -30,7 +31,17 @@ export default function ProfilePage() {
 
   useEffect(() => {
     const saved = storage.get<UserIntent | null>(STORAGE_KEYS.USER_INTENT, null);
-    if (saved) setIntent(saved);
+    if (saved) {
+      setIntent(saved);
+    } else {
+      // Try Supabase fallback (cross-device)
+      fetchIntentFromSupabase().then(remote => {
+        if (remote) {
+          storage.set(STORAGE_KEYS.USER_INTENT, remote);
+          setIntent(remote as UserIntent);
+        }
+      });
+    }
     const ids = storage.get<string[]>(STORAGE_KEYS.CURATED_IDS, []);
     setCuratedCount(ids.length);
   }, []);

@@ -16,6 +16,7 @@ import { storage, STORAGE_KEYS } from '@/lib/storage';
 import { useGuestMode } from '@/hooks/useGuestMode';
 import PersonalizedWelcome from '@/components/onboarding/PersonalizedWelcome';
 import { hashIntent, getLocalAIRank, setLocalAIRank } from '@/lib/ai-rank-cache';
+import { syncIntentToSupabase, fetchIntentFromSupabase } from '@/lib/intent-sync';
 
 function getSmartMatchLabel(project: Project, intent: any): string | null {
   if (!intent) return null;
@@ -33,20 +34,7 @@ function getSmartMatchLabel(project: Project, intent: any): string | null {
   const slightlyOver = pMin > uMax && uMax > 0 && pMin <= uMax * 1.2;
 
   if (!hasExactBHK && types.length > 0) {
-    const rawTypes = (project.unitConfigs || []).map((u: any) => u.type).filter(Boolean);
-    const uniqueTypes = Array.from(new Set(rawTypes));
-    if (uniqueTypes.length > 0) {
-      let formattedTypes = '';
-      if (uniqueTypes.length === 1) {
-        formattedTypes = uniqueTypes[0];
-      } else if (uniqueTypes.length === 2) {
-        formattedTypes = uniqueTypes.join(' & ');
-      } else {
-        formattedTypes = uniqueTypes.slice(0, -1).join(', ') + ' & ' + uniqueTypes[uniqueTypes.length - 1];
-      }
-      return `${formattedTypes} available`;
-    }
-    return 'Alternative size available';
+    return null; // Config info is already visible on the card
   }
   if (slightlyOver) return 'Slightly above budget';
 
@@ -175,6 +163,18 @@ export default function DashboardPage() {
       setUserName(name);
       if (cachedReco.length > 0) setAiRecommended(cachedReco);
       setStorageReady(true);
+
+      // If no local intent, try to pull from Supabase (cross-device fallback)
+      if (!intent) {
+        fetchIntentFromSupabase().then(remoteIntent => {
+          if (remoteIntent) {
+            storage.set(STORAGE_KEYS.USER_INTENT, remoteIntent);
+            setUserIntent(remoteIntent as UserIntent);
+            const remoteName = (remoteIntent as any)?.name?.split(' ')[0] || '';
+            if (remoteName) setUserName(remoteName);
+          }
+        });
+      }
     };
 
     loadFromStorage();
@@ -259,6 +259,11 @@ export default function DashboardPage() {
       const scored = smartRankProjects(projects, userIntent)
       setAiRecommended(scored)
       storage.set(STORAGE_KEYS.RECO_CACHE, scored)
+
+      // Push intent to Supabase for cross-device persistence
+      if (userIntent) {
+        syncIntentToSupabase(userIntent as any);
+      }
     } finally {
       setAiLoading(false)
     }
@@ -446,7 +451,7 @@ export default function DashboardPage() {
               </h1>
               <p className="text-sm text-[var(--text-secondary)] flex items-center gap-1.5">
                 {curatedIds.length > 0
-                  ? `${curatedIds.length} propert${curatedIds.length === 1 ? 'y' : 'ies'} you added`
+                  ? `${displayResults.length} propert${displayResults.length === 1 ? 'y' : 'ies'} you added`
                   : (
                     <>
                       {aiRankSource !== 'js' && (
@@ -534,9 +539,9 @@ export default function DashboardPage() {
                       onClick={() => handleRemove(project.id)}
                       title="Remove from dashboard"
                       className="absolute top-3 right-3 z-30 w-7 h-7 rounded-full
-                        bg-black/30 text-white backdrop-blur-sm
+                        bg-black/40 text-white backdrop-blur-sm
                         flex items-center justify-center
-                        opacity-0 group-hover:opacity-100
+                        opacity-60 hover:opacity-100
                         hover:bg-[var(--danger)] hover:scale-110
                         transition-all duration-150 shadow-sm"
                     >
