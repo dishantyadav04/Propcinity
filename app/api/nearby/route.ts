@@ -33,7 +33,8 @@ function evictIfNeeded() {
 
 export async function GET(request: NextRequest) {
   const ip = getClientIp(request)
-  if (await checkRateLimit(nearbyLimiter, ip)) {
+  const nearbyResult = await checkRateLimit(nearbyLimiter, ip)
+  if (nearbyResult.limited) {
     return NextResponse.json({ error: 'Too many requests.' }, { status: 429 })
   }
 

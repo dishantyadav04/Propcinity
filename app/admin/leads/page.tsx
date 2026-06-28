@@ -279,6 +279,11 @@ export default function AdminLeadsPage() {
                         <p className="text-xs text-[var(--text-muted)]">
                           Submitted: {new Date(lead.created_at).toLocaleString('en-IN')}
                         </p>
+                        {lead.trigger_source && (
+                          <p className="text-xs text-[var(--text-muted)]">
+                            Source: {lead.trigger_source}
+                          </p>
+                        )}
                       </div>
                     </div>
 

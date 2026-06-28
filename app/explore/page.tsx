@@ -57,6 +57,8 @@ function ExplorePageContent() {
   const [viewMode, setViewMode] = useState<ViewMode>('grid');
   const [typeFilter, setTypeFilter] = useState('all');
   const [budgetFilter, setBudgetFilter] = useState('all');
+  const [statusFilter, setStatusFilter] = useState('');
+  const [bhkFilter, setBhkFilter] = useState('');
   // Bug 3 fixed: riskFilter state removed — riskLabel deleted from Project type
 
   // Seed search from URL param on mount
@@ -173,7 +175,17 @@ function ExplorePageContent() {
       });
     }
 
-    // Budget filter
+    // Status filter
+    if (statusFilter) {
+      result = result.filter(p => p.constructionStatus === statusFilter);
+    }
+
+    // BHK filter
+    if (bhkFilter) {
+      result = result.filter(p =>
+        p.unitConfigs.some(u => u.type.toLowerCase().includes(bhkFilter.toLowerCase()))
+      );
+    }
     if (budgetFilter !== 'all') {
       const ranges: Record<string, [number, number]> = {
         'under-50': [0, 5000000],
@@ -225,7 +237,7 @@ function ExplorePageContent() {
     if (result.length > 0 && !result.find(p => p.id === selectedProject?.id)) {
       setSelectedProject(result[0]);
     }
-  }, [projects, searchQuery, sortBy, typeFilter, budgetFilter,
+  }, [projects, searchQuery, sortBy, typeFilter, budgetFilter, statusFilter, bhkFilter,
     userIntent, showAllProjects]);
 
   useEffect(() => { applyFilters(); }, [applyFilters]);
@@ -270,7 +282,7 @@ function ExplorePageContent() {
 
   const currentSort = SORT_OPTIONS.find(o => o.value === sortBy)!;
   const activeFilterCount = [
-    typeFilter !== 'all', budgetFilter !== 'all'
+    typeFilter !== 'all', budgetFilter !== 'all', !!statusFilter, !!bhkFilter
   ].filter(Boolean).length;
 
   // Guest card visibility
@@ -491,6 +503,44 @@ function ExplorePageContent() {
                           }`}>{t === 'all' ? 'All Types' : t}</button>
                     ))}
                   </div>
+                  {/* Status */}
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-wider">
+                      Status
+                    </span>
+                    {[
+                      { id: '', label: 'All' },
+                      { id: 'pre_launch', label: 'Pre-Launch' },
+                      { id: 'new_launch', label: 'New Launch' },
+                      { id: 'under_construction', label: 'Under Construction' },
+                      { id: 'ready_to_move', label: 'Ready to Move' },
+                    ].map(s => (
+                      <button key={s.id} onClick={() => setStatusFilter(s.id)}
+                        className={`min-w-[72px] text-center px-3 py-1 rounded-full text-xs font-bold transition-all border ${statusFilter === s.id
+                            ? 'bg-[var(--primary)] text-white border-[var(--primary)]'
+                            : 'bg-[var(--surface-raised)] text-[var(--text-secondary)] border-[var(--border)]'
+                          }`}>{s.label}</button>
+                    ))}
+                  </div>
+                  {/* BHK */}
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-wider">
+                      BHK
+                    </span>
+                    {[
+                      { id: '', label: 'All' },
+                      { id: '1', label: '1 BHK' },
+                      { id: '2', label: '2 BHK' },
+                      { id: '3', label: '3 BHK' },
+                      { id: '4', label: '4 BHK+' },
+                    ].map(b => (
+                      <button key={b.id} onClick={() => setBhkFilter(b.id)}
+                        className={`min-w-[56px] text-center px-3 py-1 rounded-full text-xs font-bold transition-all border ${bhkFilter === b.id
+                            ? 'bg-[var(--primary)] text-white border-[var(--primary)]'
+                            : 'bg-[var(--surface-raised)] text-[var(--text-secondary)] border-[var(--border)]'
+                          }`}>{b.label}</button>
+                    ))}
+                  </div>
                   {/* Budget */}
                   <div className="flex items-center gap-2 flex-wrap">
                     <span className="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-wider">
@@ -514,6 +564,7 @@ function ExplorePageContent() {
                     <button
                       onClick={() => {
                         setTypeFilter('all'); setBudgetFilter('all');
+                        setStatusFilter(''); setBhkFilter('');
                       }}
                       className="text-xs font-bold text-[var(--danger)] hover:underline ml-auto">
                       Clear all

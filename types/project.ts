@@ -66,6 +66,8 @@ export interface Project {
   builderCities?: string[]
   builderTopProjects?: BuilderProject[]
   builderDescription?: string
+  builderScore?: number
+  builderScoreBreakdown?: Record<string, number>
   location: string
   city: string
   lat: number

@@ -4,9 +4,36 @@ interface BuilderProfileProps {
   name: string;
   experience: string;
   projectsDelivered: number;
+  builderScore?: number;
+  scoreBreakdown?: Record<string, number>;
 }
 
-export default function BuilderProfile({ name, experience, projectsDelivered }: BuilderProfileProps) {
+function scoreColor(score: number) {
+  if (score >= 75) return '#22c55e';
+  if (score >= 50) return '#f59e0b';
+  return '#ef4444';
+}
+
+function BuilderScoreRing({ score }: { score: number }) {
+  const r = 20, circumference = 2 * Math.PI * r;
+  const offset = circumference - (score / 100) * circumference;
+  return (
+    <div className="relative w-14 h-14 flex items-center justify-center" title={`Builder Score: ${score}/100`}>
+      <svg className="absolute" width="56" height="56" viewBox="0 0 56 56">
+        <circle cx="28" cy="28" r={r} fill="none" stroke="var(--border)" strokeWidth="4" />
+        <circle
+          cx="28" cy="28" r={r} fill="none"
+          stroke={scoreColor(score)} strokeWidth="4"
+          strokeDasharray={circumference} strokeDashoffset={offset}
+          strokeLinecap="round" transform="rotate(-90 28 28)"
+        />
+      </svg>
+      <span className="text-xs font-bold" style={{ color: scoreColor(score) }}>{score}</span>
+    </div>
+  );
+}
+
+export default function BuilderProfile({ name, experience, projectsDelivered, builderScore, scoreBreakdown }: BuilderProfileProps) {
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-4">
@@ -17,6 +44,9 @@ export default function BuilderProfile({ name, experience, projectsDelivered }: 
           <h3 className="text-lg font-bold text-[var(--text-primary)]" style={{ fontFamily: 'var(--font-display)' }}>{name}</h3>
           <p className="text-xs text-[var(--text-muted)] uppercase tracking-widest">Verified Developer</p>
         </div>
+        {builderScore !== undefined && (
+          <BuilderScoreRing score={builderScore} />
+        )}
       </div>
 
       <div className="grid grid-cols-2 gap-4">

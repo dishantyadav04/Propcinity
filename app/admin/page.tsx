@@ -11,7 +11,7 @@ import Link from 'next/link';
 interface Stats {
   projects: number;
   builders: number;
-  leads: { total: number; hot: number; warm: number; cold: number };
+  leads: { total: number; hot: number; warm: number; cold: number; new7d: number };
   users: number;
   recentLeads: any[];
 }
@@ -30,15 +30,17 @@ export default function AdminOverviewPage() {
       const projects = proj.projects || [];
       const builders = build.builders || [];
       const leadsData = leads.leads || [];
+      const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
 
       setStats({
-        projects: projects.length,
+        projects: proj.total || projects.length,
         builders: builders.length,
         leads: {
           total: leads.total || leadsData.length,
           hot: leadsData.filter((l: any) => l.intent_label === 'hot').length,
           warm: leadsData.filter((l: any) => l.intent_label === 'warm').length,
           cold: leadsData.filter((l: any) => l.intent_label === 'cold').length,
+          new7d: leadsData.filter((l: any) => new Date(l.created_at) >= weekAgo).length,
         },
         users: users.users?.length || 0,
         recentLeads: leadsData.slice(0, 5),
@@ -79,12 +81,13 @@ export default function AdminOverviewPage() {
       </div>
 
       {/* KPI Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
         {[
-          { label: 'Projects', value: stats?.projects ?? '—', icon: Building2, href: '/admin/projects', color: 'text-blue-500', bg: 'bg-blue-50' },
-          { label: 'Builders', value: stats?.builders ?? '—', icon: HardHat, href: '/admin/builders', color: 'text-amber-500', bg: 'bg-amber-50' },
+          { label: 'Published Projects', value: stats?.projects ?? '—', icon: Building2, href: '/admin/projects', color: 'text-blue-500', bg: 'bg-blue-50' },
           { label: 'Total Leads', value: stats?.leads.total ?? '—', icon: MessageSquare, href: '/admin/leads', color: 'text-[var(--primary)]', bg: 'bg-[var(--primary-light)]' },
-          { label: 'Registered Users', value: stats?.users ?? '—', icon: Users, href: '/admin/users', color: 'text-green-500', bg: 'bg-green-50' },
+          { label: 'Hot Leads', value: stats?.leads.hot ?? '—', icon: Flame, href: '/admin/leads', color: 'text-red-500', bg: 'bg-red-50' },
+          { label: 'New (7d)', value: stats?.leads.new7d ?? '—', icon: ThermometerSun, href: '/admin/leads', color: 'text-green-500', bg: 'bg-green-50' },
+          { label: 'Builders', value: stats?.builders ?? '—', icon: HardHat, href: '/admin/builders', color: 'text-amber-500', bg: 'bg-amber-50' },
         ].map(card => (
           <Link key={card.label} href={card.href}
             className="bg-white border border-[var(--border)] rounded-[var(--radius)]

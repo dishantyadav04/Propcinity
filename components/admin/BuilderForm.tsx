@@ -31,6 +31,16 @@ export default function BuilderForm({ initial, mode }: BuilderFormProps) {
     refund_disputes: initial?.refund_disputes || 0,
   });
 
+  const calculateBuilderScore = (data: typeof form) => Math.min(100, Math.round(
+    (data.on_time_delivery_percent * 0.4) +
+    ((1 - Math.min(data.legal_cases / 10, 1)) * 100 * 0.3) +
+    ((1 - Math.min(data.customer_complaints / 50, 1)) * 100 * 0.2) +
+    ((1 - Math.min(data.avg_delay_months / 24, 1)) * 100 * 0.1)
+  ))
+
+  const builderScore = calculateBuilderScore(form)
+  const scoreColor = builderScore >= 75 ? '#22c55e' : builderScore >= 50 ? '#f59e0b' : '#ef4444'
+
   // Auto-compute years_in_business whenever established_year changes
   const computedYearsInBusiness = form.established_year
     ? Math.max(0, new Date().getFullYear() - Number(form.established_year))
@@ -52,6 +62,7 @@ export default function BuilderForm({ initial, mode }: BuilderFormProps) {
       credentials: 'include',
       body: JSON.stringify({
         ...form,
+        builder_score: builderScore,
         years_in_business: computedYearsInBusiness,
         total_projects_delivered: Number(form.total_projects_delivered),
         on_time_delivery_percent: Number(form.on_time_delivery_percent),
@@ -144,9 +155,27 @@ export default function BuilderForm({ initial, mode }: BuilderFormProps) {
 
           {/* Builder Details (formerly score inputs) */}
           <div className="bg-white border border-[var(--border)] rounded-[var(--radius)] p-5 space-y-5">
-            <h2 className="text-xs font-black text-[var(--text-muted)] uppercase tracking-wider">
-              Builder Track Record & Legal
-            </h2>
+            <div className="flex items-center justify-between">
+              <h2 className="text-xs font-black text-[var(--text-muted)] uppercase tracking-wider">
+                Builder Track Record & Legal
+              </h2>
+              <div className="flex items-center gap-2">
+                <div className="relative w-14 h-14 flex items-center justify-center">
+                  <svg className="absolute" width="56" height="56" viewBox="0 0 56 56">
+                    <circle cx="28" cy="28" r="20" fill="none" stroke="var(--border)" strokeWidth="4" />
+                    <circle
+                      cx="28" cy="28" r="20" fill="none"
+                      stroke={scoreColor} strokeWidth="4"
+                      strokeDasharray={2 * Math.PI * 20}
+                      strokeDashoffset={(2 * Math.PI * 20) - (builderScore / 100) * (2 * Math.PI * 20)}
+                      strokeLinecap="round" transform="rotate(-90 28 28)"
+                    />
+                  </svg>
+                  <span className="text-xs font-bold" style={{ color: scoreColor }}>{builderScore}</span>
+                </div>
+                <span className="text-[10px] font-bold uppercase text-[var(--text-muted)]">Score</span>
+              </div>
+            </div>
 
             {/* Track Record */}
             {[

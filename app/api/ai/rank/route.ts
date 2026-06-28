@@ -43,8 +43,9 @@ const RankRequestSchema = z.object({
 
 export async function POST(request: NextRequest) {
   const ip = getClientIp(request)
-  if (await checkRateLimit(aiRankLimiter, `rank:${ip}`)) {
-    return NextResponse.json({ error: 'Too many requests' }, { status: 429 })
+  const rankResult = await checkRateLimit(aiRankLimiter, `rank:${ip}`)
+  if (rankResult.limited) {
+    return NextResponse.json({ error: 'Too many requests', retryAfter: rankResult.retryAfter }, { status: 429 })
   }
 
   const supabase = await createServerSupabaseClient()

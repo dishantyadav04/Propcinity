@@ -13,7 +13,8 @@ import { adminLoginLimiter, getClientIp, checkRateLimit } from '@/lib/rate-limit
 
 export async function POST(request: NextRequest) {
   const ip = getClientIp(request)
-  if (await checkRateLimit(adminLoginLimiter, `admin-login:${ip}`)) {
+  const loginResult = await checkRateLimit(adminLoginLimiter, `admin-login:${ip}`)
+  if (loginResult.limited) {
     return NextResponse.json(
       { error: 'Too many login attempts. Try again in 15 minutes.' },
       { status: 429 }

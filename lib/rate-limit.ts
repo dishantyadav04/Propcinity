@@ -37,15 +37,16 @@ export function getClientIp(request: Request): string {
 export async function checkRateLimit(
   limiter: Ratelimit | null,
   identifier: string
-): Promise<boolean> {
+): Promise<{ limited: boolean; retryAfter?: number }> {
   if (!limiter) {
     if (process.env.NODE_ENV === 'production') {
       console.error('[SECURITY] Rate limiter unavailable in production — blocking request')
-      return true
+      return { limited: true }
     }
     console.warn('[rate-limit] Rate limiting disabled in development — allowing request')
-    return false
+    return { limited: false }
   }
-  const { success } = await limiter.limit(identifier)
-  return !success // returns true if rate limited
+  const { success, reset } = await limiter.limit(identifier)
+  const retryAfter = reset ? Math.max(0, Math.ceil((reset - Date.now()) / 1000)) : undefined
+  return { limited: !success, retryAfter }
 }

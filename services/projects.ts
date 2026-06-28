@@ -81,6 +81,8 @@ function mapProject(row: any, unitConfigs: SupabaseUnitConfigRow[]): Project {
     builderCities: row.builder_cities || [],
     builderTopProjects: row.builder_top_projects || [],
     builderDescription: row.builder_description,
+    builderScore: row.builder_score,
+    builderScoreBreakdown: row.score_breakdown,
     location: row.location,
     city: row.city,
     lat: Math.round(Number(row.lat) * 1000) / 1000,
@@ -153,8 +155,8 @@ export async function getPublishedProjects(filters?: {
 }): Promise<Project[]> {
   const supabase = await createServerSupabaseClient()
   if (!supabase) {
-    console.log('Using mock data for getPublishedProjects')
-    return MOCK_PROJECTS
+    if (process.env.NODE_ENV === 'development') return MOCK_PROJECTS
+    throw new Error('Supabase client unavailable. Check NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY in Vercel env vars.')
   }
 
   let query = supabase
@@ -205,7 +207,8 @@ export async function getPublishedProjects(filters?: {
 export async function getProjectBySlug(slug: string): Promise<Project | null> {
   const supabase = await createServerSupabaseClient()
   if (!supabase) {
-    return MOCK_PROJECTS.find(p => p.slug === slug) || null
+    if (process.env.NODE_ENV === 'development') return MOCK_PROJECTS.find(p => p.slug === slug) || null
+    return null
   }
   const { data: project, error } = await supabase
     .from('projects_public')
@@ -228,7 +231,8 @@ export async function getProjectsByIds(ids: string[]): Promise<Project[]> {
 
   const supabase = await createServerSupabaseClient()
   if (!supabase) {
-    return MOCK_PROJECTS.filter(p => ids.includes(p.id))
+    if (process.env.NODE_ENV === 'development') return MOCK_PROJECTS.filter(p => ids.includes(p.id))
+    return []
   }
   const { data: projects } = await supabase
     .from('projects_public')
@@ -290,7 +294,10 @@ export async function rejectProject(
 
 export async function adminGetAllProjects(page = 1, limit = 50): Promise<{ projects: unknown[]; total: number; page: number; limit: number }> {
   const supabase = createAdminSupabaseClient()
-  if (!supabase) return { projects: MOCK_PROJECTS, total: MOCK_PROJECTS.length, page, limit }
+  if (!supabase) {
+    if (process.env.NODE_ENV === 'development') return { projects: MOCK_PROJECTS, total: MOCK_PROJECTS.length, page, limit }
+    throw new Error('Admin Supabase client unavailable. Check SUPABASE_SERVICE_ROLE_KEY.')
+  }
   const from = (page - 1) * limit
   const to = from + limit - 1
   const { data, error, count } = await supabase

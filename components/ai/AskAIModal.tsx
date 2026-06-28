@@ -40,6 +40,14 @@ export default function AskAIModal({ isOpen, onClose, project, compareProject }:
         })
       });
 
+      if (response.status === 429) {
+        const { retryAfter } = await response.json().catch(() => ({}))
+        const mins = retryAfter ? Math.ceil(retryAfter / 60) : 5
+        setAnswer(`You've asked a lot of great questions! Give it ${mins} minute${mins > 1 ? 's' : ''} and try again.`)
+        setProvider('none')
+        return
+      }
+
       const data = await response.json();
       setAnswer(data.answer);
       setProvider(data.provider);

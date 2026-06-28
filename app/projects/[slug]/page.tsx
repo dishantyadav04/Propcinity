@@ -379,8 +379,33 @@ export default function ProjectDetailPage() {
   const formatReraStatus = (status: string) =>
     status.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
 
+  const jsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'RealEstateListing',
+    name: project.name,
+    description: project.description,
+    url: `https://propcinity.com/projects/${project.slug}`,
+    image: project.images?.[0],
+    address: {
+      '@type': 'PostalAddress',
+      addressLocality: project.city,
+      addressCountry: 'IN',
+      streetAddress: project.location,
+    },
+    offers: project.unitConfigs.map(u => ({
+      '@type': 'Offer',
+      name: u.type,
+      price: u.price,
+      priceCurrency: 'INR',
+    })),
+  };
+
   return (
     <div className="min-h-screen bg-[var(--background)]">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
 
       {/* ── Mobile top bar ─────────────────────────────── */}
       <div className="lg:hidden px-4 py-3 flex justify-between items-center
@@ -1027,6 +1052,27 @@ export default function ProjectDetailPage() {
                         )}
                       </div>
                     </div>
+                    {project.builderScore !== undefined && (
+                      <div className="relative w-14 h-14 flex items-center justify-center ml-auto flex-shrink-0">
+                        <svg className="absolute" width="56" height="56" viewBox="0 0 56 56">
+                          <circle cx="28" cy="28" r="20" fill="none" stroke="var(--border)" strokeWidth="4" />
+                          <circle
+                            cx="28" cy="28" r="20" fill="none"
+                            stroke={project.builderScore >= 75 ? '#22c55e' : project.builderScore >= 50 ? '#f59e0b' : '#ef4444'}
+                            strokeWidth="4"
+                            strokeDasharray={2 * Math.PI * 20}
+                            strokeDashoffset={(2 * Math.PI * 20) - (project.builderScore / 100) * (2 * Math.PI * 20)}
+                            strokeLinecap="round" transform="rotate(-90 28 28)"
+                          />
+                        </svg>
+                        <span
+                          className="text-xs font-bold"
+                          style={{ color: project.builderScore >= 75 ? '#22c55e' : project.builderScore >= 50 ? '#f59e0b' : '#ef4444' }}
+                        >
+                          {project.builderScore}
+                        </span>
+                      </div>
+                    )}
                   </div>
 
                   {project.builderDescription && (

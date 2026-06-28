@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { isAdminAuthenticated } from '@/lib/admin-auth'
-import { projectSchema } from '@/lib/project-schema'
 import { createAdminSupabaseClient } from '@/lib/supabase-server'
 import { adminUpdateProject, adminDeleteProject } from '@/services/projects'
 
@@ -44,14 +43,14 @@ export async function PATCH(
   }
 
   const body = await request.json().catch(() => null)
-  const parsed = projectSchema.safeParse(body)
-  if (!parsed.success) {
-    console.warn('[admin/projects] Validation failed:', JSON.stringify(parsed.error.flatten()))
-    return NextResponse.json({ error: 'Invalid project payload' }, { status: 400 })
-  }
+  if (!body) return NextResponse.json({ error: 'Invalid body' }, { status: 400 })
 
-  await adminUpdateProject(id, parsed.data)
-  return NextResponse.json({ success: true })
+  try {
+    await adminUpdateProject(id, body)
+    return NextResponse.json({ success: true })
+  } catch (err: any) {
+    return NextResponse.json({ error: err.message || 'Update failed' }, { status: 500 })
+  }
 }
 
 export async function DELETE(

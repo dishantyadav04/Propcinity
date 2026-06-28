@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
-import { Mail, Search, Clock, CheckCircle2, MessageSquare } from 'lucide-react';
+import { Mail, Search, Clock, CheckCircle2, MessageSquare, Send, X } from 'lucide-react';
 
 const STATUS_STYLE: Record<string, string> = {
   new: 'bg-blue-50 text-blue-700 border-blue-200',
@@ -16,6 +16,9 @@ export default function AdminContactPage() {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [expanded, setExpanded] = useState<string | null>(null);
+  const [replyOpen, setReplyOpen] = useState<string | null>(null);
+  const [replyBody, setReplyBody] = useState('');
+  const [replySending, setReplySending] = useState(false);
 
   const load = useCallback(() => {
     setIsLoading(true);
@@ -31,6 +34,28 @@ export default function AdminContactPage() {
   }, [search, statusFilter]);
 
   useEffect(() => { load(); }, [load]);
+
+  const sendReply = async (msgId: string) => {
+    if (!replyBody.trim()) return;
+    setReplySending(true);
+    try {
+      const res = await fetch('/api/admin/contact/reply', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ messageId: msgId, replyBody }),
+      });
+      if (res.ok) {
+        setReplyOpen(null);
+        setReplyBody('');
+        load();
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setReplySending(false);
+    }
+  };
 
   const updateStatus = async (id: string, status: string) => {
     await fetch(`/api/admin/contact?id=${id}`, {
@@ -156,14 +181,47 @@ export default function AdminContactPage() {
                       </button>
                     ))}
                     {msg.email && (
-                      <a
-                        href={`mailto:${msg.email}?subject=Re: ${msg.subject || 'Your message to Propcinity'}`}
-                        className="ml-auto text-xs font-bold text-[var(--primary)] hover:underline"
+                      <button
+                        onClick={() => {
+                          setReplyOpen(replyOpen === msg.id ? null : msg.id);
+                          setReplyBody(`Hello ${msg.name},\n\nThank you for contacting Propcinity.\n\n`);
+                        }}
+                        className="ml-auto flex items-center gap-1.5 text-xs font-bold text-[var(--primary)] hover:underline"
                       >
-                        Reply via Email &rarr;
-                      </a>
+                        <Send className="w-3 h-3" /> Reply via Email
+                      </button>
                     )}
                   </div>
+
+                  {replyOpen === msg.id && (
+                    <div className="space-y-3 pt-2 border-t border-[var(--border)]">
+                      <textarea
+                        value={replyBody}
+                        onChange={e => setReplyBody(e.target.value)}
+                        rows={5}
+                        className="w-full px-3 py-2 text-sm bg-[var(--surface)] border border-[var(--border)] rounded-lg
+                          focus:outline-none focus:border-[var(--primary)] resize-none"
+                        placeholder="Type your reply..."
+                      />
+                      <div className="flex items-center gap-2 justify-end">
+                        <button
+                          onClick={() => { setReplyOpen(null); setReplyBody(''); }}
+                          className="px-3 py-1.5 text-xs font-bold text-[var(--text-muted)] hover:text-[var(--text-primary)]"
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          onClick={() => sendReply(msg.id)}
+                          disabled={!replyBody.trim() || replySending}
+                          className="flex items-center gap-1.5 px-4 py-1.5 bg-[var(--primary)] text-white
+                            text-xs font-bold rounded-lg hover:opacity-90 disabled:opacity-50"
+                        >
+                          <Send className="w-3 h-3" />
+                          {replySending ? 'Sending...' : 'Send Reply'}
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
             </div>

@@ -58,8 +58,12 @@ export async function POST(request: NextRequest) {
   }
 
   const ip = getClientIp(request)
-  if (await checkRateLimit(aiAskLimiter, ip)) {
-    return NextResponse.json({ error: 'Too many requests.' }, { status: 429 })
+  const rateResult = await checkRateLimit(aiAskLimiter, ip)
+  if (rateResult.limited) {
+    return NextResponse.json(
+      { error: 'Too many requests.', retryAfter: rateResult.retryAfter },
+      { status: 429 }
+    )
   }
 
   const body = await request.json().catch(() => null)
@@ -119,8 +123,12 @@ export async function PUT(request: NextRequest) {
   }
 
   const ip = getClientIp(request)
-  if (await checkRateLimit(aiAskLimiter, ip)) {
-    return NextResponse.json({ error: 'Too many requests.' }, { status: 429 })
+  const rateResult = await checkRateLimit(aiAskLimiter, ip)
+  if (rateResult.limited) {
+    return NextResponse.json(
+      { error: 'Too many requests.', retryAfter: rateResult.retryAfter },
+      { status: 429 }
+    )
   }
 
   const supabase = await createServerSupabaseClient()
