@@ -159,8 +159,8 @@ export default function ProjectCard({
           <div className="flex items-center justify-between">
             <div>
               <p className="text-[10px] text-[var(--text-muted)] uppercase tracking-widest font-bold mb-0.5">Starting from</p>
-              <p className="text-xl font-black text-[var(--text-primary)]"
-                style={{ fontFamily: 'var(--font-display)' }}>{formatINR(minPrice)}</p>
+              <p className="text-xl font-black text-[var(--text-primary)] leading-tight"
+                style={{ fontFamily: 'var(--font-display)', whiteSpace: 'nowrap' }}>{formatINR(minPrice)}</p>
             </div>
             <div className="text-right">
               <p className="text-[10px] text-[var(--text-muted)] uppercase tracking-widest font-bold mb-0.5">Configuration</p>

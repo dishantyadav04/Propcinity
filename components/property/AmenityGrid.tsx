@@ -26,10 +26,17 @@ function guessEmoji(name: string): string {
   return '✨';
 }
 
-function AmenityChip({ name }: { name: string }) {
+function parseAmenity(item: string): { emoji: string; name: string } {
+  const sep = item.indexOf('::');
+  if (sep !== -1) return { emoji: item.slice(0, sep), name: item.slice(sep + 2) };
+  return { emoji: guessEmoji(item), name: item };
+}
+
+function AmenityChip({ name: raw }: { name: string }) {
+  const { emoji, name } = parseAmenity(raw);
   return (
     <div className="inline-flex items-center gap-2 bg-[var(--surface-raised)] border border-[var(--border)] rounded-xl px-3 py-2 whitespace-nowrap">
-      <span className="text-base leading-none">{guessEmoji(name)}</span>
+      <span className="text-base leading-none">{emoji}</span>
       <span className="text-xs font-medium text-[var(--text-secondary)]">{name}</span>
     </div>
   );

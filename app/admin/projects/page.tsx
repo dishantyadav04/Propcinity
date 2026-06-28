@@ -105,9 +105,9 @@ export default function AdminProjectsPage() {
               <tr><td colSpan={4} className="px-6 py-12 text-center text-[var(--text-muted)]">No projects found.</td></tr>
             ) : projects.map((project) => {
               const configs = project.unitConfigs ?? [];
-              const minPrice = configs.length > 0
-                ? Math.min(...configs.map((u: any) => u.priceMin ?? u.price_min ?? 0))
-                : 0;
+              const prices = configs.map((u: any) => Number(u.price)).filter(p => p > 0);
+              const minPrice = prices.length > 0 ? Math.min(...prices) : 0;
+              const maxPrice = prices.length > 0 ? Math.max(...prices) : 0;
               return (
                 <tr key={project.id} className="border-b border-[var(--border)] hover:bg-[var(--surface-raised)]/50 transition-all">
                   <td className="px-6 py-4">
@@ -125,7 +125,14 @@ export default function AdminProjectsPage() {
                     </div>
                   </td>
                   <td className="px-6 py-4">
-                    <p className="text-sm font-medium text-[var(--text-secondary)]">{formatINR(minPrice)}+</p>
+                    <p className="text-sm font-medium text-[var(--text-secondary)]">
+                      {prices.length === 0
+                        ? <span className="text-[var(--text-muted)]">No units</span>
+                        : minPrice === maxPrice
+                          ? formatINR(minPrice)
+                          : `${formatINR(minPrice)} – ${formatINR(maxPrice)}`
+                      }
+                    </p>
                   </td>
                   <td className="px-6 py-4 text-center">
                     <button
