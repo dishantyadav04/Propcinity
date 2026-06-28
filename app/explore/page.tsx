@@ -620,6 +620,13 @@ function ExplorePageContent() {
                   hideCuratedButton={true}
                   priority={index === 0}
                   matchScore={userIntent ? Math.min(100, Math.round((scoreByIntent(project, userIntent) / 90) * 100)) : undefined}
+                  isComparing={compareIds.includes(project.id)}
+                  onCompare={() => {
+                    addToCompare(project);
+                    const items = storage.get<Project[]>(STORAGE_KEYS.COMPARE_ITEMS, []);
+                    setCompareIds(items.map(p => p.id));
+                    toast(items.find(p => p.id === project.id) ? 'Added to compare' : 'Removed from compare');
+                  }}
                 />
 
 

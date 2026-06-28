@@ -6,7 +6,7 @@ import InsightsPanel from "./InsightsPanel";
 import WhyThisFitsYou from "./WhyThisFitsYou";
 import ProjectImage from "./ProjectImage";
 import { formatINR } from "@/lib/finance-calculations";
-import { MapPin, ChevronRight, ShieldCheck, Plus, Check } from "lucide-react";
+import { MapPin, ChevronRight, ShieldCheck, Plus, Check, Building2 } from "lucide-react";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { useEffect, useState } from "react";
@@ -24,10 +24,36 @@ interface ProjectCardProps {
   hideCuratedButton?: boolean;
   priority?: boolean;
   matchScore?: number;
+  isComparing?: boolean;
+  onCompare?: () => void;
+}
+
+function ConfigTooltip() {
+  const [open, setOpen] = useState(false);
+
+  return (
+    <div className="relative">
+      <button
+        className="w-3.5 h-3.5 rounded-full bg-[var(--surface-raised)] border-0 text-[9px] font-bold text-[var(--text-muted)] flex items-center justify-center cursor-pointer hover:bg-[var(--primary-light)] hover:text-[var(--primary)] transition-colors"
+        onClick={(e) => { e.stopPropagation(); setOpen(v => !v); }}
+        onMouseEnter={() => setOpen(true)}
+        onMouseLeave={() => setOpen(false)}
+        aria-label="What does configuration mean?"
+      >
+        ?
+      </button>
+      {open && (
+        <div className="absolute right-0 top-5 w-44 bg-[var(--text-primary)] text-[var(--background)] text-[10.5px] leading-relaxed px-2.5 py-2 rounded-xl z-50 pointer-events-none shadow-lg">
+          Unit types available in this project — each with different sizes and price ranges.
+          <div className="absolute -top-1 right-1.5 w-2 h-2 bg-[var(--text-primary)] rotate-45 rounded-[1px]" />
+        </div>
+      )}
+    </div>
+  );
 }
 
 export default function ProjectCard({
-  project, matchedUnit, index = 0, hideCuratedButton, priority = false, matchScore
+  project, matchedUnit, index = 0, hideCuratedButton, priority = false, matchScore, isComparing: isComparingProp, onCompare
 }: ProjectCardProps) {
   const displayUnit = matchedUnit || project.unitConfigs[0];
   const minPrice = project.unitConfigs.length > 0
@@ -38,8 +64,10 @@ export default function ProjectCard({
   const isGuest = !isChecking && isGuestRaw;
   const router = useRouter();
 
-  const [isComparing, setIsComparing] = useState(false);
+  const [isComparing, setIsComparing] = useState(isComparingProp ?? false);
   const [isCurated, setIsCurated] = useState(false);
+
+  const unitTypes = Array.from(new Set(project.unitConfigs.map(u => u.type)));
 
   useEffect(() => {
     const checkCompare = () => {
@@ -63,6 +91,10 @@ export default function ProjectCard({
   const handleCompare = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
+    if (onCompare) {
+      onCompare();
+      return;
+    }
     const current = storage.get<any[]>(STORAGE_KEYS.COMPARE_ITEMS, []);
     const exists = current.find(p => p.id === project.id);
     if (!exists && current.length >= 5) {
@@ -122,8 +154,8 @@ export default function ProjectCard({
         </button>
       )}
 
-      <Link href={`/projects/${project.slug}`} className="block flex flex-col flex-1 min-h-0">
-        {/* Image */}
+      {/* Image section */}
+      <Link href={`/projects/${project.slug}`} className="block">
         <div className="relative h-48 overflow-hidden bg-[var(--surface-raised)]">
           <div className="relative w-full h-48 group-hover:scale-105 transition-transform duration-500">
             <ProjectImage
@@ -135,7 +167,16 @@ export default function ProjectCard({
           </div>
           <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
 
-          {/* Bottom name */}
+          {/* RERA Verified badge — top-left overlay */}
+          {project.reraStatus === 'registered' && (
+            <div className="absolute top-2.5 left-2.5 z-10 flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold text-green-100 backdrop-blur-sm"
+              style={{ background: 'rgba(22,163,74,0.18)', border: '1px solid rgba(22,163,74,0.35)' }}>
+              <ShieldCheck className="w-3 h-3" />
+              RERA Verified
+            </div>
+          )}
+
+          {/* Project name + location at bottom */}
           <div className="absolute bottom-3 left-4 right-4">
             <h3 className="text-lg font-bold text-white leading-tight"
               style={{ fontFamily: 'var(--font-display)' }}>{project.name}</h3>
@@ -144,69 +185,82 @@ export default function ProjectCard({
               <span>{project.location}, {project.city}</span>
             </div>
           </div>
-
-        </div>
-
-        {/* Match Badge — only shown when real score is passed */}
-        {typeof matchScore === 'number' && matchScore >= 0 && (
-          <div className="px-4 pt-3 pb-0">
-            <PropertyFitBadge score={matchScore} />
-          </div>
-        )}
-
-        {/* Body */}
-        <div className="p-4 space-y-3 flex flex-col flex-1">
-          {/* Price + config row */}
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-[10px] text-[var(--text-muted)] uppercase tracking-widest font-bold mb-0.5">Starting from</p>
-              <p className="text-xl font-black text-[var(--text-primary)] leading-tight"
-                style={{ fontFamily: 'var(--font-display)', whiteSpace: 'nowrap' }}>{formatINR(minPrice)}</p>
-            </div>
-            <div className="text-right">
-              <p className="text-[10px] text-[var(--text-muted)] uppercase tracking-widest font-bold mb-0.5">Configuration</p>
-              <div className="flex flex-wrap gap-1 justify-end">
-                {Array.from(new Set(project.unitConfigs.map(u => u.type))).slice(0, 3).map(type => (
-                  <span key={type} className="px-2 py-0.5 bg-[var(--surface-raised)] text-[var(--text-secondary)] text-xs font-semibold rounded-full border border-[var(--border)]">
-                    {type}
-                  </span>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          {/* Divider */}
-          <div className="h-px bg-[var(--border)]" />
-
-          {/* Why this fits */}
-          <WhyThisFitsYou project={project} matchedUnit={displayUnit} variant="card" />
-
-          {/* Pros + cons */}
-          <InsightsPanel pros={project.pros} cons={project.cons} variant="card" />
-
-          {/* RERA badge + CTA */}
-          <div className="flex items-center justify-between pt-1">
-            {project.reraStatus === 'registered' && project.reraId && (
-              <span className="flex items-center gap-1 text-[10px] text-[var(--success)] font-bold">
-                <ShieldCheck className="w-3 h-3" /> RERA Verified
-              </span>
-            )}
-            <div className="flex items-center gap-3">
-              <button
-                onClick={handleCompare}
-                className={`text-[10px] font-bold px-2 py-1 rounded transition-colors ${
-                  isComparing ? 'bg-[var(--primary)] text-white' : 'text-[var(--text-muted)] hover:text-[var(--primary)]'
-                }`}
-              >
-                {isComparing ? 'Comparing' : '+ Compare'}
-              </button>
-              <span className="ml-auto flex items-center gap-1 text-[var(--primary)] text-xs font-bold">
-                View Full Audit <ChevronRight className="w-3.5 h-3.5 transition-transform group-hover:translate-x-1" />
-              </span>
-            </div>
-          </div>
         </div>
       </Link>
+
+      {/* Match + Builder row */}
+      {typeof matchScore === 'number' && matchScore >= 0 && (
+        <div className="flex items-center justify-between px-4 pt-3">
+          <PropertyFitBadge score={matchScore} />
+          {project.builderName && (
+            <div className="flex items-center gap-1.5">
+              <div className="w-4 h-4 rounded-full bg-[var(--surface-raised)] border border-[var(--border)] flex items-center justify-center shrink-0">
+                <Building2 className="w-2.5 h-2.5 text-[var(--text-muted)]" />
+              </div>
+              <span className="text-[11px] text-[var(--text-muted)] font-medium truncate max-w-[110px]">
+                {project.builderName}
+              </span>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Body */}
+      <div className="px-4 pb-4 pt-3 flex flex-col flex-1 space-y-3">
+        {/* Price + Config row */}
+        <div className="flex items-end justify-between gap-2">
+          <div>
+            <p className="text-[9px] text-[var(--text-muted)] uppercase tracking-widest font-bold mb-0.5">
+              Starting from
+            </p>
+            <p className="text-[21px] font-black text-[var(--text-primary)] tracking-tight leading-none">
+              {formatINR(minPrice)}
+            </p>
+          </div>
+
+          <div className="text-right shrink-0">
+            <div className="flex items-center gap-1 justify-end mb-1.5">
+              <span className="text-[9px] text-[var(--text-muted)] uppercase tracking-widest font-bold">
+                Configurations
+              </span>
+              <ConfigTooltip />
+            </div>
+            <div className="flex flex-wrap gap-1 justify-end">
+              {unitTypes.map(type => (
+                <span key={type}
+                  className="px-2 py-0.5 rounded-full bg-[var(--surface-raised)] border border-[var(--border)] text-[10.5px] font-semibold text-[var(--text-secondary)]">
+                  {type}
+                </span>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Divider */}
+        <div className="h-px bg-[var(--border)]" />
+
+        {/* Why this fits */}
+        <WhyThisFitsYou project={project} matchedUnit={displayUnit} variant="card" />
+
+        {/* Pros + cons */}
+        <InsightsPanel pros={project.pros} cons={project.cons} variant="card" />
+
+        {/* Footer */}
+        <div className="flex items-center justify-between pt-1">
+          <button
+            onClick={handleCompare}
+            className="text-[11.5px] font-bold text-[var(--text-muted)] hover:text-[var(--primary)] transition-colors bg-transparent border-0 p-0 cursor-pointer"
+          >
+            {isComparing ? '✓ Comparing' : '+ Compare'}
+          </button>
+
+          <Link href={`/projects/${project.slug}`}
+            className="flex items-center gap-0.5 text-[11.5px] font-bold text-[var(--primary)] hover:underline">
+            View Full Audit
+            <ChevronRight className="w-3.5 h-3.5" />
+          </Link>
+        </div>
+      </div>
     </motion.div>
   );
 }
