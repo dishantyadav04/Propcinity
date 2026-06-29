@@ -1,18 +1,24 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createHash } from 'crypto'
+import { PostHog } from 'posthog-node'
 import { z } from 'zod'
+import { generateBookingRef } from '@/lib/booking-ref'
 import { createAdminSupabaseClient, createServerSupabaseClient } from '@/lib/supabase-server'
 import { sendBuyerConfirmation, sendOpsAlert } from '@/lib/resend'
 import { getProjectsByIds } from '@/services/projects'
 import { calculateIntentScore } from '@/services/leads'
 import { leadsLimiter, getClientIp, checkRateLimit } from '@/lib/rate-limit'
 
-function generateBookingRef(): string {
-  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
-  const randomPart = Array.from({ length: 8 }, () =>
-    chars[Math.floor(Math.random() * chars.length)]
-  ).join('')
-  return `REF-${randomPart}`
+// Singleton — reused across warm function invocations
+let _phClient: PostHog | null = null
+function getPhClient(): PostHog {
+  if (!_phClient) {
+    _phClient = new PostHog(process.env.NEXT_PUBLIC_POSTHOG_KEY || '', {
+      host: process.env.NEXT_PUBLIC_POSTHOG_HOST || 'https://app.posthog.com',
+      flushAt: 1,
+      flushInterval: 0,
+    })
+  }
+  return _phClient
 }
 
 const schema = z.object({
@@ -83,7 +89,7 @@ export async function POST(request: NextRequest) {
 
     if (coldLead) {
       // UPGRADE path — update the cold lead in-place
-      bookingRef = coldLead.booking_ref  // keep original booking ref
+      bookingRef = coldLead.booking_ref ?? generateBookingRef()
       const { error: updateError } = await supabase
         .from('leads')
         .update({
@@ -210,25 +216,19 @@ export async function POST(request: NextRequest) {
   // Fire PostHog server-side conversion event (non-blocking)
   // intentLabel intentionally NOT included — stays internal
   try {
-    const { PostHog } = await import('posthog-node')
-    const phClient = new PostHog(process.env.NEXT_PUBLIC_POSTHOG_KEY || '', {
-      host: process.env.NEXT_PUBLIC_POSTHOG_HOST || 'https://app.posthog.com',
-    })
-    phClient.capture({
-      distinctId: createHash('sha256').update(leadData.phone).digest('hex').slice(0, 16),
+    getPhClient().capture({
+      distinctId: leadId,
       event: 'consultation_completed',
       properties: {
         projectId: leadData.projectId,
         projectName,
         timeline: leadData.timeline,
         triggerSource: leadData.triggerSource || 'unknown',
-        savedCount:         leadData.savedProjectIds?.length ?? 0,
-        rejectedCount:      leadData.rejectedProjectIds?.length ?? 0,
-        curatedCount:       leadData.curatedProjectIds?.length ?? 0,
-        // intentLabel and intentScore deliberately excluded
+        savedCount:    leadData.savedProjectIds?.length ?? 0,
+        rejectedCount: leadData.rejectedProjectIds?.length ?? 0,
+        curatedCount:  leadData.curatedProjectIds?.length ?? 0,
       },
     })
-    await phClient.shutdown()
   } catch {
     // PostHog failure must never break lead saving
   }

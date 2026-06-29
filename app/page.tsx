@@ -133,10 +133,10 @@ export default function LandingPage() {
   const [projectCount, setProjectCount] = useState(0);
 
   useEffect(() => {
-    fetch('/api/projects')
+    fetch('/api/projects/count')
       .then(res => res.json())
-      .then(data => setProjectCount(data.length))
-      .catch(console.error);
+      .then(data => setProjectCount(data.count ?? 0))
+      .catch(() => setProjectCount(0));
   }, []);
 
   return (

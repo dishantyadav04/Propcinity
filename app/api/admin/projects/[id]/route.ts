@@ -3,6 +3,7 @@ import { z } from 'zod'
 import { isAdminAuthenticated } from '@/lib/admin-auth'
 import { createAdminSupabaseClient } from '@/lib/supabase-server'
 import { adminUpdateProject, adminDeleteProject } from '@/services/projects'
+import { projectSchema } from '@/lib/project-schema'
 
 const unauth = () => NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
@@ -45,8 +46,13 @@ export async function PATCH(
   const body = await request.json().catch(() => null)
   if (!body) return NextResponse.json({ error: 'Invalid body' }, { status: 400 })
 
+  const parsed = projectSchema.partial().safeParse(body)
+  if (!parsed.success) {
+    return NextResponse.json({ error: 'Invalid project payload' }, { status: 400 })
+  }
+
   try {
-    await adminUpdateProject(id, body)
+    await adminUpdateProject(id, parsed.data)
     return NextResponse.json({ success: true })
   } catch (err: any) {
     return NextResponse.json({ error: err.message || 'Update failed' }, { status: 500 })

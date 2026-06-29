@@ -82,9 +82,8 @@ export default function RootLayout({
     "areaServed": { "@type": "City", "name": "Pune" },
     "contactPoint": {
       "@type": "ContactPoint",
-      "telephone": "+91-9876543210", // TODO: replace with real support number
-      "contactType": "customer service",
       "email": "hello@propcinity.in",
+      "contactType": "customer service",
       "areaServed": "IN",
       "availableLanguage": ["English", "Hindi", "Marathi"]
     },

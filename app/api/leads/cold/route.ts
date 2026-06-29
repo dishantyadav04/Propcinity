@@ -1,14 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { createAdminSupabaseClient, createServerSupabaseClient } from '@/lib/supabase-server'
-
-function generateBookingRef(): string {
-  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
-  const randomPart = Array.from({ length: 8 }, () =>
-    chars[Math.floor(Math.random() * chars.length)]
-  ).join('')
-  return `REF-${randomPart}`
-}
+import { generateBookingRef } from '@/lib/booking-ref'
 
 const TIMELINE_MAP: Record<string, string> = {
   under_1_year: 'within_3_months',
@@ -113,7 +106,6 @@ export async function POST(request: NextRequest) {
   }
 
   // 4b. Insert new cold lead
-  console.log('[leads/cold] Attempting insert for user:', user.id, '| phone:', phone)
   const { data: lead, error } = await supabase
     .from('leads')
     .insert({

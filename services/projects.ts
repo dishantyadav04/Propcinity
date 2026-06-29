@@ -1,10 +1,10 @@
 import { createAdminSupabaseClient, createServerSupabaseClient } from '@/lib/supabase-server'
-import { Project, UnitConfig } from '@/types/project'
+import { Project, UnitConfig, BuilderProject } from '@/types/project'
 import { MOCK_PROJECTS } from '@/lib/mock-data'
 import { deleteFromR2 } from '@/lib/r2'
 
 function sanitizeDates(obj: Record<string, unknown>): Record<string, unknown> {
-  const DATE_FIELDS = ['possession_date', 'rera_expiry', 'rera_possession_date', 'rera_expiry']
+  const DATE_FIELDS = ['possession_date', 'rera_expiry', 'rera_possession_date', 'rera_link', 'brochure_url']
   return Object.fromEntries(
     Object.entries(obj).map(([k, v]) =>
       DATE_FIELDS.includes(k) && v === '' ? [k, null] : [k, v]
@@ -19,23 +19,49 @@ type SupabaseProjectRow = {
   builder_name: string
   builder_score: number
   builder_logo?: string
+  builder_years_experience?: number
+  builder_completed_projects?: number
+  builder_cities?: string[]
+  builder_top_projects?: unknown[]
+  builder_description?: string
   location: string
   city: string
   lat: number
   lng: number
   tagline: string
   description: string
-  // trust_score and risk_label are deprecated — removed from Project type
   rera_id: string
+  rera_status?: string
   rera_expiry: string
+  rera_link?: string
   possession_date: string
+  rera_possession_date?: string
   pros: string[] | null
   cons: string[] | null
   amenities: string[] | null
+  internal_amenities?: string[]
+  external_amenities?: string[]
   images: string[] | null
   construction_status: 'pre_launch' | 'under_construction' | 'ready_to_move'
   construction_percent: number
   is_published: boolean
+  score_breakdown?: Record<string, number>
+  rera_registrations?: unknown[]
+  land_parcel_acres?: number
+  total_towers?: number
+  floors_per_tower?: string
+  nearby_locations?: unknown[]
+  master_plan_images?: string[]
+  floor_plan_images?: string[]
+  litigation?: boolean
+  litigation_details?: string
+  commencement_certificate?: boolean
+  occupancy_certificate?: boolean
+  legal_notes?: string
+  payment_plans?: unknown[]
+  bank_approvals?: unknown[]
+  videos?: unknown[]
+  brochure_url?: string
 }
 
 type SupabaseUnitConfigRow = {
@@ -69,7 +95,7 @@ function mapUnitConfig(row: SupabaseUnitConfigRow): UnitConfig {
   }
 }
 
-function mapProject(row: any, unitConfigs: SupabaseUnitConfigRow[]): Project {
+function mapProject(row: SupabaseProjectRow & Record<string, unknown>, unitConfigs: SupabaseUnitConfigRow[]): Project {
   return {
     id: row.id,
     slug: row.slug,
@@ -79,7 +105,7 @@ function mapProject(row: any, unitConfigs: SupabaseUnitConfigRow[]): Project {
     builderYearsExperience: row.builder_years_experience,
     builderCompletedProjects: row.builder_completed_projects,
     builderCities: row.builder_cities || [],
-    builderTopProjects: row.builder_top_projects || [],
+    builderTopProjects: (row.builder_top_projects || []) as BuilderProject[],
     builderDescription: row.builder_description,
     builderScore: row.builder_score,
     builderScoreBreakdown: row.score_breakdown,
@@ -92,7 +118,7 @@ function mapProject(row: any, unitConfigs: SupabaseUnitConfigRow[]): Project {
     reraId: row.rera_id,
     reraExpiry: row.rera_expiry,
     reraLink: row.rera_link,
-    reraStatus: row.rera_status || 'not_registered',
+    reraStatus: (row.rera_status || 'not_registered') as Project['reraStatus'],
     possessionDate: row.possession_date,
     reraPossessionDate: row.rera_possession_date,
     landParcelAcres: row.land_parcel_acres,
@@ -112,14 +138,14 @@ function mapProject(row: any, unitConfigs: SupabaseUnitConfigRow[]): Project {
     commencementCertificate: !!row.commencement_certificate,
     occupancyCertificate: !!row.occupancy_certificate,
     legalNotes: row.legal_notes,
-    paymentPlans: row.payment_plans || [],
-    bankApprovals: row.bank_approvals || [],
-    videos: row.videos || [],
+    paymentPlans: (row.payment_plans || []) as Project['paymentPlans'],
+    bankApprovals: (row.bank_approvals || []) as Project['bankApprovals'],
+    videos: (row.videos || []) as Project['videos'],
     brochureUrl: row.brochure_url,
-    nearbyLocations: row.nearby_locations || [],
+    nearbyLocations: (row.nearby_locations || []) as Project['nearbyLocations'],
     masterPlanImages: row.master_plan_images || [],
     floorPlanImages: row.floor_plan_images || [],
-    reraRegistrations: row.rera_registrations || [],
+    reraRegistrations: (row.rera_registrations || []) as Project['reraRegistrations'],
     isPublished: row.is_published,
   }
 }

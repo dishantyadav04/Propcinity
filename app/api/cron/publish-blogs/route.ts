@@ -3,7 +3,8 @@ import { createAdminSupabaseClient } from '@/lib/supabase-server'
 
 export async function GET(request: NextRequest) {
   const secret = request.headers.get('x-cron-secret')
-  if (secret !== process.env.CRON_SECRET) {
+  const cronSecret = process.env.CRON_SECRET
+  if (!cronSecret || secret !== cronSecret) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 

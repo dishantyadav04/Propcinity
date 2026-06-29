@@ -19,6 +19,31 @@ export default function ProfilePrivacyPage() {
     if (isGuest) router.replace('/onboarding');
   }, [isGuest, isChecking, router]);
 
+  // Load notification prefs from Supabase
+  useEffect(() => {
+    if (isChecking || isGuest) return
+    import('@/lib/supabase').then(({ createClient }) => {
+      const supabase = createClient()
+      supabase.auth.getUser().then(({ data: { user } }) => {
+        if (!user) return
+        supabase
+          .from('user_profiles')
+          .select('notif_email, notif_sms, notif_updates')
+          .eq('id', user.id)
+          .single()
+          .then(({ data }) => {
+            if (data) {
+              setNotifications({
+                email: data.notif_email ?? true,
+                sms: data.notif_sms ?? false,
+                updates: data.notif_updates ?? true,
+              })
+            }
+          })
+      })
+    })
+  }, [isChecking, isGuest])
+
   if (isChecking || isGuest) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -41,9 +66,9 @@ export default function ProfilePrivacyPage() {
         toast.success('Account deleted');
         router.push('/');
       } catch (err) {
-        await signOut();
-        toast.success('Signed out. Contact support to fully delete your account.');
-        router.push('/');
+        console.error('[deleteAccount] Failed:', err)
+        toast.error('Account deletion failed. Please contact support@propcinity.in to delete your account.')
+        // Do NOT sign out — user may want to try again
       }
     }
   };
@@ -106,7 +131,8 @@ export default function ProfilePrivacyPage() {
                     const { data: { user } } = await supabase.auth.getUser();
                     if (user) {
                       await supabase.from('user_profiles')
-                        .upsert({ user_id: user.id, [`notif_${key}`]: newVal }, { onConflict: 'user_id' });
+                        .update({ [`notif_${key}`]: newVal })
+                        .eq('id', user.id);
                     }
                   } catch {
                     setNotifications(prev => ({ ...prev, [key]: !newVal }));

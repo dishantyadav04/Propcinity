@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft, Mail, Phone, MapPin, Send, CheckCircle2, Loader2 } from 'lucide-react'
+import { ArrowLeft, Mail, MapPin, Send, CheckCircle2, Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
 
 export default function ContactPage() {
@@ -100,8 +100,6 @@ export default function ContactPage() {
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           {[
             { icon: Mail, label: 'Email', value: 'hello@propcinity.in' },
-            // TODO: replace with real support phone number before launch
-            { icon: Phone, label: 'Phone', value: '+91 98765 43210' }, // Update with real support number
             { icon: MapPin, label: 'Location', value: 'Pune, Maharashtra' },
           ].map(({ icon: Icon, label, value }) => (
             <div key={label}

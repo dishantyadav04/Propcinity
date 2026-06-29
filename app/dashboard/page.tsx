@@ -4,7 +4,7 @@ import { useEffect, useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import SectionContainer from '@/components/layout/SectionContainer';
 import ProjectCard from '@/components/property/ProjectCard';
-import { Project } from '@/types/project';
+import { Project, UnitConfig } from '@/types/project';
 import { UserIntent } from '@/types/user';
 import { Sparkles, X, ArrowRight, Plus, Loader2 } from 'lucide-react';
 import Link from 'next/link';
@@ -20,9 +20,9 @@ import { syncIntentToSupabase, fetchIntentFromSupabase } from '@/lib/intent-sync
 
 function getSmartMatchLabel(project: Project, intent: any): string | null {
   if (!intent) return null;
-  const types = (project.unitConfigs || []).map((u: any) => (u.type || '').toLowerCase());
+  const types = (project.unitConfigs || []).map((u) => (u.type || '').toLowerCase());
   const uMax = intent.budget?.isOpenMax ? Infinity : (intent.budget?.max || Infinity);
-  const prices = (project.unitConfigs || []).map((u: any) => u.priceMin).filter(Boolean);
+  const prices = (project.unitConfigs || []).map((u) => u.price).filter(Boolean);
   const pMin = prices.length ? Math.min(...prices) : 0;
 
   const hasExactBHK = intent.bhkType?.length > 0
@@ -58,11 +58,11 @@ function smartRankProjects(projects: Project[], intent: any): string[] {
   const budgetFlex = uMax === Infinity ? Infinity : uMax * 1.2;
 
   const scored = projects.map(project => {
-    const types = (project.unitConfigs || []).map((u: any) => (u.type || '').toLowerCase());
-    const prices = (project.unitConfigs || []).map((u: any) => u.priceMin).filter(Boolean);
+    const types = (project.unitConfigs || []).map((u) => (u.type || '').toLowerCase());
+    const prices = (project.unitConfigs || []).map((u) => u.price).filter(Boolean);
     const pMin = prices.length ? Math.min(...prices) : 0;
     const pMax = prices.length
-      ? Math.max(...(project.unitConfigs || []).map((u: any) => u.priceMax || u.priceMin).filter(Boolean))
+      ? Math.max(...(project.unitConfigs || []).map((u) => u.price).filter(Boolean))
       : 0;
 
     let score = 0;
@@ -299,9 +299,11 @@ export default function DashboardPage() {
           id: p!.id,
           name: p!.name,
           location: p!.location || '',
-          unitTypes: (p!.unitConfigs || []).map((u: any) => u.type).join(', '),
-          priceMin: p!.unitConfigs?.[0]?.price || 0,
-          priceMax: Math.max(...(p!.unitConfigs || []).map((u: any) => u.price || 0)),
+          unitTypes: (p!.unitConfigs || []).map((u) => u.type).join(', '),
+          priceMin: p!.unitConfigs?.[0]?.price ?? 0,
+          priceMax: p!.unitConfigs?.length
+            ? Math.max(...p!.unitConfigs.map((u) => u.price ?? 0))
+            : 0,
           possessionDate: (p as any).possessionDate || null,
           constructionStatus: (p as any).constructionStatus || '',
           constructionPercent: (p as any).constructionPercent || 0,

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { z } from 'zod'
 import { isAdminAuthenticated } from '@/lib/admin-auth'
 import { createAdminSupabaseClient } from '@/lib/supabase-server'
 import { Resend } from 'resend'
@@ -7,10 +8,16 @@ export async function POST(request: NextRequest) {
   if (!await isAdminAuthenticated(request))
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const { messageId, replyBody } = await request.json()
-  if (!messageId || !replyBody) {
-    return NextResponse.json({ error: 'Missing messageId or replyBody' }, { status: 400 })
+  const replySchema = z.object({
+    messageId: z.string().uuid(),
+    replyBody: z.string().trim().min(1).max(5000),
+  })
+  const body = await request.json().catch(() => null)
+  const parsed = replySchema.safeParse(body)
+  if (!parsed.success) {
+    return NextResponse.json({ error: 'Invalid request' }, { status: 400 })
   }
+  const { messageId, replyBody } = parsed.data
 
   const supabase = createAdminSupabaseClient()
   if (!supabase) return NextResponse.json({ error: 'DB error' }, { status: 500 })

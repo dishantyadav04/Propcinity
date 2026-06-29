@@ -6,14 +6,9 @@ import { createAdminSupabaseClient } from '@/lib/supabase-server'
 
 const schema = z.object({
   project_id: z.string().uuid(),
-  project_name: z.string().trim().min(1).max(200),
-  promised_possession: z.string().trim().max(20).optional(),
-  actual_possession: z.string().trim().max(20).optional(),
-  delay_months: z.number().int().min(0).max(600).optional().default(0),
-  is_delivered: z.boolean().optional().default(false),
-  quality_rating: z.number().min(0).max(5).optional(),
-  complaints_count: z.number().int().min(0).optional().default(0),
-  notes: z.string().trim().max(2000).optional(),
+  title: z.string().trim().min(1).max(200),
+  body: z.string().trim().min(1).max(5000),
+  image_url: z.string().url().optional(),
 })
 
 export async function POST(
@@ -41,10 +36,12 @@ export async function POST(
 
   const { data, error } = await supabase
     .from('builder_project_updates')
-    .upsert({
+    .insert({
       builder_id: id,
-      ...parsed.data,
-      updated_at: new Date().toISOString(),
+      project_id: parsed.data.project_id,
+      title: parsed.data.title,
+      body: parsed.data.body,
+      image_url: parsed.data.image_url ?? null,
     })
     .select()
     .single()

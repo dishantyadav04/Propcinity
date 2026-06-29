@@ -153,8 +153,10 @@ export async function verifySessionToken(token: string): Promise<boolean> {
     }
     return true
   } catch (e) {
-    // Redis unreachable — fall back to HMAC-only rather than blocking all admin access
-    console.error('[admin-auth] Redis verifySessionToken failed, falling back to HMAC:', e)
+    // Redis unreachable — fail closed in production to prevent revoked sessions from being accepted
+    console.error('[admin-auth] Redis verifySessionToken failed — blocking access:', e)
+    if (process.env.NODE_ENV === 'production') return false
+    console.warn('[admin-auth] Dev mode: falling back to HMAC-only (not safe for production)')
     return true
   }
 }

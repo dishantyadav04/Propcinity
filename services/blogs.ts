@@ -3,6 +3,21 @@ import { Blog, BlogFaqItem } from '@/types/blog'
 import { BlogInput } from '@/lib/blog-schema'
 import sanitizeHtml from 'sanitize-html'
 
+const SANITIZE_CONFIG: sanitizeHtml.IOptions = {
+  allowedTags: sanitizeHtml.defaults.allowedTags.concat([
+    'img', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
+    'figure', 'figcaption', 'table', 'thead', 'tbody', 'tr', 'th', 'td',
+    'iframe', 'pre', 'code',
+  ]),
+  allowedAttributes: {
+    ...sanitizeHtml.defaults.allowedAttributes,
+    img: ['src', 'alt', 'title', 'width', 'height', 'loading'],
+    iframe: ['src', 'width', 'height', 'frameborder', 'allowfullscreen'],
+    '*': ['class', 'id'],
+  },
+  allowedSchemes: ['http', 'https', 'mailto'],
+}
+
 type SupabaseBlogRow = {
   id: string
   slug: string
@@ -37,7 +52,7 @@ function mapBlogRow(row: SupabaseBlogRow): Blog {
     slug: row.slug,
     title: row.title,
     excerpt: row.excerpt ?? undefined,
-    contentHtml: row.content_html,
+    contentHtml: sanitizeHtml(row.content_html, SANITIZE_CONFIG),
     contentJson: row.content_json ?? undefined,
     coverImage: row.cover_image ?? undefined,
     coverImageAlt: row.cover_image_alt ?? undefined,
@@ -63,20 +78,7 @@ function mapBlogRow(row: SupabaseBlogRow): Blog {
 
 function mapBlogInputToRow(data: BlogInput): Record<string, unknown> {
   // Sanitize HTML content on write
-  const cleanHtml = sanitizeHtml(data.contentHtml, {
-    allowedTags: sanitizeHtml.defaults.allowedTags.concat([
-      'img', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
-      'figure', 'figcaption', 'table', 'thead', 'tbody', 'tr', 'th', 'td',
-      'iframe', 'pre', 'code',
-    ]),
-    allowedAttributes: {
-      ...sanitizeHtml.defaults.allowedAttributes,
-      img: ['src', 'alt', 'title', 'width', 'height', 'loading'],
-      iframe: ['src', 'width', 'height', 'frameborder', 'allowfullscreen'],
-      '*': ['class', 'id'],
-    },
-    allowedSchemes: ['http', 'https', 'mailto'],
-  })
+  const cleanHtml = sanitizeHtml(data.contentHtml, SANITIZE_CONFIG)
 
   // Auto-compute reading time
   const wordCount = cleanHtml.replace(/<[^>]*>/g, '').split(/\s+/).filter(Boolean).length
