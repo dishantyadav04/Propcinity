@@ -110,11 +110,15 @@ export default function BlogsPage() {
                 className="group bg-white border border-[var(--border)] rounded-[var(--radius)] overflow-hidden shadow-[var(--shadow-sm)] hover:shadow-[var(--shadow)] transition-all block"
               >
                 {blog.coverImage ? (
-                  <div className="relative w-full h-48 bg-[var(--surface-raised)]">
-                    <img src={blog.coverImage} alt={blog.coverImageAlt || blog.title} className="w-full h-full object-cover" />
+                  <div className="w-full bg-[var(--surface-raised)] overflow-hidden">
+                    <img
+                      src={blog.coverImage}
+                      alt={blog.coverImageAlt || blog.title}
+                      className="w-full h-auto block group-hover:scale-[1.02] transition-transform duration-500"
+                    />
                   </div>
                 ) : (
-                  <div className="w-full h-48 bg-[var(--surface-raised)] flex items-center justify-center">
+                  <div className="w-full aspect-video bg-[var(--surface-raised)] flex items-center justify-center">
                     <Newspaper className="w-10 h-10 text-[var(--text-muted)]" />
                   </div>
                 )}

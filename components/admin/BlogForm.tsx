@@ -1,8 +1,9 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useEditor, EditorContent } from '@tiptap/react';
+import type { Editor } from '@tiptap/core';
 import StarterKit from '@tiptap/starter-kit';
 import LinkExtension from '@tiptap/extension-link';
 import ImageExtension from '@tiptap/extension-image';
@@ -31,6 +32,106 @@ function slugify(text: string): string {
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-+|-+$/g, '');
+}
+
+function ImageUploadField({ value, onChange, label, placeholder = 'https://...', onUpload }: {
+  value: string
+  onChange: (url: string) => void
+  label: string
+  placeholder?: string
+  onUpload: (file: File) => Promise<string | null>
+}) {
+  const [uploading, setUploading] = useState(false)
+  const [error, setError] = useState('')
+  const inputRef = useRef<HTMLInputElement>(null)
+
+  const upload = async (file: File) => {
+    if (file.size > 5 * 1024 * 1024) { setError('Max 5MB'); return }
+    setError(''); setUploading(true)
+    const url = await onUpload(file)
+    if (url) onChange(url)
+    setUploading(false)
+  }
+
+  return (
+    <div>
+      <label className="block text-xs font-bold text-[var(--text-muted)] uppercase tracking-wider mb-1.5">{label}</label>
+
+      {value ? (
+        <div className="relative w-full h-40 rounded-[var(--radius-xs)] overflow-hidden border border-[var(--border)]">
+          <img src={value} alt="preview" className="w-full h-full object-cover" />
+          <button onClick={() => onChange('')} className="absolute top-2 right-2 bg-black/60 text-white rounded-full w-6 h-6 text-xs font-bold flex items-center justify-center">✕</button>
+        </div>
+      ) : (
+        <div
+          onClick={() => inputRef.current?.click()}
+          onDragOver={e => e.preventDefault()}
+          onDrop={e => { e.preventDefault(); const f = e.dataTransfer.files[0]; if (f) upload(f) }}
+          className="w-full h-32 border-2 border-dashed border-[var(--border)] rounded-[var(--radius-xs)] flex flex-col items-center justify-center cursor-pointer hover:border-[var(--primary)] transition-colors"
+        >
+          {uploading ? <span className="text-xs text-[var(--text-muted)]">Uploading...</span> : (
+            <>
+              <Upload className="w-5 h-5 text-[var(--text-muted)] mb-1" />
+              <span className="text-xs text-[var(--text-muted)]">Click or drag to upload</span>
+            </>
+          )}
+          <input ref={inputRef} type="file" accept="image/*" className="hidden" onChange={e => { const f = e.target.files?.[0]; if (f) upload(f) }} />
+        </div>
+      )}
+
+      {error && <p className="text-[10px] text-[var(--danger)] mt-1">{error}</p>}
+
+      <input
+        value={value}
+        onChange={e => onChange(e.target.value)}
+        placeholder={placeholder}
+        className="mt-2 w-full px-3 py-1.5 text-xs bg-[var(--surface)] border border-[var(--border)] rounded-[var(--radius-xs)] text-[var(--text-muted)] placeholder:text-[var(--text-muted)] focus:outline-none focus:border-[var(--primary)]"
+      />
+    </div>
+  )
+}
+
+function AvatarUploadField({ value, onChange, name, onUpload }: {
+  value: string; onChange: (url: string) => void; name: string
+  onUpload: (file: File) => Promise<string | null>
+}) {
+  const [uploading, setUploading] = useState(false)
+  const inputRef = useRef<HTMLInputElement>(null)
+  const initials = name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2)
+
+  const upload = async (file: File) => {
+    setUploading(true)
+    const url = await onUpload(file)
+    if (url) onChange(url)
+    setUploading(false)
+  }
+
+  return (
+    <div>
+      <label className="block text-xs font-bold text-[var(--text-muted)] uppercase tracking-wider mb-1.5">Author Avatar</label>
+      <div className="flex items-center gap-3">
+        <div
+          onClick={() => inputRef.current?.click()}
+          className="w-12 h-12 rounded-full border-2 border-dashed border-[var(--border)] overflow-hidden flex items-center justify-center cursor-pointer hover:border-[var(--primary)] bg-[var(--surface-raised)] transition-colors flex-shrink-0"
+        >
+          {uploading ? <span className="text-[10px] text-[var(--text-muted)]">...</span>
+            : value ? <img src={value} alt={name} className="w-full h-full object-cover" />
+            : <span className="text-xs font-bold text-[var(--text-muted)]">{initials || '+'}</span>
+          }
+          <input ref={inputRef} type="file" accept="image/*" className="hidden" onChange={e => { const f = e.target.files?.[0]; if (f) upload(f) }} />
+        </div>
+        <div className="flex-1">
+          <input
+            value={value}
+            onChange={e => onChange(e.target.value)}
+            placeholder="https://... or upload"
+            className="w-full px-3 py-2 text-sm bg-[var(--surface)] border border-[var(--border)] rounded-[var(--radius-xs)] text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none focus:border-[var(--primary)]"
+          />
+          {value && <button onClick={() => onChange('')} className="text-[10px] text-[var(--danger)] mt-1">Remove</button>}
+        </div>
+      </div>
+    </div>
+  )
 }
 
 export default function BlogForm({ blogId }: BlogFormProps) {
@@ -96,9 +197,11 @@ export default function BlogForm({ blogId }: BlogFormProps) {
   }, [blogId]);
 
   const editor = useEditor({
+    immediatelyRender: false,
     extensions: [
       StarterKit.configure({
         heading: { levels: [1, 2, 3, 4] },
+        link: false,
       }),
       LinkExtension.configure({ openOnClick: false, HTMLAttributes: { target: '_blank', rel: 'noopener noreferrer' } }),
       ImageExtension.configure({ allowBase64: true, HTMLAttributes: { class: 'rounded-lg max-w-full' } }),
@@ -315,14 +418,11 @@ export default function BlogForm({ blogId }: BlogFormProps) {
       {/* Cover image */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
-          <label className="block text-xs font-bold text-[var(--text-muted)] uppercase tracking-wider mb-1.5">
-            Cover Image URL
-          </label>
-          <input
+          <ImageUploadField
             value={coverImage}
-            onChange={e => setCoverImage(e.target.value)}
-            placeholder="https://..."
-            className="w-full px-3 py-2 text-sm bg-[var(--surface)] border border-[var(--border)] rounded-[var(--radius-xs)] text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none focus:border-[var(--primary)]"
+            onChange={setCoverImage}
+            label="Cover Image"
+            onUpload={handleImageUpload}
           />
         </div>
         <div>
@@ -358,12 +458,11 @@ export default function BlogForm({ blogId }: BlogFormProps) {
           />
         </div>
         <div>
-          <label className="block text-xs font-bold text-[var(--text-muted)] uppercase tracking-wider mb-1.5">Author Avatar URL</label>
-          <input
+          <AvatarUploadField
             value={authorAvatar}
-            onChange={e => setAuthorAvatar(e.target.value)}
-            placeholder="https://..."
-            className="w-full px-3 py-2 text-sm bg-[var(--surface)] border border-[var(--border)] rounded-[var(--radius-xs)] text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none focus:border-[var(--primary)]"
+            onChange={setAuthorAvatar}
+            name={authorName}
+            onUpload={handleImageUpload}
           />
         </div>
       </div>
@@ -494,9 +593,13 @@ export default function BlogForm({ blogId }: BlogFormProps) {
                 className="w-full px-3 py-2 text-sm bg-[var(--surface)] border border-[var(--border)] rounded-[var(--radius-xs)] text-[var(--text-primary)] focus:outline-none focus:border-[var(--primary)]" />
             </div>
             <div>
-              <label className="block text-xs font-bold text-[var(--text-muted)] uppercase tracking-wider mb-1.5">OG Image URL</label>
-              <input value={ogImage} onChange={e => setOgImage(e.target.value)} placeholder={coverImage || 'https://...'}
-                className="w-full px-3 py-2 text-sm bg-[var(--surface)] border border-[var(--border)] rounded-[var(--radius-xs)] text-[var(--text-primary)] focus:outline-none focus:border-[var(--primary)]" />
+              <ImageUploadField
+                value={ogImage}
+                onChange={setOgImage}
+                label="OG Image"
+                placeholder={coverImage || 'https://...'}
+                onUpload={handleImageUpload}
+              />
             </div>
             <div>
               <label className="block text-xs font-bold text-[var(--text-muted)] uppercase tracking-wider mb-1.5">Keywords</label>
@@ -619,7 +722,7 @@ function ToolbarButton({ onClick, active, disabled, title, children }: {
   );
 }
 
-function ToolbarButtonLink({ editor }: { editor: ReturnType<typeof useEditor> }) {
+function ToolbarButtonLink({ editor }: { editor: Editor | null }) {
   const handleClick = () => {
     const previousUrl = editor?.getAttributes('link').href;
     const url = window.prompt('URL', previousUrl || 'https://');
@@ -639,7 +742,7 @@ function ToolbarButtonLink({ editor }: { editor: ReturnType<typeof useEditor> })
 }
 
 function ToolbarButtonImageUpload({ editor, onUpload }: {
-  editor: ReturnType<typeof useEditor>;
+  editor: Editor | null;
   onUpload: (file: File) => Promise<string | null>;
 }) {
   const handleClick = () => {

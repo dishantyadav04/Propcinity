@@ -68,19 +68,6 @@ export default function AdminBlogsPage() {
 
   const totalPages = Math.ceil(total / limit);
 
-  const statusBadge = (status: string) => {
-    const styles: Record<string, string> = {
-      published: 'bg-green-50 text-green-700 border-green-200',
-      draft: 'bg-gray-50 text-gray-500 border-gray-200',
-      scheduled: 'bg-amber-50 text-amber-700 border-amber-200',
-    };
-    return (
-      <span className={`inline-block px-2 py-0.5 text-[10px] font-bold rounded-full border ${styles[status] || styles.draft}`}>
-        {status}
-      </span>
-    );
-  };
-
   return (
     <div className="space-y-8">
       <div className="flex justify-between items-center">
@@ -133,7 +120,27 @@ export default function AdminBlogsPage() {
                   <span className="text-xs text-[var(--text-secondary)]">{blog.category || '—'}</span>
                 </td>
                 <td className="px-6 py-4 text-center">
-                  {statusBadge(blog.status)}
+                  {blog.status === 'scheduled' ? (
+                    <span className="inline-flex items-center gap-1 px-2.5 py-1 text-[10px] font-bold rounded-full border bg-amber-50 text-amber-700 border-amber-200">
+                      <span className="w-1.5 h-1.5 rounded-full bg-amber-400 inline-block" />
+                      scheduled
+                    </span>
+                  ) : (
+                    <button
+                      onClick={() => handleToggleStatus(blog.id, blog.status)}
+                      title={blog.status === 'published' ? 'Click to unpublish' : 'Click to publish'}
+                      className={`inline-flex items-center gap-1 px-2.5 py-1 text-[10px] font-bold rounded-full border cursor-pointer hover:opacity-70 transition-opacity ${
+                        blog.status === 'published'
+                          ? 'bg-green-50 text-green-700 border-green-200'
+                          : 'bg-gray-50 text-gray-500 border-gray-200'
+                      }`}
+                    >
+                      <span className={`w-1.5 h-1.5 rounded-full inline-block ${
+                        blog.status === 'published' ? 'bg-green-500' : 'bg-gray-400'
+                      }`} />
+                      {blog.status}
+                    </button>
+                  )}
                 </td>
                 <td className="px-6 py-4 text-center">
                   <span className="text-xs text-[var(--text-muted)]">{blog.viewCount}</span>
@@ -145,13 +152,6 @@ export default function AdminBlogsPage() {
                         <ExternalLink className="w-4 h-4" />
                       </Link>
                     )}
-                    <button
-                      onClick={() => handleToggleStatus(blog.id, blog.status)}
-                      className="p-2 text-[var(--text-muted)] hover:text-[var(--primary)] text-[10px] font-bold"
-                      title={blog.status === 'published' ? 'Unpublish' : 'Publish'}
-                    >
-                      {blog.status === 'published' ? '⬇' : '⬆'}
-                    </button>
                     <Link href={`/admin/blogs/${blog.id}/edit`} className="p-2 text-[var(--text-muted)] hover:text-[var(--primary)]">
                       <Edit className="w-4 h-4" />
                     </Link>

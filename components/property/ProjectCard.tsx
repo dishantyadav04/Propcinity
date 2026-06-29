@@ -226,10 +226,10 @@ export default function ProjectCard({
         {/* Price + Config row */}
         <div className="flex items-end justify-between gap-2">
           <div>
-            <p className="text-[9px] text-[var(--text-muted)] uppercase tracking-widest font-bold mb-0.5">
+            <p className="text-[9px] text-[var(--text-muted)] uppercase tracking-widest font-bold mb-1">
               Starting from
             </p>
-            <p className="text-[22px] font-black text-[var(--text-primary)] tracking-tight leading-none">
+            <p className="text-[26px] font-black text-[var(--text-primary)] tracking-tight leading-none" style={{ fontFamily: 'var(--font-display)', letterSpacing: '-0.03em' }}>
               {formatINR(minPrice)}
             </p>
           </div>
