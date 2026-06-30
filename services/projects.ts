@@ -1,7 +1,7 @@
 import { createAdminSupabaseClient, createServerSupabaseClient } from '@/lib/supabase-server'
 import { Project, UnitConfig, BuilderProject } from '@/types/project'
 import { MOCK_PROJECTS } from '@/lib/mock-data'
-import { deleteFromR2 } from '@/lib/r2'
+import { deleteFromR2, cleanupRemovedR2Files } from '@/lib/r2'
 
 function sanitizeDates(obj: Record<string, unknown>): Record<string, unknown> {
   const DATE_FIELDS = ['possession_date', 'rera_expiry', 'rera_possession_date', 'rera_link', 'brochure_url']
@@ -405,6 +405,13 @@ export async function adminUpdateProject(
     ...project
   } = projectData as any
 
+  // ── 1. Fetch existing image URLs from DB before overwriting ──────────────
+  const { data: existing } = await supabase
+    .from('projects')
+    .select('images, master_plan_images, floor_plan_images, brochure_url, unit_configs(id, floor_plan, images)')
+    .eq('id', id)
+    .single()
+
   // Re-map camelCase fields that have DB columns to their snake_case equivalents
   const snakeMapped: Record<string, unknown> = {
     ...(nearbyLocations !== undefined && { nearby_locations: nearbyLocations }),
@@ -430,6 +437,7 @@ export async function adminUpdateProject(
     ...(bankApprovals !== undefined && { bank_approvals: bankApprovals }),
   }
 
+  // ── 2. Write the update ──────────────────────────────────────────────────
   const { error: updateError } = await supabase
     .from('projects')
     .update(sanitizeDates({ ...project, ...snakeMapped } as Record<string, unknown>))
@@ -440,6 +448,7 @@ export async function adminUpdateProject(
     throw new Error(`Project update failed: ${updateError.message}`)
   }
 
+  // ── 3. Handle unit_configs replacement ───────────────────────────────────
   if (unitConfigs !== undefined) {
     await supabase
       .from('unit_configs')
@@ -456,6 +465,42 @@ export async function adminUpdateProject(
       }
     }
   }
+
+  // ── 4. Diff and delete orphaned R2 images (fire-and-forget) ─────────────
+  if (existing) {
+    // Project-level image arrays
+    if (masterPlanImages !== undefined) {
+      cleanupRemovedR2Files(existing.master_plan_images ?? [], masterPlanImages).catch(() => {})
+    }
+    if (floorPlanImages !== undefined) {
+      cleanupRemovedR2Files(existing.floor_plan_images ?? [], floorPlanImages).catch(() => {})
+    }
+    if (project.images !== undefined) {
+      cleanupRemovedR2Files(existing.images ?? [], project.images as string[]).catch(() => {})
+    }
+    if (brochureUrl !== undefined) {
+      cleanupRemovedR2Files(
+        existing.brochure_url ? [existing.brochure_url] : [],
+        brochureUrl ? [brochureUrl] : []
+      ).catch(() => {})
+    }
+
+    // Unit config R2 files — diff old vs new floor_plan + images per unit
+    if (unitConfigs !== undefined) {
+      const oldUnits: any[] = (existing as any).unit_configs ?? []
+      const oldFloorPlans = oldUnits.map((u: any) => u.floor_plan).filter(Boolean)
+      const oldUnitImages = oldUnits.flatMap((u: any) => (u.images ?? []))
+      const newFloorPlans = (unitConfigs as any[])
+        .map((u) => u.floorPlan || u.floor_plan)
+        .filter(Boolean)
+      const newUnitImages = (unitConfigs as any[])
+        .flatMap((u: any) => (u.images ?? []))
+      cleanupRemovedR2Files(
+        [...oldFloorPlans, ...oldUnitImages],
+        [...newFloorPlans, ...newUnitImages]
+      ).catch(() => {})
+    }
+  }
 }
 
 export async function adminDeleteProject(id: string): Promise<void> {
@@ -465,7 +510,7 @@ export async function adminDeleteProject(id: string): Promise<void> {
   // 1. Fetch project and its unit_configs to collect all R2 URLs before deletion
   const { data: project } = await supabase
     .from('projects')
-    .select('images, master_plan_images, floor_plan_images, brochure_url, unit_configs(floor_plan)')
+    .select('images, master_plan_images, floor_plan_images, brochure_url, unit_configs(floor_plan, images)')
     .eq('id', id)
     .single()
 
@@ -480,7 +525,7 @@ export async function adminDeleteProject(id: string): Promise<void> {
       ...((project as any).floor_plan_images ?? []),
       ...(project.brochure_url ? [project.brochure_url] : []),
       ...((project as any).unit_configs ?? [])
-        .map((u: any) => u.floor_plan)
+        .flatMap((u: any) => [u.floor_plan, ...(u.images ?? [])])
         .filter(Boolean),
     ].filter((url: string) => url && url.startsWith('http'))
 

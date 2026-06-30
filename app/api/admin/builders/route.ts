@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { isAdminAuthenticated } from '@/lib/admin-auth'
 import { createAdminSupabaseClient } from '@/lib/supabase-server'
+import { cleanupRemovedR2Files } from '@/lib/r2'
 
 const unauth = () => NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
@@ -52,6 +53,14 @@ export async function PUT(req: NextRequest) {
   const supabase = createAdminSupabaseClient()
   if (!supabase) return NextResponse.json({ error: 'Config error' }, { status: 500 })
 
+  // 1. Fetch current logo before overwriting
+  const { data: existing } = await supabase
+    .from('builders')
+    .select('logo')
+    .eq('id', id)
+    .single()
+
+  // 2. Write the update
   const { data, error } = await supabase
     .from('builders')
     .update({
@@ -65,6 +74,14 @@ export async function PUT(req: NextRequest) {
   if (error) {
     console.error('[admin/builders] DB error:', error)
     return NextResponse.json({ error: 'Database operation failed' }, { status: 500 })
+  }
+
+  // 3. Delete orphaned R2 logo if it changed (fire-and-forget)
+  if (existing) {
+    cleanupRemovedR2Files(
+      [existing.logo],
+      [body.logo ?? null]
+    ).catch(() => {})
   }
 
   return NextResponse.json({ builder: data })

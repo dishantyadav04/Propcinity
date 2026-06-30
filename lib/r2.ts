@@ -61,3 +61,24 @@ export async function deleteFromR2(key: string): Promise<void> {
     })
   )
 }
+
+/**
+ * Given old and new URL arrays, delete any URLs that were removed.
+ * Filters to only R2-hosted URLs (starts with http) before diffing.
+ * Safe to call even when arrays are empty or undefined.
+ */
+export async function cleanupRemovedR2Files(
+  oldUrls: (string | null | undefined)[],
+  newUrls: (string | null | undefined)[]
+): Promise<void> {
+  const isR2Url = (u: string | null | undefined): u is string =>
+    typeof u === 'string' && u.startsWith('http')
+
+  const oldSet = new Set(oldUrls.filter(isR2Url))
+  const newSet = new Set(newUrls.filter(isR2Url))
+
+  const toDelete = [...oldSet].filter((url) => !newSet.has(url))
+  if (!toDelete.length) return
+
+  await Promise.allSettled(toDelete.map((url) => deleteFromR2(url)))
+}

@@ -1,6 +1,7 @@
 import { createAdminSupabaseClient, createServerSupabaseClient } from '@/lib/supabase-server'
 import { Blog, BlogFaqItem } from '@/types/blog'
 import { BlogInput } from '@/lib/blog-schema'
+import { cleanupRemovedR2Files, deleteFromR2 } from '@/lib/r2'
 import sanitizeHtml from 'sanitize-html'
 
 const SANITIZE_CONFIG: sanitizeHtml.IOptions = {
@@ -282,24 +283,53 @@ export async function adminUpdateBlog(id: string, data: BlogInput): Promise<void
   const supabase = createAdminSupabaseClient()
   if (!supabase) throw new Error('Supabase not configured')
 
-  const row = mapBlogInputToRow(data)
-
-  const { error } = await supabase
+  // 1. Fetch current image URLs before overwriting
+  const { data: existing } = await supabase
     .from('blogs')
-    .update(row)
+    .select('cover_image, author_avatar, og_image')
     .eq('id', id)
+    .single()
 
+  // 2. Write the update
+  const row = mapBlogInputToRow(data)
+  const { error } = await supabase.from('blogs').update(row).eq('id', id)
   if (error) throw new Error(error.message)
+
+  // 3. Diff and delete orphaned R2 images (fire-and-forget)
+  if (existing) {
+    cleanupRemovedR2Files(
+      [existing.cover_image, existing.author_avatar, existing.og_image],
+      [data.coverImage ?? null, data.authorAvatar ?? null, data.ogImage ?? null]
+    ).catch(() => {})
+  }
 }
 
 export async function adminDeleteBlog(id: string): Promise<void> {
   const supabase = createAdminSupabaseClient()
   if (!supabase) return
 
+  const { data: existing } = await supabase
+    .from('blogs')
+    .select('cover_image, og_image, author_avatar')
+    .eq('id', id)
+    .single()
+
   await supabase
     .from('blogs')
     .delete()
     .eq('id', id)
+
+  if (existing) {
+    const r2Urls = [
+      existing.cover_image,
+      existing.og_image,
+      existing.author_avatar,
+    ].filter((url): url is string => !!url && url.startsWith('http'))
+
+    if (r2Urls.length) {
+      Promise.allSettled(r2Urls.map((url) => deleteFromR2(url))).catch(() => {})
+    }
+  }
 }
 
 export async function adminToggleBlogStatus(id: string, status: Blog['status']): Promise<void> {

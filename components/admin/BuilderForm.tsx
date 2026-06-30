@@ -1,9 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
-import { Save } from 'lucide-react';
+import { Save, Upload, X, Loader2 } from 'lucide-react';
 
 interface BuilderFormProps {
   initial?: any;
@@ -29,7 +29,11 @@ export default function BuilderForm({ initial, mode }: BuilderFormProps) {
     legal_cases: initial?.legal_cases || 0,
     customer_complaints: initial?.customer_complaints || 0,
     refund_disputes: initial?.refund_disputes || 0,
+    logo: initial?.logo || '',
   });
+
+  const [isUploadingLogo, setIsUploadingLogo] = useState(false);
+  const logoInputRef = useRef<HTMLInputElement>(null);
 
   const calculateBuilderScore = (data: typeof form) => Math.min(100, Math.round(
     (data.on_time_delivery_percent * 0.4) +
@@ -47,6 +51,31 @@ export default function BuilderForm({ initial, mode }: BuilderFormProps) {
     : form.years_in_business;
 
   const set = (key: string, value: any) => setForm(prev => ({ ...prev, [key]: value }));
+
+  const handleLogoUpload = async (file: File) => {
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('Logo must be under 5MB');
+      return;
+    }
+    setIsUploadingLogo(true);
+    const formData = new FormData();
+    formData.append('file', file);
+    try {
+      const res = await fetch('/api/admin/upload', {
+        method: 'POST',
+        credentials: 'include',
+        body: formData,
+      });
+      if (!res.ok) throw new Error('Upload failed');
+      const data = await res.json();
+      set('logo', data.url);
+      toast.success('Logo uploaded');
+    } catch {
+      toast.error('Logo upload failed');
+    } finally {
+      setIsUploadingLogo(false);
+    }
+  };
 
   const handleSubmit = async () => {
     if (!form.name) { toast.error('Builder name is required'); return; }
@@ -149,6 +178,66 @@ export default function BuilderForm({ initial, mode }: BuilderFormProps) {
                   rows={3} placeholder="Brief about the builder..."
                   className="mt-1 w-full px-3 py-2.5 bg-[var(--surface-raised)] border border-[var(--border)]
                     rounded-[var(--radius-xs)] text-sm focus:outline-none focus:border-[var(--primary)] resize-none" />
+              </div>
+
+              {/* Logo */}
+              <div>
+                <label className="text-xs font-bold text-[var(--text-muted)]">Builder Logo</label>
+                <div className="mt-1">
+                  {form.logo ? (
+                    <div className="relative w-24 h-24 rounded-[var(--radius-xs)] overflow-hidden border border-[var(--border)] group">
+                      <img src={form.logo} alt="Builder logo" className="w-full h-full object-contain bg-white p-1" />
+                      <button
+                        type="button"
+                        onClick={() => set('logo', '')}
+                        className="absolute top-1 right-1 p-1 bg-black/50 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </div>
+                  ) : (
+                    <div
+                      onClick={() => logoInputRef.current?.click()}
+                      onDragOver={e => e.preventDefault()}
+                      onDrop={e => {
+                        e.preventDefault();
+                        const file = e.dataTransfer.files[0];
+                        if (file) handleLogoUpload(file);
+                      }}
+                      className="w-24 h-24 border-2 border-dashed border-[var(--border)] rounded-[var(--radius-xs)] flex flex-col items-center justify-center gap-1 cursor-pointer hover:border-[var(--primary)] hover:bg-[var(--primary)]/5 transition-all"
+                    >
+                      {isUploadingLogo ? (
+                        <Loader2 className="w-5 h-5 text-[var(--primary)] animate-spin" />
+                      ) : (
+                        <>
+                          <Upload className="w-5 h-5 text-[var(--text-muted)]" />
+                          <span className="text-[9px] font-bold text-[var(--text-muted)] uppercase tracking-wider text-center leading-tight">
+                            Upload<br />Logo
+                          </span>
+                        </>
+                      )}
+                      <input
+                        ref={logoInputRef}
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={e => {
+                          const file = e.target.files?.[0];
+                          if (file) handleLogoUpload(file);
+                        }}
+                      />
+                    </div>
+                  )}
+                  {/* Also allow pasting a URL directly */}
+                  <input
+                    value={form.logo}
+                    onChange={e => set('logo', e.target.value)}
+                    placeholder="https://... or drag-and-drop above"
+                    className="mt-2 w-full px-3 py-1.5 text-xs bg-[var(--surface-raised)] border border-[var(--border)]
+                      rounded-[var(--radius-xs)] text-[var(--text-muted)] placeholder:text-[var(--text-muted)]
+                      focus:outline-none focus:border-[var(--primary)]"
+                  />
+                </div>
               </div>
             </div>
           </div>
