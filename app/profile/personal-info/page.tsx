@@ -9,6 +9,11 @@ import { toast } from "sonner";
 import { storage, STORAGE_KEYS } from "@/lib/storage";
 import { useGuestMode } from "@/hooks/useGuestMode";
 
+// PLACEHOLDER: Photo upload feature (camera button, R2 upload, avatar URL persistence)
+if (process.env.NODE_ENV === 'development') {
+  console.warn('[personal-info] Incomplete feature: photo upload')
+}
+
 export default function PersonalInfoPage() {
   const router = useRouter();
   const { isGuest, isChecking } = useGuestMode();
@@ -112,7 +117,7 @@ export default function PersonalInfoPage() {
               rounded-full flex items-center justify-center text-white text-3xl font-black">
               {form.name ? form.name.split(' ').map((n: string) => n[0]).join('').substring(0, 2).toUpperCase() : 'U'}
             </div>
-            {isEditing && null /* Camera button removed — photo upload not yet implemented */}
+            {isEditing && null /* PLACEHOLDER: Photo upload feature — implementing camera button, file upload to R2, and avatar URL persistence */}
           </div>
           <div className="text-center">
             <p className="font-black text-[var(--text-primary)] text-xl">{form.name}</p>

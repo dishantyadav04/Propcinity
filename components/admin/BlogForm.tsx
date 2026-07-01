@@ -2,24 +2,12 @@
 
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { useEditor, EditorContent } from '@tiptap/react';
-import type { Editor } from '@tiptap/core';
-import StarterKit from '@tiptap/starter-kit';
-import LinkExtension from '@tiptap/extension-link';
-import ImageExtension from '@tiptap/extension-image';
-import Placeholder from '@tiptap/extension-placeholder';
-import CharacterCount from '@tiptap/extension-character-count';
-import { Table } from '@tiptap/extension-table'
-import { TableRow } from '@tiptap/extension-table-row'
-import { TableCell } from '@tiptap/extension-table-cell'
-import { TableHeader } from '@tiptap/extension-table-header'
-import Youtube from '@tiptap/extension-youtube';
 import { toast } from 'sonner';
 import { BlogInput } from '@/lib/blog-schema';
 import type { Blog } from '@/types/blog';
+import RichTextEditor from '@/components/admin/RichTextEditor';
 import {
-  Bold, Italic, Strikethrough, Code, Code2, Quote, List, ListOrdered,
-  Link, Image, Table as TableIcon, Minus, Undo, Redo, Upload,
+  Upload,
   Eye, EyeOff, Plus, Trash2, ExternalLink,
 } from 'lucide-react';
 
@@ -160,6 +148,7 @@ export default function BlogForm({ blogId }: BlogFormProps) {
   const [showSeoPanel, setShowSeoPanel] = useState(false);
   const [showFaqPanel, setShowFaqPanel] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [contentHtml, setContentHtml] = useState('');
   const [isLoading, setIsLoading] = useState(isEditing);
   const [slugAvailable, setSlugAvailable] = useState<boolean | null>(null);
   const [slugChecking, setSlugChecking] = useState(false);
@@ -188,34 +177,11 @@ export default function BlogForm({ blogId }: BlogFormProps) {
         setOgImage(blog.ogImage || '');
         setKeywords(blog.keywords || []);
         setFaqItems(blog.faqJsonld || []);
-        if (editor && blog.contentHtml) {
-          editor.commands.setContent(blog.contentHtml);
-        }
+        setContentHtml(blog.contentHtml || '');
       })
       .catch(console.error)
       .finally(() => setIsLoading(false));
   }, [blogId]);
-
-  const editor = useEditor({
-    immediatelyRender: false,
-    extensions: [
-      StarterKit.configure({
-        heading: { levels: [1, 2, 3, 4] },
-        link: false,
-      }),
-      LinkExtension.configure({ openOnClick: false, HTMLAttributes: { target: '_blank', rel: 'noopener noreferrer' } }),
-      ImageExtension.configure({ allowBase64: true, HTMLAttributes: { class: 'rounded-lg max-w-full' } }),
-      Placeholder.configure({ placeholder: 'Write your blog post...' }),
-      CharacterCount.configure({ limit: 50000 }),
-      Table.configure({ resizable: true }),
-      TableRow,
-      TableCell,
-      TableHeader,
-      Youtube.configure({ HTMLAttributes: { class: 'w-full aspect-video rounded-lg' } }),
-    ],
-    content: '',
-    editable: true,
-  });
 
   const autoSlug = useCallback(() => {
     if (!isEditing && title && !slug) {
@@ -299,16 +265,13 @@ export default function BlogForm({ blogId }: BlogFormProps) {
   };
 
   const handleSubmit = async () => {
-    if (!editor) return;
-    const html = editor.getHTML();
-    const json = editor.getJSON();
+    const html = contentHtml;
 
     const payload: BlogInput = {
       title,
       slug,
       excerpt: excerpt || undefined,
       contentHtml: html,
-      contentJson: json,
       coverImage: coverImage || undefined,
       coverImageAlt: coverImageAlt || undefined,
       authorName,
@@ -360,8 +323,8 @@ export default function BlogForm({ blogId }: BlogFormProps) {
     { label: 'Meta description (120-155)', check: metaDescription.length >= 70 && metaDescription.length <= 160, value: `${metaDescription.length} chars` },
     { label: 'Slug (under 70 chars)', check: slug.length > 0 && slug.length <= 70, value: `${slug.length} chars` },
     { label: 'Cover image with alt', check: !!coverImage && !!coverImageAlt, value: coverImage && coverImageAlt ? '✓' : '✗' },
-    { label: 'H1 present', check: !!editor?.getHTML().includes('<h1'), value: editor?.getHTML().includes('<h1') ? '✓' : '✗' },
-    { label: 'Reading time', check: true, value: `${Math.ceil((editor?.getText().split(/\s+/).filter(Boolean).length || 0) / 200)} min` },
+    { label: 'H1 present', check: contentHtml.includes('<h1'), value: contentHtml.includes('<h1') ? '✓' : '✗' },
+    { label: 'Reading time', check: true, value: `${Math.ceil(contentHtml.replace(/<[^>]*>/g, '').split(/\s+/).filter(Boolean).length / 200)} min` },
   ];
 
   return (
@@ -512,51 +475,13 @@ export default function BlogForm({ blogId }: BlogFormProps) {
         )}
       </div>
 
-      {/* Tiptap editor */}
-      <div className="border border-[var(--border)] rounded-[var(--radius)] overflow-hidden">
-        {/* Toolbar */}
-        <div className="flex flex-wrap items-center gap-0.5 p-2 border-b border-[var(--border)] bg-[var(--surface-raised)]">
-          <ToolbarButton onClick={() => editor?.chain().focus().toggleBold().run()} active={editor?.isActive('bold')} title="Bold"><Bold className="w-4 h-4" /></ToolbarButton>
-          <ToolbarButton onClick={() => editor?.chain().focus().toggleItalic().run()} active={editor?.isActive('italic')} title="Italic"><Italic className="w-4 h-4" /></ToolbarButton>
-          <ToolbarButton onClick={() => editor?.chain().focus().toggleStrike().run()} active={editor?.isActive('strike')} title="Strikethrough"><Strikethrough className="w-4 h-4" /></ToolbarButton>
-          <ToolbarButton onClick={() => editor?.chain().focus().toggleCode().run()} active={editor?.isActive('code')} title="Inline Code"><Code className="w-4 h-4" /></ToolbarButton>
-          <div className="w-px h-5 bg-[var(--border)] mx-1" />
-          <ToolbarButton onClick={() => editor?.chain().focus().toggleHeading({ level: 1 }).run()} active={editor?.isActive('heading', { level: 1 })} title="H1">H1</ToolbarButton>
-          <ToolbarButton onClick={() => editor?.chain().focus().toggleHeading({ level: 2 }).run()} active={editor?.isActive('heading', { level: 2 })} title="H2">H2</ToolbarButton>
-          <ToolbarButton onClick={() => editor?.chain().focus().toggleHeading({ level: 3 }).run()} active={editor?.isActive('heading', { level: 3 })} title="H3">H3</ToolbarButton>
-          <div className="w-px h-5 bg-[var(--border)] mx-1" />
-          <ToolbarButton onClick={() => editor?.chain().focus().toggleBulletList().run()} active={editor?.isActive('bulletList')} title="Bullet List"><List className="w-4 h-4" /></ToolbarButton>
-          <ToolbarButton onClick={() => editor?.chain().focus().toggleOrderedList().run()} active={editor?.isActive('orderedList')} title="Ordered List"><ListOrdered className="w-4 h-4" /></ToolbarButton>
-          <ToolbarButton onClick={() => editor?.chain().focus().toggleBlockquote().run()} active={editor?.isActive('blockquote')} title="Blockquote"><Quote className="w-4 h-4" /></ToolbarButton>
-          <ToolbarButton onClick={() => editor?.chain().focus().toggleCodeBlock().run()} active={editor?.isActive('codeBlock')} title="Code Block"><Code2 className="w-4 h-4" /></ToolbarButton>
-          <div className="w-px h-5 bg-[var(--border)] mx-1" />
-          <ToolbarButtonLink editor={editor} />
-          <ToolbarButtonImageUpload editor={editor} onUpload={handleImageUpload} />
-          <ToolbarButton onClick={() => editor?.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()} title="Insert Table"><TableIcon className="w-4 h-4" /></ToolbarButton>
-          <ToolbarButton onClick={() => editor?.chain().focus().setHorizontalRule().run()} title="Horizontal Rule"><Minus className="w-4 h-4" /></ToolbarButton>
-          <div className="w-px h-5 bg-[var(--border)] mx-1" />
-          <ToolbarButton onClick={() => editor?.chain().focus().undo().run()} disabled={!editor?.can().undo()} title="Undo"><Undo className="w-4 h-4" /></ToolbarButton>
-          <ToolbarButton onClick={() => editor?.chain().focus().redo().run()} disabled={!editor?.can().redo()} title="Redo"><Redo className="w-4 h-4" /></ToolbarButton>
-        </div>
-
-        {/* Editor content */}
-        <EditorContent
-          editor={editor}
-          className="prose prose-sm max-w-none p-6 min-h-[300px] focus:outline-none
-            [&_h1]:text-2xl [&_h1]:font-black [&_h1]:text-[var(--text-primary)] [&_h1]:font-[var(--font-display)]
-            [&_h2]:text-xl [&_h2]:font-bold [&_h2]:text-[var(--text-primary)] [&_h2]:font-[var(--font-display)]
-            [&_h3]:text-lg [&_h3]:font-bold [&_h3]:text-[var(--text-primary)]
-            [&_p]:text-[var(--text-secondary)] [&_p]:leading-relaxed
-            [&_blockquote]:border-l-[var(--primary)] [&_blockquote]:bg-[var(--surface-raised)]
-            [&_code]:bg-[var(--surface-raised)] [&_code]:text-[var(--danger)] [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:rounded
-            [&_pre]:bg-[#0E0E14] [&_pre]:text-white [&_pre]:rounded-lg [&_pre]:p-4 [&_pre]:overflow-x-auto
-            [&_table]:w-full [&_table]:border-collapse [&_th]:bg-[var(--surface-raised)] [&_th]:border [&_th]:border-[var(--border)] [&_th]:p-2 [&_th]:text-xs [&_th]:font-bold
-            [&_td]:border [&_td]:border-[var(--border)] [&_td]:p-2 [&_td]:text-sm
-            [&_a]:text-[var(--primary)] [&_a]:underline
-            [&_hr]:border-[var(--border)]
-          "
-        />
-      </div>
+      {/* Rich text editor */}
+      <RichTextEditor
+        content={contentHtml}
+        onChange={setContentHtml}
+        placeholder="Write your blog post..."
+        minHeight="400px"
+      />
 
       {/* SEO Panel */}
       <div className="border border-[var(--border)] rounded-[var(--radius)] overflow-hidden">
@@ -684,7 +609,7 @@ export default function BlogForm({ blogId }: BlogFormProps) {
         </button>
         <button
           onClick={handleSubmit}
-          disabled={isSubmitting || !title || !slug || !editor?.getHTML() || editor?.getHTML() === '<p></p>'}
+          disabled={isSubmitting || !title || !slug || !contentHtml || contentHtml === '<p></p>'}
           className="px-6 py-2.5 bg-[var(--primary)] text-white text-sm font-bold rounded-[var(--radius)] hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed transition-opacity"
         >
           {isSubmitting ? 'Saving...' : isEditing ? 'Update Post' : 'Create Post'}
@@ -694,75 +619,4 @@ export default function BlogForm({ blogId }: BlogFormProps) {
   );
 }
 
-// ─── Toolbar button components ──────────────────────────────────
 
-function ToolbarButton({ onClick, active, disabled, title, children }: {
-  onClick: () => void;
-  active?: boolean;
-  disabled?: boolean;
-  title: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      disabled={disabled}
-      title={title}
-      className={`p-1.5 rounded text-xs font-bold transition-colors ${
-        active
-          ? 'bg-[var(--primary)] text-white'
-          : disabled
-            ? 'text-[var(--text-muted)] opacity-30 cursor-not-allowed'
-            : 'text-[var(--text-secondary)] hover:bg-[var(--surface)] hover:text-[var(--text-primary)]'
-      }`}
-    >
-      {children}
-    </button>
-  );
-}
-
-function ToolbarButtonLink({ editor }: { editor: Editor | null }) {
-  const handleClick = () => {
-    const previousUrl = editor?.getAttributes('link').href;
-    const url = window.prompt('URL', previousUrl || 'https://');
-    if (url === null) return;
-    if (url === '') {
-      editor?.chain().focus().extendMarkRange('link').unsetLink().run();
-      return;
-    }
-    editor?.chain().focus().extendMarkRange('link').setLink({ href: url }).run();
-  };
-
-  return (
-    <ToolbarButton onClick={handleClick} active={editor?.isActive('link')} title="Insert Link">
-      <Link className="w-4 h-4" />
-    </ToolbarButton>
-  );
-}
-
-function ToolbarButtonImageUpload({ editor, onUpload }: {
-  editor: Editor | null;
-  onUpload: (file: File) => Promise<string | null>;
-}) {
-  const handleClick = () => {
-    const input = document.createElement('input');
-    input.type = 'file';
-    input.accept = 'image/*';
-    input.onchange = async () => {
-      const file = input.files?.[0];
-      if (!file) return;
-      const url = await onUpload(file);
-      if (url) {
-        editor?.chain().focus().setImage({ src: url }).run();
-      }
-    };
-    input.click();
-  };
-
-  return (
-    <ToolbarButton onClick={handleClick} title="Insert Image">
-      <Upload className="w-4 h-4" />
-    </ToolbarButton>
-  );
-}

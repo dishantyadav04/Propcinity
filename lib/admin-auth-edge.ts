@@ -66,6 +66,12 @@ async function verifyTokenSignature(token: string): Promise<boolean> {
   if (parts.length !== 3) return false
 
   const [tokenId, timestamp, providedSig] = parts
+
+  // Decode base-36 timestamp and check age (7 days, hardcoded for edge-compatibility — no Node imports)
+  const ADMIN_COOKIE_MAX_AGE_MS = 60 * 60 * 24 * 7 * 1000
+  const createdAt = parseInt(timestamp, 36)
+  if (isNaN(createdAt) || Date.now() - createdAt > ADMIN_COOKIE_MAX_AGE_MS) return false
+
   const payload = `${tokenId}.${timestamp}`
 
   try {

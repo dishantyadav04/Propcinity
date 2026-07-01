@@ -4,6 +4,7 @@ import { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { Save, Upload, X, Loader2 } from 'lucide-react';
+import RichTextEditor from '@/components/admin/RichTextEditor';
 
 interface BuilderFormProps {
   initial?: any;
@@ -29,7 +30,7 @@ export default function BuilderForm({ initial, mode }: BuilderFormProps) {
     legal_cases: initial?.legal_cases || 0,
     customer_complaints: initial?.customer_complaints || 0,
     refund_disputes: initial?.refund_disputes || 0,
-    logo: initial?.logo || '',
+    logo_url: initial?.logo_url || '',
   });
 
   const [isUploadingLogo, setIsUploadingLogo] = useState(false);
@@ -68,7 +69,7 @@ export default function BuilderForm({ initial, mode }: BuilderFormProps) {
       });
       if (!res.ok) throw new Error('Upload failed');
       const data = await res.json();
-      set('logo', data.url);
+      set('logo_url', data.url);
       toast.success('Logo uploaded');
     } catch {
       toast.error('Logo upload failed');
@@ -173,23 +174,27 @@ export default function BuilderForm({ initial, mode }: BuilderFormProps) {
                 </div>
               </div>
               <div>
-                <label className="text-xs font-bold text-[var(--text-muted)]">Description</label>
-                <textarea value={form.description} onChange={e => set('description', e.target.value)}
-                  rows={3} placeholder="Brief about the builder..."
-                  className="mt-1 w-full px-3 py-2.5 bg-[var(--surface-raised)] border border-[var(--border)]
-                    rounded-[var(--radius-xs)] text-sm focus:outline-none focus:border-[var(--primary)] resize-none" />
+                <label className="text-xs font-bold text-[var(--text-muted)] mb-2 block">
+                  Description
+                </label>
+                <RichTextEditor
+                  content={form.description}
+                  onChange={(html) => set('description', html)}
+                  placeholder="Write a rich description for this builder — background, track record, specialties..."
+                  minHeight="200px"
+                />
               </div>
 
               {/* Logo */}
               <div>
                 <label className="text-xs font-bold text-[var(--text-muted)]">Builder Logo</label>
                 <div className="mt-1">
-                  {form.logo ? (
+                  {form.logo_url ? (
                     <div className="relative w-24 h-24 rounded-[var(--radius-xs)] overflow-hidden border border-[var(--border)] group">
-                      <img src={form.logo} alt="Builder logo" className="w-full h-full object-contain bg-white p-1" />
+                      <img src={form.logo_url} alt="Builder logo" className="w-full h-full object-contain bg-white p-1" />
                       <button
                         type="button"
-                        onClick={() => set('logo', '')}
+                        onClick={() => set('logo_url', '')}
                         className="absolute top-1 right-1 p-1 bg-black/50 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
                       >
                         <X className="w-3 h-3" />
@@ -230,8 +235,8 @@ export default function BuilderForm({ initial, mode }: BuilderFormProps) {
                   )}
                   {/* Also allow pasting a URL directly */}
                   <input
-                    value={form.logo}
-                    onChange={e => set('logo', e.target.value)}
+                    value={form.logo_url}
+                    onChange={e => set('logo_url', e.target.value)}
                     placeholder="https://... or drag-and-drop above"
                     className="mt-2 w-full px-3 py-1.5 text-xs bg-[var(--surface-raised)] border border-[var(--border)]
                       rounded-[var(--radius-xs)] text-[var(--text-muted)] placeholder:text-[var(--text-muted)]

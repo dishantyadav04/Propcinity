@@ -65,6 +65,14 @@ export async function proxy(request: NextRequest) {
       }
       return supabaseResponse
     }
+
+    // ── Dashboard / Profile auth guard ─────────────────────────
+    if (pathname.startsWith('/dashboard') || pathname.startsWith('/profile')) {
+      if (!user) {
+        return NextResponse.redirect(new URL('/auth/signup', request.url))
+      }
+      return supabaseResponse
+    }
   }
 
   // ── Admin auth guard (always runs for /admin routes) ─────────

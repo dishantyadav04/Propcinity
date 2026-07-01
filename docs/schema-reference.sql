@@ -1,3 +1,7 @@
+-- REFERENCE ONLY — not to be run directly.
+-- The authoritative schema is defined by supabase/migrations/*.sql
+-- This file is kept for quick human reference only.
+
 -- Projects table
 create table projects (
   id uuid primary key default gen_random_uuid(),

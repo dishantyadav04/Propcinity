@@ -108,9 +108,16 @@ export function generateSessionToken(): string {
 function verifyTokenSignature(token: string): boolean {
   const parts = token.split('.')
   if (parts.length !== 3) return false
-  const payload = `${parts[0]}.${parts[1]}`
+
+  const [tokenId, timestamp, signature] = parts
+
+  // Decode base-36 timestamp and check age
+  const createdAt = parseInt(timestamp, 36)
+  if (isNaN(createdAt) || Date.now() - createdAt > ADMIN_COOKIE_MAX_AGE * 1000) return false
+
+  const payload = `${tokenId}.${timestamp}`
   const expectedSig = createHmac('sha256', getSigningKey()).update(payload).digest('hex')
-  return timingSafeEqual(Buffer.from(parts[2], 'hex'), Buffer.from(expectedSig, 'hex'))
+  return timingSafeEqual(Buffer.from(signature, 'hex'), Buffer.from(expectedSig, 'hex'))
 }
 
 export function extractTokenId(token: string): string {
@@ -139,8 +146,13 @@ export async function verifySessionToken(token: string): Promise<boolean> {
 
   const redis = getRedis()
   if (!redis) {
-    // Redis not configured — HMAC signature is the sole auth check
-    console.warn('[admin-auth] Redis not configured — using HMAC-only verification')
+    // Fail-closed in production: without Redis there is no revocation path,
+    // so a stolen token would be valid forever. Block access to force Redis setup.
+    if (process.env.NODE_ENV === 'production') {
+      console.error('[admin-auth] CRITICAL: Redis not configured — blocking admin access (fail-closed). Set UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN.')
+      return false
+    }
+    console.warn('[admin-auth] Redis not configured — using HMAC-only verification (dev mode, not safe for production)')
     return true
   }
 

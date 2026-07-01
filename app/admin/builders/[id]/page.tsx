@@ -120,6 +120,20 @@ export default function BuilderDetailPage() {
         </div>
       </div>
 
+      {/* Description */}
+      {builder.description && (
+        <div className="bg-white border border-[var(--border)] rounded-[var(--radius)] p-5">
+          <h2 className="text-xs font-black text-[var(--text-muted)] uppercase tracking-wider mb-3">Description</h2>
+          <div
+            className="prose prose-sm max-w-none text-[var(--text-secondary)]
+              [&_h1]:text-xl [&_h1]:font-bold [&_h2]:text-lg [&_h2]:font-bold
+              [&_p]:leading-relaxed [&_a]:text-[var(--primary)] [&_a]:underline
+              [&_ul]:list-disc [&_ul]:pl-4 [&_ol]:list-decimal [&_ol]:pl-4"
+            dangerouslySetInnerHTML={{ __html: builder.description }}
+          />
+        </div>
+      )}
+
       {/* Linked projects */}
       <div className="bg-white border border-[var(--border)] rounded-[var(--radius)] overflow-hidden">
         <div className="px-5 py-4 border-b border-[var(--border)] flex items-center justify-between">

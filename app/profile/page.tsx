@@ -26,10 +26,6 @@ export default function ProfilePage() {
   const [profile, setProfile] = useState<{ display_name?: string; email?: string; phone?: string } | null>(null);
 
   useEffect(() => {
-    if (isGuest) router.replace('/onboarding');
-  }, [isGuest, router]);
-
-  useEffect(() => {
     const saved = storage.get<UserIntent | null>(STORAGE_KEYS.USER_INTENT, null);
     if (saved) {
       setIntent(saved);
@@ -61,13 +57,9 @@ export default function ProfilePage() {
     fetchProfile();
   }, []);
 
-  if (isChecking || isGuest) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="w-8 h-8 border-2 border-[var(--primary)] border-t-transparent rounded-full animate-spin" />
-      </div>
-    );
-  }
+  // Server redirect (Task 3) handles this first; these are client-side fallbacks
+  if (isChecking) return null
+  if (isGuest) return null
 
   const formatBudget = (val: number) => {
     if (val >= 10000000) return `₹${(val / 10000000).toFixed(1)} Cr`;

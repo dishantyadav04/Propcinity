@@ -181,7 +181,7 @@ export async function getPublishedProjects(filters?: {
 }): Promise<Project[]> {
   const supabase = await createServerSupabaseClient()
   if (!supabase) {
-    if (process.env.NODE_ENV === 'development') return MOCK_PROJECTS
+    if (process.env.NEXT_PUBLIC_USE_MOCK_DATA === 'true') return MOCK_PROJECTS
     throw new Error('Supabase client unavailable. Check NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY in Vercel env vars.')
   }
 
@@ -233,7 +233,7 @@ export async function getPublishedProjects(filters?: {
 export async function getProjectBySlug(slug: string): Promise<Project | null> {
   const supabase = await createServerSupabaseClient()
   if (!supabase) {
-    if (process.env.NODE_ENV === 'development') return MOCK_PROJECTS.find(p => p.slug === slug) || null
+    if (process.env.NEXT_PUBLIC_USE_MOCK_DATA === 'true') return MOCK_PROJECTS.find(p => p.slug === slug) || null
     return null
   }
   const { data: project, error } = await supabase
@@ -257,7 +257,7 @@ export async function getProjectsByIds(ids: string[]): Promise<Project[]> {
 
   const supabase = await createServerSupabaseClient()
   if (!supabase) {
-    if (process.env.NODE_ENV === 'development') return MOCK_PROJECTS.filter(p => ids.includes(p.id))
+    if (process.env.NEXT_PUBLIC_USE_MOCK_DATA === 'true') return MOCK_PROJECTS.filter(p => ids.includes(p.id))
     return []
   }
   const { data: projects } = await supabase
@@ -321,7 +321,7 @@ export async function rejectProject(
 export async function adminGetAllProjects(page = 1, limit = 50): Promise<{ projects: unknown[]; total: number; page: number; limit: number }> {
   const supabase = createAdminSupabaseClient()
   if (!supabase) {
-    if (process.env.NODE_ENV === 'development') return { projects: MOCK_PROJECTS, total: MOCK_PROJECTS.length, page, limit }
+    if (process.env.NEXT_PUBLIC_USE_MOCK_DATA === 'true') return { projects: MOCK_PROJECTS, total: MOCK_PROJECTS.length, page, limit }
     throw new Error('Admin Supabase client unavailable. Check SUPABASE_SERVICE_ROLE_KEY.')
   }
   const from = (page - 1) * limit

@@ -53,10 +53,10 @@ export async function PUT(req: NextRequest) {
   const supabase = createAdminSupabaseClient()
   if (!supabase) return NextResponse.json({ error: 'Config error' }, { status: 500 })
 
-  // 1. Fetch current logo before overwriting
+  // 1. Fetch current logo_url before overwriting
   const { data: existing } = await supabase
     .from('builders')
-    .select('logo')
+    .select('logo_url')
     .eq('id', id)
     .single()
 
@@ -79,8 +79,8 @@ export async function PUT(req: NextRequest) {
   // 3. Delete orphaned R2 logo if it changed (fire-and-forget)
   if (existing) {
     cleanupRemovedR2Files(
-      [existing.logo],
-      [body.logo ?? null]
+      [existing.logo_url],
+      [body.logo_url ?? null]
     ).catch(() => {})
   }
 

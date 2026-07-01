@@ -145,11 +145,6 @@ export default function DashboardPage() {
   const [aiRankSource, setAiRankSource] = useState<'js' | 'ai' | 'cache'>('js')
 
   useEffect(() => {
-    if (isChecking) return;
-    if (isGuest) router.replace('/onboarding');
-  }, [isGuest, isChecking, router]);
-
-  useEffect(() => {
     const loadFromStorage = () => {
       const intent = storage.get<UserIntent | null>(STORAGE_KEYS.USER_INTENT, null);
       const curated = storage.get<string[]>(STORAGE_KEYS.CURATED_IDS, []);
@@ -410,13 +405,9 @@ export default function DashboardPage() {
       .slice(0, 12);
   }, [projects, aiRecommended, curatedIds, rejectedIds, storageReady]);
 
-  if (isChecking || isGuest) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="w-8 h-8 border-2 border-[var(--primary)] border-t-transparent rounded-full animate-spin" />
-      </div>
-    );
-  }
+  // Server redirect (Task 3) handles this first; these are client-side fallbacks
+  if (isChecking) return null
+  if (isGuest) return null
 
   const showSkeleton =
     isLoading ||
