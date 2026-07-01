@@ -19,6 +19,7 @@ import { useGuestMode } from "@/hooks/useGuestMode";
 import { GUEST_LIMITS } from "@/lib/guest-config";
 import GuestGate from "@/components/ui/GuestGate";
 import { formatINR } from "@/lib/finance-calculations";
+import { SHOW_BUILDER_SCORE } from "@/lib/feature-flags";
 import {
   MapPin, Share2, Heart, ShieldCheck, Download, Sparkles,
   Play, ChevronRight, CheckCircle2, XCircle, X, ZoomIn,
@@ -1037,7 +1038,7 @@ export default function ProjectDetailPage() {
                         )}
                       </div>
                     </div>
-                    {project.builderScore !== undefined && (
+                    {SHOW_BUILDER_SCORE && project.builderScore !== undefined && (
                       <div className="relative w-14 h-14 flex items-center justify-center ml-auto flex-shrink-0">
                         <svg className="absolute" width="56" height="56" viewBox="0 0 56 56">
                           <circle cx="28" cy="28" r="20" fill="none" stroke="var(--border)" strokeWidth="4" />

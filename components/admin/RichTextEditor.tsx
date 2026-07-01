@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useEffect } from 'react'
 import { useEditor, EditorContent } from '@tiptap/react'
 import type { Editor } from '@tiptap/core'
 import StarterKit from '@tiptap/starter-kit'
@@ -138,24 +138,30 @@ export default function RichTextEditor({
         </ToolbarButton>
       </div>
 
-      {/* Editor content */}
-      <EditorContent
-        editor={editor}
+      {/* Editor content wrapper — clicking anywhere focuses the editor */}
+      <div
+        onClick={() => editor?.chain().focus().run()}
         style={{ minHeight }}
-        className="prose prose-sm max-w-none p-4 focus:outline-none
-          [&_h1]:text-2xl [&_h1]:font-black [&_h1]:text-[var(--text-primary)]
-          [&_h2]:text-xl [&_h2]:font-bold [&_h2]:text-[var(--text-primary)]
-          [&_h3]:text-lg [&_h3]:font-bold [&_h3]:text-[var(--text-primary)]
-          [&_p]:text-[var(--text-secondary)] [&_p]:leading-relaxed
-          [&_blockquote]:border-l-[var(--primary)] [&_blockquote]:bg-[var(--surface-raised)]
-          [&_code]:bg-[var(--surface-raised)] [&_code]:text-[var(--danger)] [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:rounded
-          [&_pre]:bg-[#0E0E14] [&_pre]:text-white [&_pre]:rounded-lg [&_pre]:p-4
-          [&_table]:w-full [&_table]:border-collapse
-          [&_th]:bg-[var(--surface-raised)] [&_th]:border [&_th]:border-[var(--border)] [&_th]:p-2 [&_th]:text-xs [&_th]:font-bold
-          [&_td]:border [&_td]:border-[var(--border)] [&_td]:p-2 [&_td]:text-sm
-          [&_a]:text-[var(--primary)] [&_a]:underline
-          [&_hr]:border-[var(--border)]"
-      />
+        className="cursor-text"
+      >
+        <EditorContent
+          editor={editor}
+          className="prose prose-sm max-w-none p-4 focus:outline-none
+            [&_.ProseMirror]:h-full [&_.ProseMirror]:cursor-text
+            [&_h1]:text-2xl [&_h1]:font-black [&_h1]:text-[var(--text-primary)]
+            [&_h2]:text-xl [&_h2]:font-bold [&_h2]:text-[var(--text-primary)]
+            [&_h3]:text-lg [&_h3]:font-bold [&_h3]:text-[var(--text-primary)]
+            [&_p]:text-[var(--text-secondary)] [&_p]:leading-relaxed
+            [&_blockquote]:border-l-[var(--primary)] [&_blockquote]:bg-[var(--surface-raised)]
+            [&_code]:bg-[var(--surface-raised)] [&_code]:text-[var(--danger)] [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:rounded
+            [&_pre]:bg-[#0E0E14] [&_pre]:text-white [&_pre]:rounded-lg [&_pre]:p-4
+            [&_table]:w-full [&_table]:border-collapse
+            [&_th]:bg-[var(--surface-raised)] [&_th]:border [&_th]:border-[var(--border)] [&_th]:p-2 [&_th]:text-xs [&_th]:font-bold
+            [&_td]:border [&_td]:border-[var(--border)] [&_td]:p-2 [&_td]:text-sm
+            [&_a]:text-[var(--primary)] [&_a]:underline
+            [&_hr]:border-[var(--border)]"
+        />
+      </div>
     </div>
   )
 }

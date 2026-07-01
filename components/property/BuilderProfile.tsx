@@ -1,3 +1,4 @@
+import { SHOW_BUILDER_SCORE } from "@/lib/feature-flags";
 import { Building2, Award, History, Info } from "lucide-react";
 
 interface BuilderProfileProps {
@@ -44,7 +45,7 @@ export default function BuilderProfile({ name, experience, projectsDelivered, bu
           <h3 className="text-lg font-bold text-[var(--text-primary)]" style={{ fontFamily: 'var(--font-display)' }}>{name}</h3>
           <p className="text-xs text-[var(--text-muted)] uppercase tracking-widest">Verified Developer</p>
         </div>
-        {builderScore !== undefined && (
+        {SHOW_BUILDER_SCORE && builderScore !== undefined && (
           <BuilderScoreRing score={builderScore} />
         )}
       </div>

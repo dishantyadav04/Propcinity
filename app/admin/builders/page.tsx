@@ -94,13 +94,13 @@ export default function BuildersPage() {
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 bg-[var(--surface-raised)] rounded-lg flex items-center
                       justify-center text-[var(--text-muted)] font-black flex-shrink-0">
-                      {builder.logo
-                        ? <img src={builder.logo} alt={builder.name} className="w-full h-full object-cover rounded-lg" />
+                      {builder.logo_url
+                        ? <img src={builder.logo_url} alt={builder.name} className="w-full h-full object-contain bg-white p-1 rounded-lg" />
                         : <HardHat className="w-5 h-5" />
                       }
                     </div>
                     <div className="min-w-0">
-                      <h3 className="font-black text-[var(--text-primary)] truncate">{builder.name}</h3>
+                      <h3 className="font-black text-[var(--text-primary)] line-clamp-2 leading-tight" title={builder.name}>{builder.name}</h3>
                       <p className="text-xs text-[var(--text-muted)]">Est. {builder.established_year || 'N/A'}</p>
                     </div>
                   </div>
