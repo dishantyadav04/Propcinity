@@ -3,7 +3,28 @@ import { createServerClient } from '@supabase/ssr'
 import { NextRequest, NextResponse } from 'next/server'
 import { isAdminAuthenticatedEdge } from '@/lib/admin-auth-edge'
 
-// ── IP Allowlist ───────────────────────────────────────────────
+// ── IP Allowlist ────────────────────────────────────────────────────────────
+//
+// BEHAVIOUR: This is an ALLOWLIST (permit-list), NOT a blocklist.
+//   • Only IPs explicitly listed in ADMIN_ALLOWED_IPS can reach /admin routes.
+//   • Any IP not on the list receives a hard 403 Forbidden.
+//
+// ⚠️  FAIL-OPEN WARNING (security consideration):
+//   • If ADMIN_ALLOWED_IPS is empty or unset, ALL IPs are permitted (fail-open).
+//   • This is easy to misread as fail-closed ("no IPs configured → block all").
+//   • In reality it means: "no restriction configured → allow everyone."
+//   • Always set a non-empty ADMIN_ALLOWED_IPS in production to enforce the gate.
+//
+// EDGE / DEPLOYMENT NOTE:
+//   • This function runs at the Next.js edge runtime (proxy.ts = middleware layer).
+//   • Changes to ADMIN_ALLOWED_IPS in the Vercel dashboard take effect ONLY after
+//     a full redeploy — environment variable edits alone are not sufficient.
+//
+// DEBUG TIP:
+//   • Hit GET /api/debug-ip to see exactly which IP the edge resolves for your
+//     request. Compare `resolvedIp` in that response to the parsed list in
+//     ADMIN_ALLOWED_IPS to diagnose allowlist mismatches.
+// ────────────────────────────────────────────────────────────────────────────
 function isIpAllowed(request: NextRequest): boolean {
   if (process.env.NODE_ENV !== 'production') return true
 
