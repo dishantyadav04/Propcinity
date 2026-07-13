@@ -34,6 +34,7 @@ function isIpAllowed(request: NextRequest): boolean {
   const allowed = allowedRaw.split(',').map(ip => ip.trim()).filter(Boolean)
 
   const ip =
+    request.headers.get('cf-connecting-ip') ||
     request.headers.get('x-real-ip') ||
     request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
     'unknown'
@@ -104,6 +105,7 @@ export async function proxy(request: NextRequest) {
 
     if (!isIpAllowed(request)) {
       const ip =
+        request.headers.get('cf-connecting-ip') ||
         request.headers.get('x-real-ip') ||
         request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
         'unknown'

@@ -20,6 +20,7 @@ import { NextRequest, NextResponse } from 'next/server'
 // stored in the ADMIN_ALLOWED_IPS environment variable.
 function resolveIp(request: NextRequest): string {
   return (
+    request.headers.get('cf-connecting-ip') ||
     request.headers.get('x-real-ip') ||
     request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
     'unknown'
@@ -30,6 +31,7 @@ export async function GET(request: NextRequest) {
   const xRealIp = request.headers.get('x-real-ip')
   const xForwardedFor = request.headers.get('x-forwarded-for')
   const xVercelForwardedFor = request.headers.get('x-vercel-forwarded-for')
+  const cfConnectingIp = request.headers.get('cf-connecting-ip')
 
   // The IP that isIpAllowed() in proxy.ts would resolve and check
   const resolvedIp = resolveIp(request)
@@ -53,6 +55,7 @@ export async function GET(request: NextRequest) {
         'x-real-ip': xRealIp,
         'x-forwarded-for': xForwardedFor,
         'x-vercel-forwarded-for': xVercelForwardedFor,
+        'cf-connecting-ip': cfConnectingIp,
       },
 
       // ── Resolved IP (this is what isIpAllowed() checks against the list) ──
