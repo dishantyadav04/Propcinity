@@ -110,7 +110,10 @@ export async function proxy(request: NextRequest) {
         request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
         'unknown'
       console.warn(`[proxy] Admin blocked — IP not in allowlist: ${ip}`)
-      return new NextResponse('Forbidden', { status: 403 })
+      return new NextResponse('Forbidden: IP not in admin allowlist', {
+        status: 403,
+        headers: { 'x-admin-block-reason': 'ip-allowlist' },
+      })
     }
 
     if (!await isAdminAuthenticatedEdge(request)) {
