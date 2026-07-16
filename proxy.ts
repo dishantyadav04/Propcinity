@@ -2,6 +2,7 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextRequest, NextResponse } from 'next/server'
 import { isAdminAuthenticatedEdge } from '@/lib/admin-auth-edge'
+import { ONBOARDING_COOKIE_NAME, ONBOARDING_COOKIE_MAX_AGE } from '@/lib/onboarding-cookie'
 
 // ── IP Allowlist ────────────────────────────────────────────────────────────
 //
@@ -93,6 +94,34 @@ export async function proxy(request: NextRequest) {
       if (!user) {
         return NextResponse.redirect(new URL('/auth/signup', request.url))
       }
+
+      // Cache hit — trust it, skip the DB round trip entirely.
+      const cached = request.cookies.get(ONBOARDING_COOKIE_NAME)?.value
+      if (cached === '1') {
+        return supabaseResponse
+      }
+
+      // Cache miss (first visit after login, or cookie expired after 30 days)
+      // — fall back to a DB check.
+      const { data: profile } = await supabase
+        .from('user_profiles')
+        .select('onboarding_complete')
+        .eq('id', user.id)
+        .maybeSingle()
+
+      if (!profile?.onboarding_complete) {
+        return NextResponse.redirect(new URL('/onboarding', request.url))
+      }
+
+      // Populate the cache so the next request skips the DB check.
+      supabaseResponse.cookies.set(ONBOARDING_COOKIE_NAME, '1', {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        maxAge: ONBOARDING_COOKIE_MAX_AGE,
+        path: '/',
+      })
+
       return supabaseResponse
     }
   }

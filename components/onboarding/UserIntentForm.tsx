@@ -160,6 +160,11 @@ export default function UserIntentForm() {
           last_active: new Date().toISOString(),
         }, { onConflict: 'id' })
 
+        // Populate the onboarding-status cache cookie now, so the redirect to
+        // /dashboard right after this doesn't hit a cache miss in proxy.ts.
+        fetch('/api/onboarding/complete', { method: 'POST' })
+          .catch((err) => console.warn('[onboarding] cache cookie set failed (non-blocking):', err))
+
         // 2. Save intent answers to user_intents
         const intentPayload = {
           user_id: user.id,
