@@ -348,7 +348,7 @@ export default function AIChatPage() {
                     isLimitReached ? "Daily limit reached. Come back tomorrow!" : "Ask anything about Pune real estate..."
                   }
                   rows={1}
-                  className="flex-1 resize-none px-4 py-3 text-sm bg-[var(--surface-raised)] border border-[var(--border-strong)] rounded-[var(--radius)] text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none focus:border-[var(--primary)] disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="flex-1 resize-none px-4 py-3 text-base bg-[var(--surface-raised)] border border-[var(--border-strong)] rounded-[var(--radius)] text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none focus:border-[var(--primary)] disabled:opacity-50 disabled:cursor-not-allowed"
                   style={{ maxHeight: '120px' }}
                 />
                 <button

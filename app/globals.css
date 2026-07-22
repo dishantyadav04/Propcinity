@@ -77,6 +77,20 @@ h1, h2, h3, h4, h5, h6 {
   border-radius: var(--radius-xs);
 }
 
+/* ── Mobile input zoom prevention ─────────────────────────────────────────
+   Mobile Chrome (Android) and Safari (iOS) auto-zoom any input/textarea/select
+   whose COMPUTED font-size is below 16px. This rule sets the floor to 16px on
+   mobile viewports so the browser never triggers the zoom — regardless of which
+   Tailwind class (text-sm, text-xs, etc.) the component applies.
+   We do NOT use maximum-scale=1/user-scalable=no (breaks WCAG 1.4.4). */
+@media (max-width: 767px) {
+  input,
+  textarea,
+  select {
+    font-size: 16px !important;
+  }
+}
+
 @keyframes shimmer {
   0% { background-position: -200% 0; }
   100% { background-position: 200% 0; }
