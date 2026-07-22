@@ -49,17 +49,41 @@ export async function uploadToR2(
   return getPublicUrl(key)
 }
 
-export async function deleteFromR2(key: string): Promise<void> {
-  const fileKey = key.startsWith('http')
-    ? key.replace(`${R2_PUBLIC_URL}/`, '')
-    : key
+import * as Sentry from '@sentry/nextjs'
 
-  await r2Client.send(
-    new DeleteObjectCommand({
-      Bucket: R2_BUCKET,
-      Key: fileKey,
-    })
-  )
+export interface DeleteResult {
+  success: boolean
+  key: string
+  error?: any
+}
+
+export async function deleteFromR2(key: string): Promise<DeleteResult> {
+  let fileKey = key
+  if (key.startsWith('http://') || key.startsWith('https://')) {
+    try {
+      const urlObj = new URL(key)
+      const pathname = urlObj.pathname.startsWith('/')
+        ? urlObj.pathname.substring(1)
+        : urlObj.pathname
+      fileKey = decodeURIComponent(pathname)
+    } catch (e) {
+      if (R2_PUBLIC_URL) {
+        fileKey = key.replace(`${R2_PUBLIC_URL}/`, '')
+      }
+    }
+  }
+
+  try {
+    await r2Client.send(
+      new DeleteObjectCommand({
+        Bucket: R2_BUCKET,
+        Key: fileKey,
+      })
+    )
+    return { success: true, key }
+  } catch (error) {
+    return { success: false, key, error }
+  }
 }
 
 /**
@@ -80,5 +104,28 @@ export async function cleanupRemovedR2Files(
   const toDelete = [...oldSet].filter((url) => !newSet.has(url))
   if (!toDelete.length) return
 
-  await Promise.allSettled(toDelete.map((url) => deleteFromR2(url)))
+  const results = await Promise.allSettled(toDelete.map((url) => deleteFromR2(url)))
+  let successCount = 0
+
+  results.forEach((result, idx) => {
+    const url = toDelete[idx]
+    if (result.status === 'rejected') {
+      console.error(`[cleanupRemovedR2Files] Failed to delete ${url}:`, result.reason)
+      Sentry.captureException(new Error(`Failed to delete R2 URL: ${url}. Promise rejected.`), {
+        extra: { url, reason: result.reason, context: 'cleanupRemovedR2Files' }
+      })
+    } else {
+      const deleteResult = result.value
+      if (deleteResult.success) {
+        successCount++
+      } else {
+        console.error(`[cleanupRemovedR2Files] Failed to delete ${url} (R2 error):`, deleteResult.error)
+        Sentry.captureException(new Error(`Failed to delete R2 URL: ${url}. R2 error.`), {
+          extra: { url, error: deleteResult.error, context: 'cleanupRemovedR2Files' }
+        })
+      }
+    }
+  })
+
+  console.info(`[cleanupRemovedR2Files] R2 cleanup: ${successCount}/${toDelete.length} deleted`)
 }

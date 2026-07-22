@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import * as Sentry from '@sentry/nextjs'
 import { isAdminAuthenticated } from '@/lib/admin-auth'
-import { projectSchema } from '@/lib/project-schema'
+import { projectSchema, flattenZodError } from '@/lib/project-schema'
 import {
   adminCreateProject,
   adminDeleteProject,
@@ -38,8 +38,16 @@ export async function POST(request: NextRequest) {
   const body = await request.json().catch(() => null)
   const parsed = projectSchema.safeParse(body)
   if (!parsed.success) {
+    const { fieldErrors, formErrors } = flattenZodError(parsed.error)
     console.warn('[admin/projects] Validation failed:', JSON.stringify(parsed.error.flatten()))
-    return NextResponse.json({ error: 'Invalid project payload' }, { status: 400 })
+    return NextResponse.json(
+      {
+        error: 'Invalid project payload',
+        fieldErrors,
+        formErrors,
+      },
+      { status: 400 }
+    )
   }
 
   try {
@@ -65,8 +73,16 @@ export async function PUT(request: NextRequest) {
   const body = await request.json().catch(() => null)
   const parsed = projectSchema.safeParse(body)
   if (!parsed.success) {
+    const { fieldErrors, formErrors } = flattenZodError(parsed.error)
     console.warn('[admin/projects] Validation failed:', JSON.stringify(parsed.error.flatten()))
-    return NextResponse.json({ error: 'Invalid project payload' }, { status: 400 })
+    return NextResponse.json(
+      {
+        error: 'Invalid project payload',
+        fieldErrors,
+        formErrors,
+      },
+      { status: 400 }
+    )
   }
 
   try {
@@ -105,7 +121,15 @@ export async function PATCH(request: NextRequest) {
   const body = await request.json().catch(() => null)
   const parsed = publishSchema.safeParse(body)
   if (!parsed.success) {
-    return NextResponse.json({ error: 'Invalid publish payload' }, { status: 400 })
+    const { fieldErrors, formErrors } = flattenZodError(parsed.error)
+    return NextResponse.json(
+      {
+        error: 'Invalid publish payload',
+        fieldErrors,
+        formErrors,
+      },
+      { status: 400 }
+    )
   }
 
   await adminTogglePublished(idParsed.data.id, parsed.data.isPublished)

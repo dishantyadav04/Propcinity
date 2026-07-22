@@ -3,7 +3,7 @@ import { z } from 'zod'
 import { isAdminAuthenticated } from '@/lib/admin-auth'
 import { createAdminSupabaseClient } from '@/lib/supabase-server'
 import { adminUpdateProject, adminDeleteProject } from '@/services/projects'
-import { projectSchema } from '@/lib/project-schema'
+import { projectSchema, flattenZodError } from '@/lib/project-schema'
 
 const unauth = () => NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
@@ -48,7 +48,15 @@ export async function PATCH(
 
   const parsed = projectSchema.partial().safeParse(body)
   if (!parsed.success) {
-    return NextResponse.json({ error: 'Invalid project payload' }, { status: 400 })
+    const { fieldErrors, formErrors } = flattenZodError(parsed.error)
+    return NextResponse.json(
+      {
+        error: 'Invalid project payload',
+        fieldErrors,
+        formErrors,
+      },
+      { status: 400 }
+    )
   }
 
   try {

@@ -1,160 +1,91 @@
 // proxy.ts  ← Next.js 16 convention (replaces middleware.ts)
 import { createServerClient } from '@supabase/ssr'
 import { NextRequest, NextResponse } from 'next/server'
-import { isAdminAuthenticatedEdge } from '@/lib/admin-auth-edge'
-import { ONBOARDING_COOKIE_NAME, ONBOARDING_COOKIE_MAX_AGE } from '@/lib/onboarding-cookie'
-
-// ── IP Allowlist ────────────────────────────────────────────────────────────
-//
-// BEHAVIOUR: This is an ALLOWLIST (permit-list), NOT a blocklist.
-//   • Only IPs explicitly listed in ADMIN_ALLOWED_IPS can reach /admin routes.
-//   • Any IP not on the list receives a hard 403 Forbidden.
-//
-// ⚠️  FAIL-OPEN WARNING (security consideration):
-//   • If ADMIN_ALLOWED_IPS is empty or unset, ALL IPs are permitted (fail-open).
-//   • This is easy to misread as fail-closed ("no IPs configured → block all").
-//   • In reality it means: "no restriction configured → allow everyone."
-//   • Always set a non-empty ADMIN_ALLOWED_IPS in production to enforce the gate.
-//
-// EDGE / DEPLOYMENT NOTE:
-//   • This function runs at the Next.js edge runtime (proxy.ts = middleware layer).
-//   • Changes to ADMIN_ALLOWED_IPS in the Vercel dashboard take effect ONLY after
-//     a full redeploy — environment variable edits alone are not sufficient.
-//
-// DEBUG TIP:
-//   • Hit GET /api/debug-ip to see exactly which IP the edge resolves for your
-//     request. Compare `resolvedIp` in that response to the parsed list in
-//     ADMIN_ALLOWED_IPS to diagnose allowlist mismatches.
-// ────────────────────────────────────────────────────────────────────────────
-function isIpAllowed(request: NextRequest): boolean {
-  if (process.env.NODE_ENV !== 'production') return true
-
-  const allowedRaw = process.env.ADMIN_ALLOWED_IPS
-  if (!allowedRaw || allowedRaw.trim() === '') return true
-
-  const allowed = allowedRaw.split(',').map(ip => ip.trim()).filter(Boolean)
-
-  const ip =
-    request.headers.get('cf-connecting-ip') ||
-    request.headers.get('x-real-ip') ||
-    request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
-    'unknown'
-
-  return allowed.includes(ip)
-}
 
 export async function proxy(request: NextRequest) {
-  const { pathname } = request.nextUrl
-
-  // ── Determine if this route needs auth checks ─────────────────
-  const needsAuth =
-    pathname.startsWith('/admin') ||
-    pathname.startsWith('/onboarding') ||
-    pathname.startsWith('/dashboard') ||
-    pathname.startsWith('/profile') ||
-    pathname.startsWith('/saved')
+  let supabaseResponse = NextResponse.next({
+    request,
+  })
 
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
   const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
   if (!supabaseUrl || !supabaseKey) {
-    console.warn('[proxy] Skipping session refresh — Supabase env vars not set')
-    return NextResponse.next()
+    console.warn('[proxy] Supabase env vars not set')
+    return supabaseResponse
   }
 
-  let supabaseResponse = NextResponse.next({ request })
-
-  // ── Session refresh (only on routes that actually need auth) ───
-  if (needsAuth) {
-    const supabase = createServerClient(supabaseUrl, supabaseKey, {
-      cookies: {
-        getAll() {
-          return request.cookies.getAll()
-        },
-        setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value, options }) => {
-            supabaseResponse.cookies.set(name, value, options)
-          })
-        },
+  const supabase = createServerClient(supabaseUrl, supabaseKey, {
+    cookies: {
+      getAll() {
+        return request.cookies.getAll()
       },
-    })
+      setAll(cookiesToSet) {
+        cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value))
+        supabaseResponse = NextResponse.next({
+          request,
+        })
+        cookiesToSet.forEach(({ name, value, options }) =>
+          supabaseResponse.cookies.set(name, value, options)
+        )
+      },
+    },
+  })
 
-    const { data: { user } } = await supabase.auth.getUser()
+  // Determine auth state by validating the session against Supabase
+  const { data: { user } } = await supabase.auth.getUser()
 
-    // ── Onboarding auth guard ──────────────────────────────────
-    if (pathname.startsWith('/onboarding')) {
-      if (!user) {
-        return NextResponse.redirect(new URL('/auth/signup', request.url))
-      }
-      return supabaseResponse
-    }
+  const { pathname } = request.nextUrl
 
-    // ── Dashboard / Profile auth guard ─────────────────────────
-    if (pathname.startsWith('/dashboard') || pathname.startsWith('/profile')) {
-      if (!user) {
-        return NextResponse.redirect(new URL('/auth/signup', request.url))
-      }
-
-      // Cache hit — trust it, skip the DB round trip entirely.
-      const cached = request.cookies.get(ONBOARDING_COOKIE_NAME)?.value
-      if (cached === '1') {
-        return supabaseResponse
-      }
-
-      // Cache miss (first visit after login, or cookie expired after 30 days)
-      // — fall back to a DB check.
-      const { data: profile } = await supabase
-        .from('user_profiles')
-        .select('onboarding_complete')
-        .eq('id', user.id)
-        .maybeSingle()
-
-      if (!profile?.onboarding_complete) {
-        return NextResponse.redirect(new URL('/onboarding', request.url))
-      }
-
-      // Populate the cache so the next request skips the DB check.
-      supabaseResponse.cookies.set(ONBOARDING_COOKIE_NAME, '1', {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'lax',
-        maxAge: ONBOARDING_COOKIE_MAX_AGE,
-        path: '/',
+  // 1. Redirect signed-in users away from the marketing landing page (/) to the dashboard
+  if (pathname === '/') {
+    if (user) {
+      const redirectResponse = NextResponse.redirect(new URL('/dashboard', request.url))
+      // Transfer any refreshed Supabase cookies to the redirect response
+      supabaseResponse.cookies.getAll().forEach((cookie) => {
+        redirectResponse.cookies.set(cookie.name, cookie.value, {
+          path: cookie.path,
+          domain: cookie.domain,
+          maxAge: cookie.maxAge,
+          secure: cookie.secure,
+          sameSite: cookie.sameSite,
+          httpOnly: cookie.httpOnly,
+        })
       })
-
-      return supabaseResponse
+      return redirectResponse
     }
   }
 
-  // ── Admin auth guard (always runs for /admin routes) ─────────
-  if (pathname.startsWith('/admin')) {
-    if (pathname === '/admin/login') {
-      return supabaseResponse
-    }
+  // 2. Redirect signed-out users from protected routes to the sign-in page, preserving the redirect target
+  const isProtectedRoute =
+    pathname.startsWith('/dashboard') ||
+    pathname.startsWith('/profile') ||
+    pathname.startsWith('/saved')
 
-    if (!isIpAllowed(request)) {
-      const ip =
-        request.headers.get('cf-connecting-ip') ||
-        request.headers.get('x-real-ip') ||
-        request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
-        'unknown'
-      console.warn(`[proxy] Admin blocked — IP not in allowlist: ${ip}`)
-      return new NextResponse('Forbidden: IP not in admin allowlist', {
-        status: 403,
-        headers: { 'x-admin-block-reason': 'ip-allowlist' },
+  if (isProtectedRoute) {
+    if (!user) {
+      const signinUrl = new URL('/auth/signin', request.url)
+      signinUrl.searchParams.set('next', pathname)
+      const redirectResponse = NextResponse.redirect(signinUrl)
+      // Transfer any refreshed Supabase cookies to the redirect response
+      supabaseResponse.cookies.getAll().forEach((cookie) => {
+        redirectResponse.cookies.set(cookie.name, cookie.value, {
+          path: cookie.path,
+          domain: cookie.domain,
+          maxAge: cookie.maxAge,
+          secure: cookie.secure,
+          sameSite: cookie.sameSite,
+          httpOnly: cookie.httpOnly,
+        })
       })
-    }
-
-    if (!await isAdminAuthenticatedEdge(request)) {
-      const loginUrl = new URL('/admin/login', request.url)
-      loginUrl.searchParams.set('from', pathname)
-      return NextResponse.redirect(loginUrl)
+      return redirectResponse
     }
   }
 
   return supabaseResponse
 }
 
+// Strictly scope the proxy (middleware) to match only the target routes to avoid performance overhead
 export const config = {
-  matcher: ['/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)'],
+  matcher: ['/', '/dashboard/:path*', '/profile/:path*', '/saved/:path*'],
 }

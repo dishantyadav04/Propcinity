@@ -8,13 +8,14 @@ import { toast } from "sonner";
 interface UnitConfigFormProps {
   units: UnitConfig[];
   onChange: (units: UnitConfig[]) => void;
+  errors?: Record<string, string[]>;
 }
 
 function formatIndianCurrency(num: number): string {
   return num.toLocaleString('en-IN');
 }
 
-export default function UnitConfigForm({ units, onChange }: UnitConfigFormProps) {
+export default function UnitConfigForm({ units, onChange, errors }: UnitConfigFormProps) {
   const [uploadingId, setUploadingId] = useState<string | null>(null);
   const [priceInputs, setPriceInputs] = useState<Record<string, string>>({});
 
@@ -76,11 +77,15 @@ export default function UnitConfigForm({ units, onChange }: UnitConfigFormProps)
         credentials: 'include',
         body: formData,
       });
-      if (!res.ok) throw new Error('Upload failed');
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.error || 'Upload failed');
+      }
       const { url } = await res.json();
       updateUnit(id, { floorPlan: url });
-    } catch (err) {
+    } catch (err: any) {
       console.error('Floor plan upload failed:', err);
+      toast.error(err.message || 'Floor plan upload failed');
     } finally {
       setUploadingId(null);
     }
@@ -97,29 +102,39 @@ export default function UnitConfigForm({ units, onChange }: UnitConfigFormProps)
       </h3>
 
       <div className="space-y-4">
-        {units.map((unit) => {
+        {units.map((unit, idx) => {
           const pricePerSqft = calcPricePerSqft(unit.price ?? 0, unit.area ?? 0);
           const displayPricePerSqft = `${formatIndianCurrency(pricePerSqft)}${unit.priceIsPlus ? '+' : ''}`;
+
+          const typeError = errors?.[`unitConfigs.${idx}.type`]
+          const priceError = errors?.[`unitConfigs.${idx}.price`]
+          const areaError = errors?.[`unitConfigs.${idx}.area`]
+          const parkingError = errors?.[`unitConfigs.${idx}.parking`]
+          const minDownpaymentError = errors?.[`unitConfigs.${idx}.min_downpayment`]
+          const floorPlanError = errors?.[`unitConfigs.${idx}.floor_plan`]
 
           return (
           <div key={unit.id} className="p-4 bg-[var(--surface-raised)] border border-[var(--border)] rounded-xl space-y-4">
 
             {/* Config name + delete */}
-            <div className="flex justify-between items-start gap-3">
-              <input
-                type="text"
-                value={unit.type}
-                onChange={(e) => updateUnit(unit.id, { type: e.target.value })}
-                placeholder="e.g. 2 BHK Premium, 2 BHK Classic"
-                className="flex-1 bg-[var(--surface)] border border-[var(--border)] rounded-lg px-3 py-1.5 text-sm font-bold text-[var(--text-primary)] focus:outline-none focus:border-[var(--primary)]"
-              />
-              <button
-                type="button"
-                onClick={() => removeUnit(unit.id)}
-                className="text-[var(--danger)] p-1 hover:bg-[var(--danger-light)] rounded-lg transition-colors"
-              >
-                <Trash2 className="w-4 h-4" />
-              </button>
+            <div className="space-y-1">
+              <div className="flex justify-between items-start gap-3">
+                <input
+                  type="text"
+                  value={unit.type}
+                  onChange={(e) => updateUnit(unit.id, { type: e.target.value })}
+                  placeholder="e.g. 2 BHK Premium, 2 BHK Classic"
+                  className={`flex-1 bg-[var(--surface)] border rounded-lg px-3 py-1.5 text-sm font-bold text-[var(--text-primary)] focus:outline-none focus:border-[var(--primary)] ${typeError ? 'border-red-500' : 'border-[var(--border)]'}`}
+                />
+                <button
+                  type="button"
+                  onClick={() => removeUnit(unit.id)}
+                  className="text-[var(--danger)] p-1 hover:bg-[var(--danger-light)] rounded-lg transition-colors"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              </div>
+              {typeError && <p data-field-error={`unitConfigs.${idx}.type`} className="text-xs text-red-500 font-semibold">{typeError.join(', ')}</p>}
             </div>
 
             {/* Floor Plan Image Upload */}
@@ -166,7 +181,7 @@ export default function UnitConfigForm({ units, onChange }: UnitConfigFormProps)
               {/* Price field with + toggle */}
               <div className="space-y-1">
                 <label className="text-[10px] text-[var(--text-muted)] uppercase font-bold">Price (₹)</label>
-                <div className="flex items-center gap-1 bg-[var(--surface)] border border-[var(--border)] rounded-lg overflow-hidden">
+                <div className={`flex items-center gap-1 bg-[var(--surface)] border rounded-lg overflow-hidden ${priceError ? 'border-red-500' : 'border-[var(--border)]'}`}>
                   <div className="flex items-center gap-1.5 px-2 py-1.5 flex-1">
                     <IndianRupee className="w-3.5 h-3.5 text-[var(--text-muted)] shrink-0" />
                     <input
@@ -208,11 +223,12 @@ export default function UnitConfigForm({ units, onChange }: UnitConfigFormProps)
                     +
                   </button>
                 </div>
+                {priceError && <p data-field-error={`unitConfigs.${idx}.price`} className="text-xs text-red-500 font-semibold">{priceError.join(', ')}</p>}
               </div>
 
               <div className="space-y-1">
                 <label className="text-[10px] text-[var(--text-muted)] uppercase font-bold">Area (sq.ft)</label>
-                <div className="flex items-center gap-2 bg-[var(--surface)] border border-[var(--border)] rounded-lg px-2 py-1.5">
+                <div className={`flex items-center gap-2 bg-[var(--surface)] border rounded-lg px-2 py-1.5 ${areaError ? 'border-red-500' : 'border-[var(--border)]'}`}>
                   <Maximize className="w-3.5 h-3.5 text-[var(--text-muted)]" />
                   <input
                     type="text"
@@ -222,6 +238,7 @@ export default function UnitConfigForm({ units, onChange }: UnitConfigFormProps)
                     className="w-full bg-transparent border-none text-xs text-[var(--text-primary)] focus:outline-none"
                   />
                 </div>
+                {areaError && <p data-field-error={`unitConfigs.${idx}.area`} className="text-xs text-red-500 font-semibold">{areaError.join(', ')}</p>}
               </div>
 
               {/* Price / sq.ft — auto-calculated, read-only */}
@@ -248,9 +265,10 @@ export default function UnitConfigForm({ units, onChange }: UnitConfigFormProps)
                   inputMode="numeric"
                   value={unit.minDownpayment ?? ''}
                   onChange={(e) => updateUnit(unit.id, { minDownpayment: parseIntInput(e.target.value) })}
-                  className="w-full bg-[var(--surface)] border border-[var(--border)] rounded-lg px-3 py-1.5 text-xs text-[var(--text-primary)] focus:outline-none"
+                  className={`w-full bg-[var(--surface)] border rounded-lg px-3 py-1.5 text-xs text-[var(--text-primary)] focus:outline-none ${minDownpaymentError ? 'border-red-500' : 'border-[var(--border)]'}`}
                   placeholder="0"
                 />
+                {minDownpaymentError && <p data-field-error={`unitConfigs.${idx}.min_downpayment`} className="text-xs text-red-500 font-semibold">{minDownpaymentError.join(', ')}</p>}
               </div>
             </div>
 
@@ -267,8 +285,9 @@ export default function UnitConfigForm({ units, onChange }: UnitConfigFormProps)
                   parking: parseIntInput(e.target.value)
                 })}
                 placeholder="0"
-                className="w-full bg-[var(--surface)] border border-[var(--border)] rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-[var(--primary)]"
+                className={`w-full bg-[var(--surface)] border rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-[var(--primary)] ${parkingError ? 'border-red-500' : 'border-[var(--border)]'}`}
               />
+              {parkingError && <p data-field-error={`unitConfigs.${idx}.parking`} className="text-xs text-red-500 font-semibold">{parkingError.join(', ')}</p>}
             </div>
 
             {/* Floor Plan URL field */}
@@ -281,10 +300,9 @@ export default function UnitConfigForm({ units, onChange }: UnitConfigFormProps)
                 value={unit.floorPlan || ''}
                 onChange={e => updateUnit(unit.id, { floorPlan: e.target.value })}
                 placeholder="https://... (paste image URL or upload via admin)"
-                className="w-full px-3 py-2.5 bg-[var(--surface-raised)] border border-[var(--border)]
-                  rounded-[var(--radius-xs)] text-sm text-[var(--text-primary)]
-                  placeholder:text-[var(--text-muted)] focus:outline-none focus:border-[var(--primary)]"
+                className={`w-full px-3 py-2.5 bg-[var(--surface-raised)] border rounded-[var(--radius-xs)] text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none focus:border-[var(--primary)] ${floorPlanError ? 'border-red-500' : 'border-[var(--border)]'}`}
               />
+              {floorPlanError && <p data-field-error={`unitConfigs.${idx}.floor_plan`} className="text-xs text-red-500 font-semibold">{floorPlanError.join(', ')}</p>}
             </div>
 
             <p className="text-[10px] text-[var(--text-muted)] italic">

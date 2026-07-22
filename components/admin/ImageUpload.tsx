@@ -33,12 +33,15 @@ export default function ImageUpload({ onUpload, value = [], onRemove }: ImageUpl
         body: formData,
       });
 
-      if (!response.ok) throw new Error("Upload failed");
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || "Upload failed");
+      }
       const data = await response.json();
       onUpload(data.url);
       toast.success("Image uploaded successfully");
-    } catch (err) {
-      toast.error("Upload failed. Check console for details.");
+    } catch (err: any) {
+      toast.error(err.message || "Upload failed. Check console for details.");
     } finally {
       setIsUploading(false);
     }

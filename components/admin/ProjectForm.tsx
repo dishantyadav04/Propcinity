@@ -41,6 +41,20 @@ export default function ProjectForm({ initialData }: ProjectFormProps) {
   const [builderSearch, setBuilderSearch] = useState('');
   const [builderDropdownOpen, setBuilderDropdownOpen] = useState(false);
 
+  const [errors, setErrors] = useState<Record<string, string[]>>({});
+  const [formErrors, setFormErrors] = useState<string[]>([]);
+
+  const renderFieldError = (fieldName: string) => {
+    if (errors[fieldName]?.length) {
+      return (
+        <p data-field-error={fieldName} className="text-xs text-red-500 mt-1 font-semibold">
+          {errors[fieldName].join(', ')}
+        </p>
+      );
+    }
+    return null;
+  };
+
   const filteredBuilders = builders.filter(b =>
     b.name.toLowerCase().includes(builderSearch.toLowerCase())
   );
@@ -123,6 +137,8 @@ export default function ProjectForm({ initialData }: ProjectFormProps) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
+    setErrors({});
+    setFormErrors([]);
 
     try {
       const body: Record<string, unknown> = {
@@ -212,6 +228,22 @@ export default function ProjectForm({ initialData }: ProjectFormProps) {
 
       if (!response.ok) {
         const err = await response.json().catch(() => ({}));
+        if (err.fieldErrors) {
+          setErrors(err.fieldErrors);
+          if (err.fieldErrors.litigation_details && !project.litigation) {
+            setProject(prev => ({ ...prev, litigation: true }));
+          }
+          setTimeout(() => {
+            const firstErrorEl = document.querySelector('[data-field-error]');
+            if (firstErrorEl) {
+              firstErrorEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+          }, 100);
+          throw new Error("Fix the highlighted fields below");
+        }
+        if (err.formErrors) {
+          setFormErrors(err.formErrors);
+        }
         throw new Error(err.error || "Failed to save project");
       }
 
@@ -237,10 +269,12 @@ export default function ProjectForm({ initialData }: ProjectFormProps) {
               type="text"
               value={project.name}
               onChange={(e) => setProject({...project, name: e.target.value, slug: e.target.value.toLowerCase().replace(/\s+/g, '-')})}
-              className="w-full bg-[var(--surface-raised)] border border-[var(--border)] rounded-xl px-4 py-2.5 text-sm"
+              className={`w-full bg-[var(--surface-raised)] border rounded-xl px-4 py-2.5 text-sm ${errors.name ? 'border-red-500' : 'border-[var(--border)]'}`}
               placeholder="e.g. Godrej Woodsville"
               required
             />
+            {renderFieldError('name')}
+            {renderFieldError('slug')}
           </div>
 
           <div className="space-y-2">
@@ -261,9 +295,10 @@ export default function ProjectForm({ initialData }: ProjectFormProps) {
                 }}
                 onBlur={() => setTimeout(() => setBuilderDropdownOpen(false), 150)}
                 placeholder="Search or select a builder..."
-                className="w-full px-3 py-2.5 bg-[var(--surface-raised)] border border-[var(--border)]
-                  rounded-[var(--radius-xs)] text-sm focus:outline-none focus:border-[var(--primary)] pr-8"
+                className={`w-full px-3 py-2.5 bg-[var(--surface-raised)] border rounded-[var(--radius-xs)] text-sm focus:outline-none focus:border-[var(--primary)] pr-8 ${errors.builder_name || errors.builder_id ? 'border-red-500' : 'border-[var(--border)]'}`}
               />
+              {renderFieldError('builder_name')}
+              {renderFieldError('builder_id')}
               <span className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-[var(--text-muted)]">
                 ▾
               </span>
@@ -321,10 +356,11 @@ export default function ProjectForm({ initialData }: ProjectFormProps) {
                 }}
                 onFocus={() => setLocationDropdownOpen(true)}
                 onBlur={() => setTimeout(() => setLocationDropdownOpen(false), 150)}
-                className="w-full bg-[var(--surface-raised)] border border-[var(--border)] rounded-xl px-4 py-2.5 text-sm pr-8 focus:outline-none focus:border-[var(--primary)]"
+                className={`w-full bg-[var(--surface-raised)] border rounded-xl px-4 py-2.5 text-sm pr-8 focus:outline-none focus:border-[var(--primary)] ${errors.location ? 'border-red-500' : 'border-[var(--border)]'}`}
                 placeholder="e.g. Wakad, Hinjewadi..."
                 autoComplete="off"
               />
+              {renderFieldError('location')}
               <span className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-[var(--text-muted)] text-xs">
                 ▾
               </span>
@@ -363,8 +399,9 @@ export default function ProjectForm({ initialData }: ProjectFormProps) {
                 inputMode="numeric"
                 value={project.lat ?? ''}
                 onChange={(e) => setProject({...project, lat: parseFloatInput(e.target.value) ?? 18.5204})}
-                className="w-full bg-[var(--surface-raised)] border border-[var(--border)] rounded-xl px-4 py-2.5 text-sm"
+                className={`w-full bg-[var(--surface-raised)] border rounded-xl px-4 py-2.5 text-sm ${errors.lat ? 'border-red-500' : 'border-[var(--border)]'}`}
               />
+              {renderFieldError('lat')}
             </div>
             <div className="space-y-2">
               <label className="text-[10px] text-[var(--text-muted)] uppercase font-bold">Longitude</label>
@@ -373,8 +410,9 @@ export default function ProjectForm({ initialData }: ProjectFormProps) {
                 inputMode="numeric"
                 value={project.lng ?? ''}
                 onChange={(e) => setProject({...project, lng: parseFloatInput(e.target.value) ?? 73.8567})}
-                className="w-full bg-[var(--surface-raised)] border border-[var(--border)] rounded-xl px-4 py-2.5 text-sm"
+                className={`w-full bg-[var(--surface-raised)] border rounded-xl px-4 py-2.5 text-sm ${errors.lng ? 'border-red-500' : 'border-[var(--border)]'}`}
               />
+              {renderFieldError('lng')}
             </div>
           </div>
           <AdminMapPreview lat={project.lat || 18.5204} lng={project.lng || 73.8567} />
@@ -391,9 +429,10 @@ export default function ProjectForm({ initialData }: ProjectFormProps) {
               type="text"
               value={project.tagline || ''}
               onChange={(e) => setProject({...project, tagline: e.target.value})}
-              className="w-full bg-[var(--surface-raised)] border border-[var(--border)] rounded-xl px-4 py-2.5 text-sm"
+              className={`w-full bg-[var(--surface-raised)] border rounded-xl px-4 py-2.5 text-sm ${errors.tagline ? 'border-red-500' : 'border-[var(--border)]'}`}
               placeholder="e.g. Experience luxury living"
             />
+            {renderFieldError('tagline')}
           </div>
           <div className="space-y-2">
             <label className="text-[10px] text-[var(--text-muted)] uppercase font-bold">Target Possession</label>
@@ -401,8 +440,9 @@ export default function ProjectForm({ initialData }: ProjectFormProps) {
               type="date"
               value={project.possessionDate || ''}
               onChange={(e) => setProject({...project, possessionDate: e.target.value})}
-              className="w-full bg-[var(--surface-raised)] border border-[var(--border)] rounded-xl px-4 py-2.5 text-sm"
+              className={`w-full bg-[var(--surface-raised)] border rounded-xl px-4 py-2.5 text-sm ${errors.possession_date ? 'border-red-500' : 'border-[var(--border)]'}`}
             />
+            {renderFieldError('possession_date')}
           </div>
           <div className="space-y-2">
             <label className="text-[10px] text-[var(--text-muted)] uppercase font-bold">RERA Possession Date</label>
@@ -410,8 +450,9 @@ export default function ProjectForm({ initialData }: ProjectFormProps) {
               type="date"
               value={project.reraPossessionDate || ''}
               onChange={(e) => setProject({...project, reraPossessionDate: e.target.value})}
-              className="w-full bg-[var(--surface-raised)] border border-[var(--border)] rounded-xl px-4 py-2.5 text-sm"
+              className={`w-full bg-[var(--surface-raised)] border rounded-xl px-4 py-2.5 text-sm ${errors.rera_possession_date ? 'border-red-500' : 'border-[var(--border)]'}`}
             />
+            {renderFieldError('rera_possession_date')}
           </div>
           <div className="space-y-2">
             <label className="text-[10px] text-[var(--text-muted)] uppercase font-bold">Land Parcel (acres)</label>
@@ -420,8 +461,9 @@ export default function ProjectForm({ initialData }: ProjectFormProps) {
               inputMode="numeric"
               value={project.landParcelAcres ?? ''}
               onChange={(e) => setProject({...project, landParcelAcres: parseFloatInput(e.target.value)})}
-              className="w-full bg-[var(--surface-raised)] border border-[var(--border)] rounded-xl px-4 py-2.5 text-sm"
+              className={`w-full bg-[var(--surface-raised)] border rounded-xl px-4 py-2.5 text-sm ${errors.land_parcel_acres ? 'border-red-500' : 'border-[var(--border)]'}`}
             />
+            {renderFieldError('land_parcel_acres')}
           </div>
           <div className="space-y-2">
             <label className="text-[10px] text-[var(--text-muted)] uppercase font-bold">Total Towers</label>
@@ -430,8 +472,9 @@ export default function ProjectForm({ initialData }: ProjectFormProps) {
               inputMode="numeric"
               value={project.totalTowers ?? ''}
               onChange={(e) => setProject({...project, totalTowers: parseIntInput(e.target.value)})}
-              className="w-full bg-[var(--surface-raised)] border border-[var(--border)] rounded-xl px-4 py-2.5 text-sm"
+              className={`w-full bg-[var(--surface-raised)] border rounded-xl px-4 py-2.5 text-sm ${errors.total_towers ? 'border-red-500' : 'border-[var(--border)]'}`}
             />
+            {renderFieldError('total_towers')}
           </div>
           <div className="space-y-2">
             <label className="text-[10px] text-[var(--text-muted)] uppercase font-bold">Floors Per Tower</label>
@@ -439,22 +482,24 @@ export default function ProjectForm({ initialData }: ProjectFormProps) {
               type="text"
               value={project.floorsPerTower || ''}
               onChange={(e) => setProject({...project, floorsPerTower: e.target.value})}
-              className="w-full bg-[var(--surface-raised)] border border-[var(--border)] rounded-xl px-4 py-2.5 text-sm"
+              className={`w-full bg-[var(--surface-raised)] border rounded-xl px-4 py-2.5 text-sm ${errors.floors_per_tower ? 'border-red-500' : 'border-[var(--border)]'}`}
               placeholder="e.g. G+33"
             />
+            {renderFieldError('floors_per_tower')}
           </div>
           <div className="space-y-2">
             <label className="text-[10px] text-[var(--text-muted)] uppercase font-bold">Construction Status</label>
             <select
               value={project.constructionStatus || 'under_construction'}
               onChange={(e) => setProject({ ...project, constructionStatus: e.target.value as any })}
-              className="w-full bg-[var(--surface-raised)] border border-[var(--border)] rounded-xl px-4 py-2.5 text-sm"
+              className={`w-full bg-[var(--surface-raised)] border rounded-xl px-4 py-2.5 text-sm ${errors.construction_status ? 'border-red-500' : 'border-[var(--border)]'}`}
             >
               <option value="pre_launch">Pre-Launch</option>
               <option value="new_launch">New Launch</option>
               <option value="under_construction">Under Construction</option>
               <option value="ready_to_move">Ready to Move</option>
             </select>
+            {renderFieldError('construction_status')}
           </div>
           <div className="space-y-2">
             <label className="text-[10px] text-[var(--text-muted)] uppercase font-bold">Construction %</label>
@@ -463,8 +508,9 @@ export default function ProjectForm({ initialData }: ProjectFormProps) {
               inputMode="numeric"
               value={project.constructionPercent ?? ''}
               onChange={(e) => setProject({...project, constructionPercent: parseIntInput(e.target.value) ?? 0})}
-              className="w-full bg-[var(--surface-raised)] border border-[var(--border)] rounded-xl px-4 py-2.5 text-sm"
+              className={`w-full bg-[var(--surface-raised)] border rounded-xl px-4 py-2.5 text-sm ${errors.construction_percent ? 'border-red-500' : 'border-[var(--border)]'}`}
             />
+            {renderFieldError('construction_percent')}
           </div>
         </div>
       </div>
@@ -477,6 +523,7 @@ export default function ProjectForm({ initialData }: ProjectFormProps) {
           onUpload={(url) => setProject({...project, images: [...(project.images || []), url]})}
           onRemove={(url) => setProject({...project, images: project.images?.filter(i => i !== url)})}
         />
+        {renderFieldError('images')}
       </div>
 
       {/* Master Plan Images */}
@@ -492,6 +539,7 @@ export default function ProjectForm({ initialData }: ProjectFormProps) {
           onRemove={(url) => setProject(prev => ({...prev, masterPlanImages: (prev.masterPlanImages || []).filter(i => i !== url)}))}
           value={project.masterPlanImages || []}
         />
+        {renderFieldError('master_plan_images')}
       </div>
 
       {/* Floor Plan Images */}
@@ -507,6 +555,7 @@ export default function ProjectForm({ initialData }: ProjectFormProps) {
           onRemove={(url) => setProject(prev => ({...prev, floorPlanImages: (prev.floorPlanImages || []).filter(i => i !== url)}))}
           value={project.floorPlanImages || []}
         />
+        {renderFieldError('floor_plan_images')}
       </div>
 
       {/* Media & Documents */}
@@ -518,9 +567,10 @@ export default function ProjectForm({ initialData }: ProjectFormProps) {
             type="url"
             value={project.brochureUrl || ''}
             onChange={(e) => setProject({...project, brochureUrl: e.target.value})}
-            className="w-full bg-[var(--surface-raised)] border border-[var(--border)] rounded-xl px-4 py-2.5 text-sm"
+            className={`w-full bg-[var(--surface-raised)] border rounded-xl px-4 py-2.5 text-sm ${errors.brochure_url ? 'border-red-500' : 'border-[var(--border)]'}`}
             placeholder="https://..."
           />
+          {renderFieldError('brochure_url')}
         </div>
 
         <div className="space-y-3">
@@ -559,7 +609,8 @@ export default function ProjectForm({ initialData }: ProjectFormProps) {
                       videos: (project.videos || []).map((v, i) => i === idx ? { ...v, label: e.target.value } : v)
                     })}
                     placeholder="e.g. 3.5BHK Sample Flat"
-                    className="w-full bg-[var(--surface)] border border-[var(--border)] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[var(--primary)]" />
+                    className={`w-full bg-[var(--surface)] border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[var(--primary)] ${errors[`videos.${idx}.label`] ? 'border-red-500' : 'border-[var(--border)]'}`} />
+                  {renderFieldError(`videos.${idx}.label`)}
                 </div>
                 <div className="space-y-1">
                   <label className="text-[10px] text-[var(--text-muted)] uppercase font-bold">YouTube URL</label>
@@ -569,7 +620,8 @@ export default function ProjectForm({ initialData }: ProjectFormProps) {
                       videos: (project.videos || []).map((v, i) => i === idx ? { ...v, youtubeUrl: e.target.value } : v)
                     })}
                     placeholder="https://youtube.com/watch?v=..."
-                    className="w-full bg-[var(--surface)] border border-[var(--border)] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[var(--primary)]" />
+                    className={`w-full bg-[var(--surface)] border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[var(--primary)] ${errors[`videos.${idx}.youtubeUrl`] ? 'border-red-500' : 'border-[var(--border)]'}`} />
+                  {renderFieldError(`videos.${idx}.youtubeUrl`)}
                 </div>
               </div>
             </div>
@@ -585,7 +637,9 @@ export default function ProjectForm({ initialData }: ProjectFormProps) {
         <UnitConfigForm
           units={project.unitConfigs || []}
           onChange={(units) => setProject({...project, unitConfigs: units})}
+          errors={errors}
         />
+        {renderFieldError('unitConfigs')}
       </div>
 
       {/* Payment Plans & Bank Approvals */}
@@ -626,7 +680,8 @@ export default function ProjectForm({ initialData }: ProjectFormProps) {
                       paymentPlans: (project.paymentPlans || []).map((p, i) => i === idx ? { ...p, name: e.target.value } : p)
                     })}
                     placeholder="e.g. CLP, Flexi Plan"
-                    className="w-full bg-[var(--surface)] border border-[var(--border)] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[var(--primary)]" />
+                    className={`w-full bg-[var(--surface)] border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[var(--primary)] ${errors[`payment_plans.${idx}.name`] ? 'border-red-500' : 'border-[var(--border)]'}`} />
+                  {renderFieldError(`payment_plans.${idx}.name`)}
                 </div>
                 <div className="space-y-1">
                   <label className="text-[10px] text-[var(--text-muted)] uppercase font-bold">Description</label>
@@ -636,7 +691,8 @@ export default function ProjectForm({ initialData }: ProjectFormProps) {
                       paymentPlans: (project.paymentPlans || []).map((p, i) => i === idx ? { ...p, description: e.target.value } : p)
                     })}
                     placeholder="e.g. 10-80-10 plan"
-                    className="w-full bg-[var(--surface)] border border-[var(--border)] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[var(--primary)]" />
+                    className={`w-full bg-[var(--surface)] border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[var(--primary)] ${errors[`payment_plans.${idx}.description`] ? 'border-red-500' : 'border-[var(--border)]'}`} />
+                  {renderFieldError(`payment_plans.${idx}.description`)}
                 </div>
               </div>
             </div>
@@ -682,7 +738,8 @@ export default function ProjectForm({ initialData }: ProjectFormProps) {
                       bankApprovals: (project.bankApprovals || []).map((b, i) => i === idx ? { ...b, bankName: e.target.value } : b)
                     })}
                     placeholder="e.g. SBI, HDFC"
-                    className="w-full bg-[var(--surface)] border border-[var(--border)] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[var(--primary)]" />
+                    className={`w-full bg-[var(--surface)] border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[var(--primary)] ${errors[`bank_approvals.${idx}.bankName`] ? 'border-red-500' : 'border-[var(--border)]'}`} />
+                  {renderFieldError(`bank_approvals.${idx}.bankName`)}
                 </div>
                 <div className="space-y-1">
                   <label className="text-[10px] text-[var(--text-muted)] uppercase font-bold">Logo URL (optional)</label>
@@ -692,7 +749,8 @@ export default function ProjectForm({ initialData }: ProjectFormProps) {
                       bankApprovals: (project.bankApprovals || []).map((b, i) => i === idx ? { ...b, logoUrl: e.target.value } : b)
                     })}
                     placeholder="https://..."
-                    className="w-full bg-[var(--surface)] border border-[var(--border)] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[var(--primary)]" />
+                    className={`w-full bg-[var(--surface)] border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[var(--primary)] ${errors[`bank_approvals.${idx}.logoUrl`] ? 'border-red-500' : 'border-[var(--border)]'}`} />
+                  {renderFieldError(`bank_approvals.${idx}.logoUrl`)}
                 </div>
               </div>
             </div>
@@ -710,13 +768,14 @@ export default function ProjectForm({ initialData }: ProjectFormProps) {
           <select
             value={project.reraStatus || 'not_registered'}
             onChange={(e) => setProject({ ...project, reraStatus: e.target.value as any })}
-            className="w-full bg-[var(--surface-raised)] border border-[var(--border)] rounded-xl px-4 py-2.5 text-sm"
+            className={`w-full bg-[var(--surface-raised)] border rounded-xl px-4 py-2.5 text-sm ${errors.rera_status ? 'border-red-500' : 'border-[var(--border)]'}`}
           >
             <option value="registered">✓ Registered</option>
             <option value="expired">⚠ Expired</option>
             <option value="pending">⏳ Pending</option>
             <option value="not_registered">✗ Not Registered</option>
           </select>
+          {renderFieldError('rera_status')}
         </div>
       </div>
 
@@ -754,7 +813,8 @@ export default function ProjectForm({ initialData }: ProjectFormProps) {
                       )
                     })}
                     placeholder="e.g. P52100047931"
-                    className="w-full bg-[var(--surface)] border border-[var(--border)] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[var(--primary)]" />
+                    className={`w-full bg-[var(--surface)] border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[var(--primary)] ${errors[`rera_registrations.${idx}.reraId`] ? 'border-red-500' : 'border-[var(--border)]'}`} />
+                  {renderFieldError(`rera_registrations.${idx}.reraId`)}
                 </div>
                 <div className="space-y-1">
                   <label className="text-[10px] text-[var(--text-muted)] uppercase font-bold">RERA Portal Link</label>
@@ -766,7 +826,8 @@ export default function ProjectForm({ initialData }: ProjectFormProps) {
                       )
                     })}
                     placeholder="https://maharera.mahaonline.gov.in/..."
-                    className="w-full bg-[var(--surface)] border border-[var(--border)] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[var(--primary)]" />
+                    className={`w-full bg-[var(--surface)] border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[var(--primary)] ${errors[`rera_registrations.${idx}.reraLink`] ? 'border-red-500' : 'border-[var(--border)]'}`} />
+                  {renderFieldError(`rera_registrations.${idx}.reraLink`)}
                 </div>
                 <div className="space-y-1">
                   <label className="text-[10px] text-[var(--text-muted)] uppercase font-bold">Description (optional)</label>
@@ -778,7 +839,8 @@ export default function ProjectForm({ initialData }: ProjectFormProps) {
                       )
                     })}
                     placeholder="e.g. Tower 1–2"
-                    className="w-full bg-[var(--surface)] border border-[var(--border)] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[var(--primary)]" />
+                    className={`w-full bg-[var(--surface)] border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[var(--primary)] ${errors[`rera_registrations.${idx}.description`] ? 'border-red-500' : 'border-[var(--border)]'}`} />
+                  {renderFieldError(`rera_registrations.${idx}.description`)}
                 </div>
               </div>
             </div>
@@ -818,9 +880,10 @@ export default function ProjectForm({ initialData }: ProjectFormProps) {
                 <textarea
                   value={project.litigationDetails || ''}
                   onChange={(e) => setProject({...project, litigationDetails: e.target.value})}
-                  className="w-full bg-[var(--surface-raised)] border border-[var(--border)] rounded-xl px-4 py-2.5 text-sm min-h-[80px]"
+                  className={`w-full bg-[var(--surface-raised)] border rounded-xl px-4 py-2.5 text-sm min-h-[80px] ${errors.litigation_details ? 'border-red-500' : 'border-[var(--border)]'}`}
                   placeholder="Describe any ongoing litigation..."
                 />
+                {renderFieldError('litigation_details')}
               </div>
             )}
           </div>
@@ -850,9 +913,10 @@ export default function ProjectForm({ initialData }: ProjectFormProps) {
           <textarea
             value={project.legalNotes || ''}
             onChange={(e) => setProject({...project, legalNotes: e.target.value})}
-            className="w-full bg-[var(--surface-raised)] border border-[var(--border)] rounded-xl px-4 py-2.5 text-sm min-h-[80px]"
+            className={`w-full bg-[var(--surface-raised)] border rounded-xl px-4 py-2.5 text-sm min-h-[80px] ${errors.legal_notes ? 'border-red-500' : 'border-[var(--border)]'}`}
             placeholder="Any additional legal notes..."
           />
+          {renderFieldError('legal_notes')}
         </div>
       </div>
 
@@ -885,6 +949,7 @@ export default function ProjectForm({ initialData }: ProjectFormProps) {
                 </button>
               </div>
             ))}
+            {renderFieldError('pros')}
           </div>
         </div>
 
@@ -915,6 +980,7 @@ export default function ProjectForm({ initialData }: ProjectFormProps) {
                 </button>
               </div>
             ))}
+            {renderFieldError('cons')}
           </div>
         </div>
       </div>
@@ -936,7 +1002,9 @@ export default function ProjectForm({ initialData }: ProjectFormProps) {
         <NearbyLocationsForm
           value={(project.nearbyLocations as ManualNearbyLocation[]) || []}
           onChange={(locs) => setProject({ ...project, nearbyLocations: locs })}
+          errors={errors}
         />
+        {renderFieldError('nearby_locations')}
       </div>
 
       <div className="flex justify-end pt-4 pb-20 md:pb-4">

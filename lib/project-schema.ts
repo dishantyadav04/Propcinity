@@ -79,3 +79,22 @@ export const projectSchema = z.object({
 
 export type ProjectPayload = z.infer<typeof projectSchema>
 export type UnitConfigPayload = z.infer<typeof unitConfigSchema>
+
+export function flattenZodError(error: z.ZodError) {
+  const fieldErrors: Record<string, string[]> = {}
+  const formErrors: string[] = []
+
+  for (const issue of error.issues) {
+    if (issue.path.length > 0) {
+      const pathStr = issue.path.join('.')
+      if (!fieldErrors[pathStr]) {
+        fieldErrors[pathStr] = []
+      }
+      fieldErrors[pathStr].push(issue.message)
+    } else {
+      formErrors.push(issue.message)
+    }
+  }
+
+  return { fieldErrors, formErrors }
+}

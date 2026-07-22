@@ -2,6 +2,7 @@ import { createAdminSupabaseClient, createServerSupabaseClient } from '@/lib/sup
 import { Project, UnitConfig, BuilderProject } from '@/types/project'
 import { MOCK_PROJECTS } from '@/lib/mock-data'
 import { deleteFromR2, cleanupRemovedR2Files } from '@/lib/r2'
+import * as Sentry from '@sentry/nextjs'
 
 function sanitizeDates(obj: Record<string, unknown>): Record<string, unknown> {
   const DATE_FIELDS = ['possession_date', 'rera_expiry', 'rera_possession_date', 'rera_link', 'brochure_url']
@@ -503,6 +504,35 @@ export async function adminUpdateProject(
   }
 }
 
+async function deleteR2UrlsAndLog(r2Urls: string[], context: string, projectId: string) {
+  if (!r2Urls.length) return
+
+  const results = await Promise.allSettled(r2Urls.map((url) => deleteFromR2(url)))
+  let successCount = 0
+
+  results.forEach((result, idx) => {
+    const url = r2Urls[idx]
+    if (result.status === 'rejected') {
+      console.error(`[${context}] Rejected promise deleting URL: ${url}`, result.reason)
+      Sentry.captureException(new Error(`Failed to delete R2 URL: ${url}. Promise rejected.`), {
+        extra: { url, reason: result.reason, context, projectId }
+      })
+    } else {
+      const delRes = result.value
+      if (delRes.success) {
+        successCount++
+      } else {
+        console.error(`[${context}] Failed to delete R2 URL: ${url}. Error:`, delRes.error)
+        Sentry.captureException(new Error(`Failed to delete R2 URL: ${url}. R2 error.`), {
+          extra: { url, error: delRes.error, context, projectId }
+        })
+      }
+    }
+  })
+
+  console.info(`[${context}] R2 cleanup: ${successCount}/${r2Urls.length} deleted for project ${projectId}`)
+}
+
 export async function adminDeleteProject(id: string): Promise<void> {
   const supabase = createAdminSupabaseClient()
   if (!supabase) return
@@ -529,8 +559,11 @@ export async function adminDeleteProject(id: string): Promise<void> {
         .filter(Boolean),
     ].filter((url: string) => url && url.startsWith('http'))
 
-    // Delete in parallel, silently ignore individual failures
-    await Promise.allSettled(r2Urls.map(url => deleteFromR2(url)))
+    // Run as fire-and-forget background task
+    deleteR2UrlsAndLog(r2Urls, 'adminDeleteProject', id).catch((err) => {
+      console.error('[adminDeleteProject] R2 cleanup background task failed:', err)
+      Sentry.captureException(err)
+    })
   }
 }
 
