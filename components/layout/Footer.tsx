@@ -77,7 +77,7 @@ export default function Footer() {
 
       {/* Bottom bar */}
       <div className="border-t border-[var(--border)]">
-        <div className="max-w-6xl mx-auto px-6 py-4">
+        <div className="max-w-6xl mx-auto px-6 pt-4 pb-20 md:py-4">
           <p className="text-xs text-[var(--text-muted)]">
             &copy; {year} Propcinity. All rights reserved.
           </p>

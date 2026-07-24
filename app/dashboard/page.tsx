@@ -431,8 +431,7 @@ export default function DashboardPage() {
     <div className="min-h-screen pb-28">
       <div className="bg-white border-b border-[var(--border)] pb-8">
         <SectionContainer wide>
-          <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
-            <div className="space-y-2">
+          <div className="space-y-2">
               <div className="flex items-center gap-2 text-[var(--primary)] text-xs font-bold uppercase tracking-wider">
                 <Sparkles className="w-3.5 h-3.5" />
                 <span>{aiLoading ? 'Finding your matches...' : 'Your Matches'}</span>
@@ -463,13 +462,6 @@ export default function DashboardPage() {
                 }
               </p>
             </div>
-            <Link href="/explore"
-              className="flex-shrink-0 flex items-center gap-2 px-4 py-2.5
-                bg-[var(--primary)] text-white text-sm font-bold rounded-[var(--radius)]
-                shadow-[var(--shadow-primary)] hover:opacity-90 transition-opacity">
-              <Plus className="w-4 h-4" /> Add from Explorer
-            </Link>
-          </div>
         </SectionContainer>
       </div>
 
