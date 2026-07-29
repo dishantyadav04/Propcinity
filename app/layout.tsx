@@ -106,7 +106,7 @@ export default function RootLayout({
               <PostHogPageView />
             </Suspense>
             <TopHeader />
-            <main className="min-h-screen pb-24 md:pb-0 pt-0">
+            <main className="min-h-screen pt-0">
               <PageTransition>
                 {children}
               </PageTransition>

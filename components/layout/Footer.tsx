@@ -4,12 +4,21 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useCookieConsent } from '@/components/consent/CookieConsentProvider'
 
+// Routes where BottomNav returns null — must be kept in sync with BottomNav.tsx
+const NO_BOTTOM_NAV_ROUTES = ['/', '/onboarding', '/privacy', '/terms']
+
 export default function Footer() {
   const pathname = usePathname()
   const year = new Date().getFullYear()
   const { openPreferences } = useCookieConsent()
 
   if (pathname.startsWith('/admin') || pathname.startsWith('/auth')) return null
+
+  // BottomNav renders on all routes EXCEPT /admin, /auth, and NO_BOTTOM_NAV_ROUTES
+  const hasBottomNav =
+    !pathname.startsWith('/admin') &&
+    !pathname.startsWith('/auth') &&
+    !NO_BOTTOM_NAV_ROUTES.includes(pathname)
 
   const linkClass =
     'text-sm text-[var(--text-secondary)] hover:text-[var(--primary)] transition-colors'
@@ -75,9 +84,19 @@ export default function Footer() {
         </div>
       </div>
 
-      {/* Bottom bar */}
+      {/* Bottom bar — clearance padding only when BottomNav is actually rendered */}
       <div className="border-t border-[var(--border)]">
-        <div className="max-w-6xl mx-auto px-6 pt-4 pb-20 md:py-4">
+        <div
+          className="max-w-6xl mx-auto px-6 pt-4 md:py-4"
+          style={
+            hasBottomNav
+              ? {
+                  paddingBottom:
+                    'calc(var(--bottom-nav-height) + env(safe-area-inset-bottom) + 1rem)',
+                }
+              : { paddingBottom: '1rem' }
+          }
+        >
           <p className="text-xs text-[var(--text-muted)]">
             &copy; {year} Propcinity. All rights reserved.
           </p>
