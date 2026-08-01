@@ -21,7 +21,7 @@ const AdminMapPreviewInner = dynamic(
 
 export default function AdminMapPreview({ lat, lng }: AdminMapPreviewProps) {
   return (
-    <div className="h-[200px] w-full rounded-lg overflow-hidden border border-[var(--border)] relative z-10">
+    <div className="h-[200px] w-full rounded-lg overflow-hidden border border-[var(--border)] relative z-10" style={{ touchAction: 'pan-y' }}>
       <AdminMapPreviewInner lat={lat} lng={lng} />
     </div>
   );

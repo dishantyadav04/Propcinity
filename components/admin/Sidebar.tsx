@@ -20,7 +20,7 @@ const ADMIN_NAV = [
   { label: 'Settings',  href: '/admin/settings',      icon: Settings },
 ]
 
-function SidebarContent({ onNavClick }: { onNavClick?: () => void }) {
+function SidebarContent({ onNavClick, showHeader = true }: { onNavClick?: () => void; showHeader?: boolean }) {
   const pathname = usePathname()
   const router = useRouter()
 
@@ -38,21 +38,23 @@ function SidebarContent({ onNavClick }: { onNavClick?: () => void }) {
 
   return (
     <>
-      <div className="px-6 py-5 border-b border-white/5 flex items-center justify-between">
-        <Link href="/admin" className="flex items-center gap-3" onClick={onNavClick}>
-          <div className="w-8 h-8 bg-[var(--primary)] rounded-lg flex items-center
-            justify-center text-white font-black text-sm flex-shrink-0">P</div>
-          <div>
-            <span className="text-sm font-black text-white tracking-tight"
-              style={{ fontFamily: 'var(--font-display)' }}>
-              Prop<span className="text-[var(--primary)]">cinity</span>
-            </span>
-            <p className="text-[9px] text-white/30 font-bold uppercase tracking-widest">
-              Admin
-            </p>
-          </div>
-        </Link>
-      </div>
+      {showHeader && (
+        <div className="px-6 py-5 border-b border-white/5 flex items-center justify-between">
+          <Link href="/admin" className="flex items-center gap-3" onClick={onNavClick}>
+            <div className="w-8 h-8 bg-[var(--primary)] rounded-lg flex items-center
+              justify-center text-white font-black text-sm flex-shrink-0">P</div>
+            <div>
+              <span className="text-sm font-black text-white tracking-tight"
+                style={{ fontFamily: 'var(--font-display)' }}>
+                Prop<span className="text-[var(--primary)]">cinity</span>
+              </span>
+              <p className="text-[9px] text-white/30 font-bold uppercase tracking-widest">
+                Admin
+              </p>
+            </div>
+          </Link>
+        </div>
+      )}
 
       <nav className="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto">
         {ADMIN_NAV.map(item => {
@@ -139,7 +141,7 @@ export default function Sidebar({ open, onClose }: { open: boolean; onClose: () 
             <X className="w-4 h-4" />
           </button>
         </div>
-        <SidebarContent onNavClick={handleMobileNavClick} />
+        <SidebarContent onNavClick={handleMobileNavClick} showHeader={false} />
       </aside>
     </>
   )

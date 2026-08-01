@@ -22,6 +22,17 @@ function RecenterMap({ lat, lng }: { lat: number; lng: number }) {
   return null;
 }
 
+function InvalidateSizeMap() {
+  const map = useMap();
+  useEffect(() => {
+    // Force Leaflet to recalculate container size after mount/resize
+    // to prevent blank or green tile rendering.
+    const id = requestAnimationFrame(() => map.invalidateSize());
+    return () => cancelAnimationFrame(id);
+  }, [map]);
+  return null;
+}
+
 export default function ProjectMapInner({ lat, lng, projectName, priceLabel, zoom = 15 }: Props) {
   // useId() returns a stable, unique string for this component instance.
   // Passing it as the `key` on MapContainer ensures React creates a fresh
@@ -44,6 +55,7 @@ export default function ProjectMapInner({ lat, lng, projectName, priceLabel, zoo
       center={[lat, lng]}
       zoom={zoom}
       scrollWheelZoom={false}
+      dragging={false}
       attributionControl={false}
       className="h-full w-full"
     >
@@ -53,6 +65,7 @@ export default function ProjectMapInner({ lat, lng, projectName, priceLabel, zoo
         : <Marker position={[lat, lng]} />
       }
       <RecenterMap lat={lat} lng={lng} />
+      <InvalidateSizeMap />
     </MapContainer>
   );
 }
