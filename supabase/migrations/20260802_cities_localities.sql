@@ -38,77 +38,40 @@ CREATE POLICY "Public read active localities"
   USING (is_active = true);
 
 -- 5. Seed cities
-INSERT INTO cities (name, state) VALUES ('Pune', 'Maharashtra')
+INSERT INTO cities (name, state) VALUES ('Pune', 'Maharashtra'), ('Mumbai', 'Maharashtra')
   ON CONFLICT (name) DO NOTHING;
 
--- 6. Seed localities for Pune (all ~65 entries from the former PUNE_LOCALITIES hardcoded array)
-WITH pune AS (SELECT id FROM cities WHERE name = 'Pune' LIMIT 1)
+-- 6. Seed localities for Pune and Mumbai
+WITH pune AS (SELECT id FROM cities WHERE name = 'Pune' LIMIT 1),
+mumbai AS (SELECT id FROM cities WHERE name = 'Mumbai' LIMIT 1)
 INSERT INTO localities (city_id, name)
 SELECT pune.id, locality_name FROM pune,
 (VALUES
   ('Wakad'),
   ('Hinjewadi'),
-  ('Hinjewadi Phase 1'),
-  ('Hinjewadi Phase 2'),
-  ('Hinjewadi Phase 3'),
-  ('Pimpri'),
-  ('Chinchwad'),
   ('Baner'),
   ('Balewadi'),
-  ('Pashan'),
-  ('Aundh'),
   ('Kothrud'),
-  ('Karve Nagar'),
-  ('Warje'),
-  ('Bavdhan'),
-  ('Shivajinagar'),
-  ('Deccan'),
-  ('Sadashiv Peth'),
-  ('Peth Area'),
   ('Kharadi'),
   ('Viman Nagar'),
-  ('Kalyani Nagar'),
   ('Koregaon Park'),
   ('Hadapsar'),
-  ('Manjari'),
-  ('Magarpatta'),
-  ('Fursungi'),
-  ('Undri'),
-  ('Kondhwa'),
-  ('NIBM'),
-  ('Mohammadwadi'),
-  ('Sus'),
-  ('Mahalunge'),
-  ('Punawale'),
-  ('Tathawade'),
-  ('Maan'),
-  ('Moshi'),
-  ('Chakan'),
-  ('Talegaon'),
-  ('Dehu Road'),
-  ('Lohegaon'),
-  ('Dhanori'),
-  ('Vishrantwadi'),
-  ('Tingre Nagar'),
-  ('Sinhagad Road'),
-  ('Dhayari'),
-  ('Narhe'),
-  ('Ambegaon'),
-  ('Wagholi'),
-  ('Nagar Road'),
-  ('Mundhwa'),
-  ('Kesnand'),
-  ('Pimple Saudagar'),
-  ('Pimple Nilakh'),
-  ('Ravet'),
-  ('Akurdi'),
-  ('Nigdi'),
-  ('Pradhikaran'),
-  ('Bhosari'),
-  ('Dighi'),
-  ('Yerawada'),
-  ('Navi Peth'),
-  ('Camp'),
-  ('Wanowrie')
+  ('NIBM')
+) AS t(locality_name)
+ON CONFLICT (city_id, name) DO NOTHING;
+
+INSERT INTO localities (city_id, name)
+SELECT mumbai.id, locality_name FROM mumbai,
+(VALUES
+  ('Bandra'),
+  ('Andheri'),
+  ('Juhu'),
+  ('Powai'),
+  ('Thane'),
+  ('Borivali'),
+  ('Dadar'),
+  ('Marine Lines'),
+  ('Goregaon'),
+  ('Vile Parle')
 ) AS t(locality_name)
 ON CONFLICT (city_id, name) DO NOTHING;
