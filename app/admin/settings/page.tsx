@@ -3,8 +3,9 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import SectionContainer from "@/components/layout/SectionContainer";
-import { Settings, Shield, Bell, Database, Globe, Sliders, Save, Loader2 } from "lucide-react";
+import { Settings, Shield, Bell, Database, Globe, Sliders, Save, Loader2, MapPin } from "lucide-react";
 import { toast } from "sonner";
+import LocationLibraryManager from "@/components/admin/LocationLibraryManager";
 
 export default function AdminSettingsPage() {
   const router = useRouter();
@@ -69,6 +70,14 @@ export default function AdminSettingsPage() {
       link: null,
     },
     {
+      id: 'cities_localities',
+      title: 'Cities & Localities',
+      icon: <MapPin className="w-5 h-5" />,
+      desc: 'Add, rename, or deactivate cities and their sub-areas used in the Project form.',
+      badge: 'Configure',
+      link: null,
+    },
+    {
       id: 'sync',
       title: 'Database Sync',
       icon: <Database className="w-5 h-5" />,
@@ -109,8 +118,8 @@ export default function AdminSettingsPage() {
                 onClick={() => {
                   if (s.link) {
                     router.push(s.link);
-                  } else if (s.id === 'notifications') {
-                    setExpandedCard(expandedCard === 'notifications' ? null : 'notifications');
+                  } else if (s.id === 'notifications' || s.id === 'cities_localities') {
+                    setExpandedCard(expandedCard === s.id ? null : s.id);
                   }
                 }}
                 className={`px-3 py-1 text-[10px] font-bold rounded-full uppercase tracking-widest transition-colors ${
@@ -123,11 +132,17 @@ export default function AdminSettingsPage() {
               </div>
             </div>
             <div className="mt-6 space-y-2">
-              <h3 className={`text-xl font-bold ${s.link || s.id === 'notifications' ? 'group-hover:text-[var(--primary)] transition-colors' : ''}`}>
+              <h3 className={`text-xl font-bold ${s.link || s.id === 'notifications' || s.id === 'cities_localities' ? 'group-hover:text-[var(--primary)] transition-colors' : ''}`}>
                 {s.title}
               </h3>
               <p className="text-sm text-[var(--text-secondary)] leading-relaxed">{s.desc}</p>
             </div>
+
+            {s.id === 'cities_localities' && expandedCard === 'cities_localities' && (
+              <div className="mt-6 pt-6 border-t border-[var(--border)]">
+                <LocationLibraryManager />
+              </div>
+            )}
 
             {s.id === 'notifications' && expandedCard === 'notifications' && (
               <div className="mt-6 pt-6 border-t border-[var(--border)] space-y-4">

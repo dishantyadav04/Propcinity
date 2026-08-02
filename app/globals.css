@@ -98,6 +98,35 @@ h1, h2, h3, h4, h5, h6 {
   }
 }
 
+/* ── Mobile date input fixes ───────────────────────────────────────────────
+   Styles the native <input type="date"> on mobile so it is consistently
+   sized and the calendar icon is visible against the form's surface-raised
+   background in both light and dark themes.
+   - appearance-none is applied via Tailwind on the element.
+   - ::-webkit-calendar-picker-indicator is styled to be visible & accessible.
+   - On desktop (md+) we let the browser render naturally; these rules only
+     kick in on narrow viewports where the icon would otherwise disappear.    */
+@media (max-width: 767px) {
+  .date-input-mobile::-webkit-calendar-picker-indicator {
+    /* Ensure the icon is large enough to tap comfortably */
+    width: 20px;
+    height: 20px;
+    padding: 0;
+    margin: 0;
+    cursor: pointer;
+    /* Make the icon visible on the warm surface-raised (#F5F4F0) background */
+    filter: invert(30%) sepia(0%) saturate(0%) brightness(70%);
+    opacity: 0.75;
+  }
+  /* If the user's system is in dark-mode the icon needs inversion */
+  @media (prefers-color-scheme: dark) {
+    .date-input-mobile::-webkit-calendar-picker-indicator {
+      filter: invert(80%) sepia(0%) saturate(0%) brightness(120%);
+      opacity: 0.85;
+    }
+  }
+}
+
 @keyframes shimmer {
   0% { background-position: -200% 0; }
   100% { background-position: 200% 0; }

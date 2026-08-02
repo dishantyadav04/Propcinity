@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { Project, ManualNearbyLocation } from "@/types/project";
+import { City, Locality } from "@/types/location";
 import AmenityLibraryManager from "./AmenityLibraryManager";
 import NearbyLocationsForm from "./NearbyLocationsForm";
 import ImageUpload from "./ImageUpload";
@@ -10,24 +11,6 @@ import AdminMapPreview from "./AdminMapPreview";
 import { Save, Plus, X, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
-
-const PUNE_LOCALITIES = [
-  'Wakad', 'Hinjewadi', 'Hinjewadi Phase 1', 'Hinjewadi Phase 2', 'Hinjewadi Phase 3',
-  'Pimpri', 'Chinchwad', 'Baner', 'Balewadi', 'Pashan',
-  'Aundh', 'Kothrud', 'Karve Nagar', 'Warje', 'Bavdhan',
-  'Shivajinagar', 'Deccan', 'Sadashiv Peth', 'Peth Area',
-  'Kharadi', 'Viman Nagar', 'Kalyani Nagar', 'Koregaon Park',
-  'Hadapsar', 'Manjari', 'Magarpatta', 'Fursungi',
-  'Undri', 'Kondhwa', 'NIBM', 'Mohammadwadi',
-  'Sus', 'Mahalunge', 'Punawale', 'Tathawade', 'Maan',
-  'Moshi', 'Chakan', 'Talegaon', 'Dehu Road',
-  'Lohegaon', 'Dhanori', 'Vishrantwadi', 'Tingre Nagar',
-  'Sinhagad Road', 'Dhayari', 'Narhe', 'Ambegaon',
-  'Wagholi', 'Nagar Road', 'Mundhwa', 'Kesnand',
-  'Pimple Saudagar', 'Pimple Nilakh', 'Ravet', 'Akurdi',
-  'Nigdi', 'Pradhikaran', 'Bhosari', 'Dighi',
-  'Yerawada', 'Navi Peth', 'Camp', 'Wanowrie',
-];
 
 interface ProjectFormProps {
   initialData?: Project;
@@ -43,6 +26,13 @@ export default function ProjectForm({ initialData }: ProjectFormProps) {
 
   const [errors, setErrors] = useState<Record<string, string[]>>({});
   const [formErrors, setFormErrors] = useState<string[]>([]);
+
+  // ── Dynamic cities & localities ──────────────────────────────────────────
+  const [cities, setCities] = useState<City[]>([]);
+  const [localities, setLocalities] = useState<Locality[]>([]);
+  const [citiesLoading, setCitiesLoading] = useState(true);
+  // Track the city id that corresponds to the current project.city string
+  const [selectedCityId, setSelectedCityId] = useState<string>('');
 
   const renderFieldError = (fieldName: string) => {
     if (errors[fieldName]?.length) {
@@ -64,18 +54,19 @@ export default function ProjectForm({ initialData }: ProjectFormProps) {
   const [locationSearch, setLocationSearch] = useState(initialData?.location || '');
   const [locationDropdownOpen, setLocationDropdownOpen] = useState(false);
 
+  // filteredLocalities now uses the dynamic localities list
   const filteredLocalities = locationSearch.length >= 1
-    ? PUNE_LOCALITIES.filter(l =>
-        l.toLowerCase().includes(locationSearch.toLowerCase())
-      ).slice(0, 8)
-    : PUNE_LOCALITIES.slice(0, 8);
+    ? localities
+        .filter(l => l.name.toLowerCase().includes(locationSearch.toLowerCase()))
+        .slice(0, 8)
+    : localities.slice(0, 8);
 
   const [project, setProject] = useState<Partial<Project>>(initialData || {
     name: '',
     slug: '',
     builderName: '',
     location: '',
-    city: 'Pune',
+    city: '',  // will be set dynamically once cities are fetched
     description: '',
     tagline: '',
     images: [],
@@ -114,12 +105,51 @@ export default function ProjectForm({ initialData }: ProjectFormProps) {
     constructionPercent: undefined
   });
 
+  // Fetch builders on mount
   useEffect(() => {
     fetch('/api/admin/builders', { credentials: 'include' })
       .then(r => r.json())
       .then(d => setBuilders(d.builders || []))
       .catch(console.error);
   }, []);
+
+  // Fetch cities on mount
+  useEffect(() => {
+    setCitiesLoading(true);
+    fetch('/api/admin/cities', { credentials: 'include' })
+      .then(r => r.json())
+      .then(d => {
+        const fetchedCities: City[] = d.cities || [];
+        setCities(fetchedCities);
+        // Resolve the city id from the existing project.city string (for edit mode)
+        const currentCityName = initialData?.city || '';
+        const matched = fetchedCities.find(
+          c => c.name.toLowerCase() === currentCityName.toLowerCase()
+        );
+        if (matched) {
+          setSelectedCityId(matched.id);
+        } else if (fetchedCities.length > 0 && !currentCityName) {
+          // Default to first city for new projects
+          setSelectedCityId(fetchedCities[0].id);
+          setProject(prev => ({ ...prev, city: fetchedCities[0].name }));
+        }
+      })
+      .catch(console.error)
+      .finally(() => setCitiesLoading(false));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Fetch localities whenever selectedCityId changes
+  useEffect(() => {
+    if (!selectedCityId) {
+      setLocalities([]);
+      return;
+    }
+    fetch(`/api/admin/localities?city_id=${selectedCityId}`, { credentials: 'include' })
+      .then(r => r.json())
+      .then(d => setLocalities(d.localities || []))
+      .catch(console.error);
+  }, [selectedCityId]);
 
   const [newPro, setNewPro] = useState("");
   const [newCon, setNewCon] = useState("");
@@ -343,6 +373,42 @@ export default function ProjectForm({ initialData }: ProjectFormProps) {
             </div>
           </div>
 
+          {/* City dropdown */}
+          <div className="space-y-2">
+            <label className="text-[10px] text-[var(--text-muted)] uppercase font-bold">City</label>
+            <div className="relative">
+              {citiesLoading ? (
+                <div className="flex items-center gap-2 h-10 px-4 bg-[var(--surface-raised)] border border-[var(--border)] rounded-xl text-sm text-[var(--text-muted)]">
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" /> Loading cities…
+                </div>
+              ) : (
+                <select
+                  value={selectedCityId}
+                  onChange={e => {
+                    const cityId = e.target.value;
+                    const city = cities.find(c => c.id === cityId);
+                    setSelectedCityId(cityId);
+                    setProject(prev => ({ ...prev, city: city?.name || '', location: '' }));
+                    setLocationSearch('');
+                  }}
+                  className={`w-full bg-[var(--surface-raised)] border rounded-xl px-4 py-2.5 text-sm appearance-none ${
+                    errors.city ? 'border-red-500' : 'border-[var(--border)]'
+                  }`}
+                >
+                  <option value="">— Select a city —</option>
+                  {cities.map(c => (
+                    <option key={c.id} value={c.id}>{c.name}{c.state ? `, ${c.state}` : ''}</option>
+                  ))}
+                </select>
+              )}
+              {renderFieldError('city')}
+              <span className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-[var(--text-muted)] text-xs">
+                ▾
+              </span>
+            </div>
+          </div>
+
+          {/* Location / locality autocomplete (city-scoped) */}
           <div className="space-y-2">
             <label className="text-[10px] text-[var(--text-muted)] uppercase font-bold">Location</label>
             <div className="relative">
@@ -357,7 +423,8 @@ export default function ProjectForm({ initialData }: ProjectFormProps) {
                 onFocus={() => setLocationDropdownOpen(true)}
                 onBlur={() => setTimeout(() => setLocationDropdownOpen(false), 150)}
                 className={`w-full bg-[var(--surface-raised)] border rounded-xl px-4 py-2.5 text-sm pr-8 focus:outline-none focus:border-[var(--primary)] ${errors.location ? 'border-red-500' : 'border-[var(--border)]'}`}
-                placeholder="e.g. Wakad, Hinjewadi..."
+                placeholder={selectedCityId ? 'Search area / locality…' : 'Select a city first'}
+                disabled={!selectedCityId}
                 autoComplete="off"
               />
               {renderFieldError('location')}
@@ -368,19 +435,19 @@ export default function ProjectForm({ initialData }: ProjectFormProps) {
                 <div className="absolute z-50 mt-1 w-full bg-white border border-[var(--border)] rounded-[var(--radius-xs)] shadow-lg max-h-52 overflow-y-auto">
                   {filteredLocalities.map(locality => (
                     <div
-                      key={locality}
+                      key={locality.id}
                       onMouseDown={() => {
-                        setLocationSearch(locality);
-                        setProject(prev => ({ ...prev, location: locality }));
+                        setLocationSearch(locality.name);
+                        setProject(prev => ({ ...prev, location: locality.name }));
                         setLocationDropdownOpen(false);
                       }}
                       className={`px-3 py-2 text-sm cursor-pointer hover:bg-[var(--surface-raised)] transition-colors ${
-                        project.location === locality
+                        project.location === locality.name
                           ? 'font-bold text-[var(--primary)] bg-[var(--surface-raised)]'
                           : 'text-[var(--text-primary)]'
                       }`}
                     >
-                      {locality}
+                      {locality.name}
                     </div>
                   ))}
                 </div>
@@ -436,11 +503,18 @@ export default function ProjectForm({ initialData }: ProjectFormProps) {
           </div>
           <div className="space-y-2">
             <label className="text-[10px] text-[var(--text-muted)] uppercase font-bold">Target Possession</label>
+            {/*
+              Mobile date input fixes:
+              - text-base (16px) prevents iOS Safari auto-zoom (triggered when font-size < 16px)
+              - h-11 gives a consistent tap-target height matching neighbouring text inputs
+              - appearance-none + min-w-0 prevents WebKit from squeezing the input
+              - md:text-sm restores the smaller size on desktop where zoom is not an issue
+            */}
             <input
               type="date"
               value={project.possessionDate || ''}
               onChange={(e) => setProject({...project, possessionDate: e.target.value})}
-              className={`w-full bg-[var(--surface-raised)] border rounded-xl px-4 py-2.5 text-sm ${errors.possession_date ? 'border-red-500' : 'border-[var(--border)]'}`}
+              className={`w-full min-w-0 bg-[var(--surface-raised)] border rounded-xl px-4 py-2.5 h-11 text-base md:text-sm appearance-none date-input-mobile ${errors.possession_date ? 'border-red-500' : 'border-[var(--border)]'}`}
             />
             {renderFieldError('possession_date')}
           </div>
@@ -450,7 +524,7 @@ export default function ProjectForm({ initialData }: ProjectFormProps) {
               type="date"
               value={project.reraPossessionDate || ''}
               onChange={(e) => setProject({...project, reraPossessionDate: e.target.value})}
-              className={`w-full bg-[var(--surface-raised)] border rounded-xl px-4 py-2.5 text-sm ${errors.rera_possession_date ? 'border-red-500' : 'border-[var(--border)]'}`}
+              className={`w-full min-w-0 bg-[var(--surface-raised)] border rounded-xl px-4 py-2.5 h-11 text-base md:text-sm appearance-none date-input-mobile ${errors.rera_possession_date ? 'border-red-500' : 'border-[var(--border)]'}`}
             />
             {renderFieldError('rera_possession_date')}
           </div>
