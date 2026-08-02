@@ -9,28 +9,7 @@ import {
 import { useRouter } from "next/navigation";
 import { storage, STORAGE_KEYS } from "@/lib/storage";
 import { cn } from "@/lib/utils";
-
-const CITY_SUBLOCATIONS: Record<string, string[]> = {
-  Pune: [
-    "Hinjewadi", "Wakad", "Baner", "Balewadi", "Aundh",
-    "Kothrud", "Shivajinagar", "Viman Nagar", "Kalyani Nagar",
-    "Koregaon Park", "Kharadi", "Hadapsar", "Wagholi",
-    "Mahalunge", "Pimple Saudagar", "Bavdhan", "Pashan",
-    "Sus", "Tathawade", "Punawale"
-  ],
-  Mumbai: [
-    "Andheri", "Bandra", "South Mumbai", "Powai", "Goregaon",
-    "Malad", "Borivali", "Navi Mumbai", "Thane", "Worli"
-  ],
-  Bangalore: [
-    "Whitefield", "Electronic City", "Koramangala", "Indiranagar", "HSR Layout",
-    "Marathahalli", "Bellandur", "Jayanagar", "JP Nagar", "Hebbal"
-  ],
-  Hyderabad: [
-    "HITEC City", "Gachibowli", "Jubilee Hills", "Banjara Hills", "Madhapur",
-    "Kondapur", "Kukatpally", "Miyapur", "Manikonda", "Tellapur"
-  ]
-};
+import type { City, Locality } from "@/types/location";
 
 const OPTIONAL_PREFS = [
   "Gated community", "Near school", "Metro connectivity",
@@ -90,11 +69,72 @@ export default function UserIntentForm() {
 
   const [form, setForm] = useState<FormData>({
     name: '', phone: '', email: '',
-    city: 'Pune', subLocations: [],
+    city: '', subLocations: [],
     purpose: '', propertyType: [], bhkType: [],
     budgetMin: 0, budgetMax: 0, isOpenMax: false,
     timeline: '', preferences: []
   });
+
+  const [cities, setCities] = useState<City[]>([]);
+  const [citiesLoading, setCitiesLoading] = useState(true);
+  const [selectedCityId, setSelectedCityId] = useState<string>('');
+  const [localities, setLocalities] = useState<Locality[]>([]);
+  const [localitiesLoading, setLocalitiesLoading] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    (async () => {
+      try {
+        const res = await fetch('/api/locations/cities');
+        const data = await res.json();
+        if (cancelled) return;
+
+        const fetchedCities: City[] = data.cities || [];
+        setCities(fetchedCities);
+        if (fetchedCities.length > 0) {
+          const firstCity = fetchedCities[0];
+          setSelectedCityId(firstCity.id);
+          setForm(prev => ({ ...prev, city: prev.city || firstCity.name }));
+        }
+      } catch (err) {
+        console.error('[onboarding] failed to load cities:', err);
+      } finally {
+        if (!cancelled) setCitiesLoading(false);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!selectedCityId) {
+      setLocalities([]);
+      return;
+    }
+
+    let cancelled = false;
+    setLocalitiesLoading(true);
+
+    (async () => {
+      try {
+        const res = await fetch(`/api/locations/localities?city_id=${selectedCityId}`);
+        const data = await res.json();
+        if (!cancelled) setLocalities(data.localities || []);
+      } catch (err) {
+        console.error('[onboarding] failed to load localities:', err);
+        if (!cancelled) setLocalities([]);
+      } finally {
+        if (!cancelled) setLocalitiesLoading(false);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedCityId]);
 
   const set = (key: keyof FormData, value: any) =>
     setForm(prev => ({ ...prev, [key]: value }));
@@ -315,16 +355,27 @@ export default function UserIntentForm() {
                 <div className="space-y-3">
                   <p className="text-xs font-black text-[var(--text-muted)] uppercase tracking-wider">City</p>
                   <div className="flex gap-2 flex-wrap">
-                    {Object.keys(CITY_SUBLOCATIONS).map(c => (
-                      <button key={c}
-                        onClick={() => { set('city', c); set('subLocations', []); }}
-                        className={cn(
-                          "px-4 py-2 rounded-full text-sm font-bold border transition-all",
-                          form.city === c
-                            ? "bg-[var(--primary)] text-white border-[var(--primary)]"
-                            : "bg-[var(--surface-raised)] border-[var(--border)] text-[var(--text-secondary)]"
-                        )}>{c}</button>
-                    ))}
+                    {citiesLoading ? (
+                      <span className="text-sm text-[var(--text-muted)]">Loading cities…</span>
+                    ) : cities.length === 0 ? (
+                      <span className="text-sm text-[var(--text-muted)]">No cities available yet</span>
+                    ) : (
+                      cities.map(c => (
+                        <button key={c.id}
+                          onClick={() => {
+                            setSelectedCityId(c.id);
+                            set('city', c.name);
+                            set('subLocations', []);
+                            setShowMoreSubLocs(false);
+                          }}
+                          className={cn(
+                            "px-4 py-2 rounded-full text-sm font-bold border transition-all",
+                            form.city === c.name
+                              ? "bg-[var(--primary)] text-white border-[var(--primary)]"
+                              : "bg-[var(--surface-raised)] border-[var(--border)] text-[var(--text-secondary)]"
+                          )}>{c.name}</button>
+                      ))
+                    )}
                   </div>
                 </div>
                 {/* Sub-locations */}
@@ -350,33 +401,39 @@ export default function UserIntentForm() {
                   )}
                   {/* Available area chips */}
                   <div className="flex flex-wrap gap-1.5">
-                    {(CITY_SUBLOCATIONS[form.city] || [])
-                      .filter(l => !form.subLocations.includes(l))
-                      .slice(0, showMoreSubLocs ? undefined : 8)
-                      .map(loc => (
-                        <button key={loc}
-                          onClick={() => {
-                            set('subLocations', [...form.subLocations, loc]);
-                          }}
-                          className="px-3 py-1 border border-[var(--border)] rounded-full
-                            text-xs font-medium text-[var(--text-secondary)]
-                            bg-[var(--surface-raised)] hover:border-[var(--primary)]
-                            hover:text-[var(--primary)] transition-colors">
-                          + {loc}
-                        </button>
-                      ))}
-                    {/* More+ / Less- button */}
-                    {(CITY_SUBLOCATIONS[form.city] || []).filter(l => !form.subLocations.includes(l)).length > 8 && (
-                      <button
-                        onClick={() => setShowMoreSubLocs(!showMoreSubLocs)}
-                        className="px-3 py-1 border-2 border-dashed border-[var(--primary)]/40
-                          text-[var(--primary)] text-xs font-bold rounded-full
-                          hover:border-[var(--primary)] transition-colors">
-                        {showMoreSubLocs
-                          ? '− Less'
-                          : `+${(CITY_SUBLOCATIONS[form.city] || []).filter(l => !form.subLocations.includes(l)).length - 8} More`
-                        }
-                      </button>
+                    {localitiesLoading ? (
+                      <span className="text-xs text-[var(--text-muted)]">Loading areas…</span>
+                    ) : (
+                      <>
+                        {localities
+                          .map(l => l.name)
+                          .filter(l => !form.subLocations.includes(l))
+                          .slice(0, showMoreSubLocs ? undefined : 8)
+                          .map(loc => (
+                            <button key={loc}
+                              onClick={() => {
+                                set('subLocations', [...form.subLocations, loc]);
+                              }}
+                              className="px-3 py-1 border border-[var(--border)] rounded-full
+                                text-xs font-medium text-[var(--text-secondary)]
+                                bg-[var(--surface-raised)] hover:border-[var(--primary)]
+                                hover:text-[var(--primary)] transition-colors">
+                              + {loc}
+                            </button>
+                          ))}
+                        {localities.map(l => l.name).filter(l => !form.subLocations.includes(l)).length > 8 && (
+                          <button
+                            onClick={() => setShowMoreSubLocs(!showMoreSubLocs)}
+                            className="px-3 py-1 border-2 border-dashed border-[var(--primary)]/40
+                              text-[var(--primary)] text-xs font-bold rounded-full
+                              hover:border-[var(--primary)] transition-colors">
+                            {showMoreSubLocs
+                              ? '− Less'
+                              : `+${localities.map(l => l.name).filter(l => !form.subLocations.includes(l)).length - 8} More`
+                            }
+                          </button>
+                        )}
+                      </>
                     )}
                   </div>
                   {/* Manual input */}
