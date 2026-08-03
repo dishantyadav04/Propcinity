@@ -8,7 +8,7 @@ import NearbyLocationsForm from "./NearbyLocationsForm";
 import ImageUpload from "./ImageUpload";
 import UnitConfigForm from "./UnitConfigForm";
 import AdminMapPreview from "./AdminMapPreview";
-import { Save, Plus, X, Loader2 } from "lucide-react";
+import { Save, Plus, X, Loader2, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 
@@ -31,6 +31,15 @@ export default function ProjectForm({ initialData }: ProjectFormProps) {
   const [cities, setCities] = useState<City[]>([]);
   const [localities, setLocalities] = useState<Locality[]>([]);
   const [citiesLoading, setCitiesLoading] = useState(true);
+  const [addCityOpen, setAddCityOpen] = useState(false);
+  const [newCityName, setNewCityName] = useState('');
+  const [newCityState, setNewCityState] = useState('');
+  const [savingCity, setSavingCity] = useState(false);
+  const [deletingCityId, setDeletingCityId] = useState<string | null>(null);
+  const [addLocalityOpen, setAddLocalityOpen] = useState(false);
+  const [newLocalityName, setNewLocalityName] = useState('');
+  const [savingLocality, setSavingLocality] = useState(false);
+  const [deletingLocalityId, setDeletingLocalityId] = useState<string | null>(null);
   // Track the city id that corresponds to the current project.city string
   const [selectedCityId, setSelectedCityId] = useState<string>('');
 
@@ -150,6 +159,71 @@ export default function ProjectForm({ initialData }: ProjectFormProps) {
       .then(d => setLocalities(d.localities || []))
       .catch(console.error);
   }, [selectedCityId]);
+
+  const deleteCity = async (id: string, name: string) => {
+    if (!window.confirm(`Delete "${name}"? This also deletes all of its localities and can't be undone.`)) return;
+    setDeletingCityId(id);
+    try {
+      const res = await fetch(`/api/admin/cities?id=${id}`, { method: 'DELETE', credentials: 'include' });
+      if (!res.ok) throw new Error((await res.json()).error || 'Failed to delete city');
+      setCities(prev => prev.filter(c => c.id !== id));
+      if (selectedCityId === id) {
+        setSelectedCityId('');
+        setLocalities([]);
+        setLocationSearch('');
+        setProject(prev => ({ ...prev, city: '', location: '' }));
+      }
+      toast.success('City deleted');
+    } catch (e: any) {
+      toast.error(e.message || 'Failed to delete city');
+    } finally {
+      setDeletingCityId(null);
+    }
+  };
+
+  const addLocality = async () => {
+    if (!newLocalityName.trim() || !selectedCityId) return;
+    setSavingLocality(true);
+    try {
+      const res = await fetch('/api/admin/localities', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ city_id: selectedCityId, name: newLocalityName.trim() }),
+      });
+      if (!res.ok) throw new Error((await res.json()).error || 'Failed to add locality');
+      const { locality } = await res.json();
+      setLocalities(prev => [...prev, locality].sort((a, b) => a.name.localeCompare(b.name)));
+      setLocationSearch(locality.name);
+      setProject(prev => ({ ...prev, location: locality.name }));
+      setNewLocalityName('');
+      setAddLocalityOpen(false);
+      toast.success('Locality added');
+    } catch (e: any) {
+      toast.error(e.message || 'Failed to add locality');
+    } finally {
+      setSavingLocality(false);
+    }
+  };
+
+  const deleteLocality = async (id: string, name: string) => {
+    if (!window.confirm(`Delete "${name}"?`)) return;
+    setDeletingLocalityId(id);
+    try {
+      const res = await fetch(`/api/admin/localities?id=${id}`, { method: 'DELETE', credentials: 'include' });
+      if (!res.ok) throw new Error((await res.json()).error || 'Failed to delete locality');
+      setLocalities(prev => prev.filter(l => l.id !== id));
+      if (project.location === name) {
+        setLocationSearch('');
+        setProject(prev => ({ ...prev, location: '' }));
+      }
+      toast.success('Locality deleted');
+    } catch (e: any) {
+      toast.error(e.message || 'Failed to delete locality');
+    } finally {
+      setDeletingLocalityId(null);
+    }
+  };
 
   const [newPro, setNewPro] = useState("");
   const [newCon, setNewCon] = useState("");
@@ -375,7 +449,16 @@ export default function ProjectForm({ initialData }: ProjectFormProps) {
 
           {/* City dropdown */}
           <div className="space-y-2">
-            <label className="text-[10px] text-[var(--text-muted)] uppercase font-bold">City</label>
+            <div className="flex items-center justify-between">
+              <label className="text-[10px] text-[var(--text-muted)] uppercase font-bold">City</label>
+              <button
+                type="button"
+                onClick={() => setAddCityOpen(v => !v)}
+                className="text-[10px] font-bold text-[var(--primary)] hover:underline"
+              >
+                {addCityOpen ? 'Close' : 'Manage cities'}
+              </button>
+            </div>
             <div className="relative">
               {citiesLoading ? (
                 <div className="flex items-center gap-2 h-10 px-4 bg-[var(--surface-raised)] border border-[var(--border)] rounded-xl text-sm text-[var(--text-muted)]">
@@ -386,6 +469,10 @@ export default function ProjectForm({ initialData }: ProjectFormProps) {
                   value={selectedCityId}
                   onChange={e => {
                     const cityId = e.target.value;
+                    if (cityId === '__add_new__') {
+                      setAddCityOpen(true);
+                      return;
+                    }
                     const city = cities.find(c => c.id === cityId);
                     setSelectedCityId(cityId);
                     setProject(prev => ({ ...prev, city: city?.name || '', location: '' }));
@@ -399,6 +486,10 @@ export default function ProjectForm({ initialData }: ProjectFormProps) {
                   {cities.map(c => (
                     <option key={c.id} value={c.id}>{c.name}{c.state ? `, ${c.state}` : ''}</option>
                   ))}
+                  {cities.length === 0 && (
+                    <option value="" disabled>No cities yet — add one below</option>
+                  )}
+                  <option value="__add_new__">+ Add a new city…</option>
                 </select>
               )}
               {renderFieldError('city')}
@@ -406,18 +497,120 @@ export default function ProjectForm({ initialData }: ProjectFormProps) {
                 ▾
               </span>
             </div>
+
+            {addCityOpen && (
+              <div className="p-3 border border-dashed border-[var(--border)] rounded-xl space-y-3">
+                {cities.length > 0 && (
+                  <div className="space-y-1 max-h-40 overflow-y-auto">
+                    {cities.map(c => (
+                      <div
+                        key={c.id}
+                        className="flex items-center justify-between gap-2 px-2 py-1.5 rounded-lg hover:bg-[var(--surface-raised)] text-sm"
+                      >
+                        <span>{c.name}{c.state ? `, ${c.state}` : ''}</span>
+                        <button
+                          type="button"
+                          onClick={() => deleteCity(c.id, c.name)}
+                          disabled={deletingCityId === c.id}
+                          title={`Delete ${c.name}`}
+                          className="p-1 text-[var(--text-muted)] hover:text-red-500 transition-colors disabled:opacity-40"
+                        >
+                          {deletingCityId === c.id
+                            ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                            : <Trash2 className="w-3.5 h-3.5" />}
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                <p className="text-xs font-bold text-[var(--text-muted)] uppercase tracking-widest">Add New City</p>
+                <div className="flex flex-wrap gap-2 items-end">
+                  <div className="flex-1 min-w-[120px] space-y-1">
+                    <label className="text-[10px] text-[var(--text-muted)] uppercase font-bold">City Name *</label>
+                    <input
+                      type="text"
+                      value={newCityName}
+                      onChange={e => setNewCityName(e.target.value)}
+                      placeholder="e.g. Nagpur"
+                      className="w-full bg-[var(--surface-raised)] border border-[var(--border)] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[var(--primary)]"
+                    />
+                  </div>
+                  <div className="flex-1 min-w-[100px] space-y-1">
+                    <label className="text-[10px] text-[var(--text-muted)] uppercase font-bold">State</label>
+                    <input
+                      type="text"
+                      value={newCityState}
+                      onChange={e => setNewCityState(e.target.value)}
+                      placeholder="e.g. Maharashtra"
+                      className="w-full bg-[var(--surface-raised)] border border-[var(--border)] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[var(--primary)]"
+                    />
+                  </div>
+                  <button
+                    type="button"
+                    disabled={!newCityName.trim() || savingCity}
+                    onClick={async () => {
+                      setSavingCity(true);
+                      try {
+                        const res = await fetch('/api/admin/cities', {
+                          method: 'POST',
+                          credentials: 'include',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({ name: newCityName.trim(), state: newCityState.trim() }),
+                        });
+                        if (!res.ok) throw new Error((await res.json()).error || 'Failed to add city');
+                        const { city } = await res.json();
+                        setCities(prev => [...prev, city].sort((a, b) => a.name.localeCompare(b.name)));
+                        setSelectedCityId(city.id);
+                        setProject(prev => ({ ...prev, city: city.name, location: '' }));
+                        setNewCityName('');
+                        setNewCityState('');
+                        toast.success('City added');
+                      } catch (e: any) {
+                        toast.error(e.message || 'Failed to add city');
+                      } finally {
+                        setSavingCity(false);
+                      }
+                    }}
+                    className="flex items-center gap-2 px-4 py-2 bg-[var(--primary)] text-white rounded-lg text-sm font-bold hover:opacity-90 disabled:opacity-40 transition-all"
+                  >
+                    {savingCity ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
+                    Save City
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { setAddCityOpen(false); setNewCityName(''); setNewCityState(''); }}
+                    className="px-3 py-2 text-sm text-[var(--text-muted)] hover:text-[var(--text-primary)]"
+                  >
+                    Close
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Location / locality autocomplete (city-scoped) */}
           <div className="space-y-2">
-            <label className="text-[10px] text-[var(--text-muted)] uppercase font-bold">Location</label>
+            <div className="flex items-center justify-between">
+              <label className="text-[10px] text-[var(--text-muted)] uppercase font-bold">Location</label>
+              {selectedCityId && (
+                <button
+                  type="button"
+                  onMouseDown={e => e.preventDefault()}
+                  onClick={() => setAddLocalityOpen(v => !v)}
+                  className="text-[10px] font-bold text-[var(--primary)] hover:underline"
+                >
+                  {addLocalityOpen ? 'Close' : '+ Add locality'}
+                </button>
+              )}
+            </div>
             <div className="relative">
               <input
                 type="text"
                 value={locationSearch}
                 onChange={e => {
                   setLocationSearch(e.target.value);
-                  setProject({ ...project, location: e.target.value });
+                  setProject(prev => ({ ...prev, location: e.target.value }));
                   setLocationDropdownOpen(true);
                 }}
                 onFocus={() => setLocationDropdownOpen(true)}
@@ -436,23 +629,71 @@ export default function ProjectForm({ initialData }: ProjectFormProps) {
                   {filteredLocalities.map(locality => (
                     <div
                       key={locality.id}
+                      className={`flex items-center justify-between gap-2 px-3 py-2 text-sm cursor-pointer hover:bg-[var(--surface-raised)] transition-colors group ${
+                        project.location === locality.name
+                          ? 'font-bold text-[var(--primary)] bg-[var(--surface-raised)]'
+                          : 'text-[var(--text-primary)]'
+                      }`}
                       onMouseDown={() => {
                         setLocationSearch(locality.name);
                         setProject(prev => ({ ...prev, location: locality.name }));
                         setLocationDropdownOpen(false);
                       }}
-                      className={`px-3 py-2 text-sm cursor-pointer hover:bg-[var(--surface-raised)] transition-colors ${
-                        project.location === locality.name
-                          ? 'font-bold text-[var(--primary)] bg-[var(--surface-raised)]'
-                          : 'text-[var(--text-primary)]'
-                      }`}
                     >
-                      {locality.name}
+                      <span className="flex-1">{locality.name}</span>
+                      <button
+                        type="button"
+                        onMouseDown={e => { e.preventDefault(); e.stopPropagation(); deleteLocality(locality.id, locality.name); }}
+                        disabled={deletingLocalityId === locality.id}
+                        title={`Delete ${locality.name}`}
+                        className="p-1 text-[var(--text-muted)] opacity-0 group-hover:opacity-100 hover:text-red-500 transition-all disabled:opacity-40"
+                      >
+                        {deletingLocalityId === locality.id
+                          ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                          : <Trash2 className="w-3.5 h-3.5" />}
+                      </button>
                     </div>
                   ))}
                 </div>
               )}
             </div>
+
+            {addLocalityOpen && selectedCityId && (
+              <div className="flex flex-wrap gap-2 items-end p-3 border border-dashed border-[var(--border)] rounded-xl">
+                <div className="flex-1 min-w-[160px] space-y-1">
+                  <label className="text-[10px] text-[var(--text-muted)] uppercase font-bold">Locality Name *</label>
+                  <input
+                    type="text"
+                    value={newLocalityName}
+                    onChange={e => setNewLocalityName(e.target.value)}
+                    onKeyDown={e => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        addLocality();
+                      }
+                    }}
+                    placeholder="e.g. Wakad"
+                    className="w-full bg-[var(--surface-raised)] border border-[var(--border)] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[var(--primary)]"
+                  />
+                </div>
+                <button
+                  type="button"
+                  disabled={!newLocalityName.trim() || savingLocality}
+                  onClick={addLocality}
+                  className="flex items-center gap-2 px-4 py-2 bg-[var(--primary)] text-white rounded-lg text-sm font-bold hover:opacity-90 disabled:opacity-40 transition-all"
+                >
+                  {savingLocality ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
+                  Save Locality
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setAddLocalityOpen(false); setNewLocalityName(''); }}
+                  className="px-3 py-2 text-sm text-[var(--text-muted)] hover:text-[var(--text-primary)]"
+                >
+                  Close
+                </button>
+              </div>
+            )}
           </div>
         </div>
 

@@ -54,7 +54,6 @@
 html[data-scroll-behavior="smooth"] { scroll-behavior: smooth; }
 html {
   accent-color: var(--primary);
-  overscroll-behavior-y: none;
 }
 body {
   background: var(--background);
@@ -64,7 +63,12 @@ body {
   font-weight: 500;
   line-height: 24px;
   -webkit-font-smoothing: antialiased;
-  overscroll-behavior-y: none;
+}
+
+@media (pointer: coarse) {
+  html, body {
+    overscroll-behavior-y: none;
+  }
 }
 
 h1, h2, h3, h4, h5, h6 {
