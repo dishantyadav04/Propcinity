@@ -148,7 +148,7 @@ export default function UserIntentForm() {
   const prev = () => setStep(s => Math.max(s - 1, 1));
 
   const canNext = () => {
-    if (step === 1) return form.city.length > 0;
+    if (step === 1) return form.city.length > 0 || cities.length === 0;
     if (step === 2) return !!form.purpose;
     if (step === 3) return form.propertyType.length > 0;
     if (step === 4) return form.bhkType.length > 0;
@@ -358,7 +358,11 @@ export default function UserIntentForm() {
                     {citiesLoading ? (
                       <span className="text-sm text-[var(--text-muted)]">Loading cities…</span>
                     ) : cities.length === 0 ? (
-                      <span className="text-sm text-[var(--text-muted)]">No cities available yet</span>
+                      <div className="text-sm text-[var(--text-muted)] bg-[var(--surface-raised)] border border-[var(--border)] rounded-xl px-4 py-3">
+                        We're not live in any city yet. Please check back shortly, or{' '}
+                        <a href="/contact" className="text-[var(--primary)] font-bold underline">contact us</a>{' '}
+                        and we'll notify you as soon as we launch in your area.
+                      </div>
                     ) : (
                       cities.map(c => (
                         <button key={c.id}
