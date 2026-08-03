@@ -56,7 +56,7 @@ function SidebarContent({ onNavClick, showHeader = true }: { onNavClick?: () => 
         </div>
       )}
 
-      <nav className="flex-1 min-h-0 px-3 py-4 space-y-0.5 overflow-y-auto">
+      <nav className="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto">
         {ADMIN_NAV.map(item => {
           const active = isActive(item.href)
           return (
@@ -109,7 +109,7 @@ export default function Sidebar({ open, onClose }: { open: boolean; onClose: () 
   return (
     <>
       {/* Desktop sidebar — always visible, zero dependency on open state */}
-      <aside className="hidden md:flex flex-col bg-[#0E0E14] w-60 sticky top-0 z-0 h-dvh min-h-0">
+      <aside className="hidden md:flex flex-col bg-[#0E0E14] w-60 sticky top-0 z-0 h-dvh">
         <SidebarContent />
       </aside>
 

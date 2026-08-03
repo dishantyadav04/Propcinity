@@ -31,10 +31,6 @@ export default function ProjectForm({ initialData }: ProjectFormProps) {
   const [cities, setCities] = useState<City[]>([]);
   const [localities, setLocalities] = useState<Locality[]>([]);
   const [citiesLoading, setCitiesLoading] = useState(true);
-  const [addCityOpen, setAddCityOpen] = useState(false);
-  const [newCityName, setNewCityName] = useState('');
-  const [newCityState, setNewCityState] = useState('');
-  const [savingCity, setSavingCity] = useState(false);
   // Track the city id that corresponds to the current project.city string
   const [selectedCityId, setSelectedCityId] = useState<string>('');
 
@@ -390,10 +386,6 @@ export default function ProjectForm({ initialData }: ProjectFormProps) {
                   value={selectedCityId}
                   onChange={e => {
                     const cityId = e.target.value;
-                    if (cityId === '__add_new__') {
-                      setAddCityOpen(true);
-                      return;
-                    }
                     const city = cities.find(c => c.id === cityId);
                     setSelectedCityId(cityId);
                     setProject(prev => ({ ...prev, city: city?.name || '', location: '' }));
@@ -407,10 +399,6 @@ export default function ProjectForm({ initialData }: ProjectFormProps) {
                   {cities.map(c => (
                     <option key={c.id} value={c.id}>{c.name}{c.state ? `, ${c.state}` : ''}</option>
                   ))}
-                  {cities.length === 0 && (
-                    <option value="" disabled>No cities yet — add one below</option>
-                  )}
-                  <option value="__add_new__">+ Add a new city…</option>
                 </select>
               )}
               {renderFieldError('city')}
@@ -418,70 +406,6 @@ export default function ProjectForm({ initialData }: ProjectFormProps) {
                 ▾
               </span>
             </div>
-
-            {addCityOpen && (
-              <div className="flex flex-wrap gap-2 items-end p-3 border border-dashed border-[var(--border)] rounded-xl">
-                <div className="flex-1 min-w-[120px] space-y-1">
-                  <label className="text-[10px] text-[var(--text-muted)] uppercase font-bold">City Name *</label>
-                  <input
-                    type="text"
-                    value={newCityName}
-                    onChange={e => setNewCityName(e.target.value)}
-                    placeholder="e.g. Nagpur"
-                    className="w-full bg-[var(--surface-raised)] border border-[var(--border)] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[var(--primary)]"
-                  />
-                </div>
-                <div className="flex-1 min-w-[100px] space-y-1">
-                  <label className="text-[10px] text-[var(--text-muted)] uppercase font-bold">State</label>
-                  <input
-                    type="text"
-                    value={newCityState}
-                    onChange={e => setNewCityState(e.target.value)}
-                    placeholder="e.g. Maharashtra"
-                    className="w-full bg-[var(--surface-raised)] border border-[var(--border)] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[var(--primary)]"
-                  />
-                </div>
-                <button
-                  type="button"
-                  disabled={!newCityName.trim() || savingCity}
-                  onClick={async () => {
-                    setSavingCity(true);
-                    try {
-                      const res = await fetch('/api/admin/cities', {
-                        method: 'POST',
-                        credentials: 'include',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ name: newCityName.trim(), state: newCityState.trim() }),
-                      });
-                      if (!res.ok) throw new Error((await res.json()).error || 'Failed to add city');
-                      const { city } = await res.json();
-                      setCities(prev => [...prev, city].sort((a, b) => a.name.localeCompare(b.name)));
-                      setSelectedCityId(city.id);
-                      setProject(prev => ({ ...prev, city: city.name, location: '' }));
-                      setNewCityName('');
-                      setNewCityState('');
-                      setAddCityOpen(false);
-                      toast.success('City added');
-                    } catch (e: any) {
-                      toast.error(e.message || 'Failed to add city');
-                    } finally {
-                      setSavingCity(false);
-                    }
-                  }}
-                  className="flex items-center gap-2 px-4 py-2 bg-[var(--primary)] text-white rounded-lg text-sm font-bold hover:opacity-90 disabled:opacity-40 transition-all"
-                >
-                  {savingCity ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
-                  Save City
-                </button>
-                <button
-                  type="button"
-                  onClick={() => { setAddCityOpen(false); setNewCityName(''); setNewCityState(''); }}
-                  className="px-3 py-2 text-sm text-[var(--text-muted)] hover:text-[var(--text-primary)]"
-                >
-                  Cancel
-                </button>
-              </div>
-            )}
           </div>
 
           {/* Location / locality autocomplete (city-scoped) */}

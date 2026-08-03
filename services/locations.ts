@@ -68,12 +68,7 @@ export async function getCities(): Promise<City[]> {
     .order('name');
   if (error) {
     console.error('[locations] getCities error:', error);
-    const store = getFallbackStore();
-    return store.cities.filter((city) => city.is_active).sort((a, b) => a.name.localeCompare(b.name));
-  }
-  if (!data || data.length === 0) {
-    const store = getFallbackStore();
-    return store.cities.filter((city) => city.is_active).sort((a, b) => a.name.localeCompare(b.name));
+    return [];
   }
   return (data ?? []) as City[];
 }
@@ -97,16 +92,7 @@ export async function getLocalitiesByCity(cityId: string): Promise<Locality[]> {
     .order('name');
   if (error) {
     console.error('[locations] getLocalitiesByCity error:', error);
-    const store = getFallbackStore();
-    return store.localities
-      .filter((locality) => locality.city_id === cityId && locality.is_active)
-      .sort((a, b) => a.name.localeCompare(b.name));
-  }
-  if (!data || data.length === 0) {
-    const store = getFallbackStore();
-    return store.localities
-      .filter((locality) => locality.city_id === cityId && locality.is_active)
-      .sort((a, b) => a.name.localeCompare(b.name));
+    return [];
   }
   return (data ?? []) as Locality[];
 }
