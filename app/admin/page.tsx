@@ -58,8 +58,13 @@ export default function AdminOverviewPage() {
   const statusStyle = (status: string) => ({
     new: 'bg-blue-50 text-blue-700',
     contacted: 'bg-amber-50 text-amber-700',
-    converted: 'bg-green-50 text-green-700',
-    closed: 'bg-gray-100 text-gray-500',
+    site_visit_scheduled: 'bg-sky-50 text-sky-700',
+    site_visit_done: 'bg-indigo-50 text-indigo-700',
+    qualified: 'bg-green-50 text-green-700',
+    negotiating: 'bg-purple-50 text-purple-700',
+    closed_won: 'bg-emerald-50 text-emerald-700',
+    closed_lost: 'bg-gray-100 text-gray-500',
+    rejected: 'bg-red-50 text-red-700',
   }[status] || 'bg-gray-100 text-gray-500');
 
   return (

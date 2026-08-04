@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { isAdminAuthenticated } from '@/lib/admin-auth'
 import { createAdminSupabaseClient } from '@/lib/supabase-server'
 import { cleanupRemovedR2Files } from '@/lib/r2'
+import { builderSchema } from '@/lib/builder-schema'
 
 const unauth = () => NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
@@ -22,14 +23,21 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   if (!await isAdminAuthenticated(req)) return unauth()
-  const body = await req.json()
+  const body = await req.json().catch(() => null)
+  if (!body) return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 })
+
+  const parsedBody = builderSchema.safeParse(body)
+  if (!parsedBody.success) {
+    return NextResponse.json({ error: 'Invalid builder payload' }, { status: 400 })
+  }
+
   const supabase = createAdminSupabaseClient()
   if (!supabase) return NextResponse.json({ error: 'Config error' }, { status: 500 })
 
   const { data, error } = await supabase
     .from('builders')
     .insert({
-      ...body,
+      ...parsedBody.data,
       builder_score: 0,
       score_breakdown: {},
     })
@@ -49,7 +57,14 @@ export async function PUT(req: NextRequest) {
   const id = searchParams.get('id')
   if (!id) return NextResponse.json({ error: 'Missing id' }, { status: 400 })
 
-  const body = await req.json()
+  const body = await req.json().catch(() => null)
+  if (!body) return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 })
+
+  const parsedBody = builderSchema.safeParse(body)
+  if (!parsedBody.success) {
+    return NextResponse.json({ error: 'Invalid builder payload' }, { status: 400 })
+  }
+
   const supabase = createAdminSupabaseClient()
   if (!supabase) return NextResponse.json({ error: 'Config error' }, { status: 500 })
 
@@ -64,7 +79,7 @@ export async function PUT(req: NextRequest) {
   const { data, error } = await supabase
     .from('builders')
     .update({
-      ...body,
+      ...parsedBody.data,
       updated_at: new Date().toISOString(),
     })
     .eq('id', id)
@@ -80,7 +95,7 @@ export async function PUT(req: NextRequest) {
   if (existing) {
     cleanupRemovedR2Files(
       [existing.logo_url],
-      [body.logo_url ?? null]
+      [parsedBody.data.logo_url ?? null]
     ).catch(() => {})
   }
 

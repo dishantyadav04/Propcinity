@@ -20,15 +20,20 @@ export const nearbyLimiter   = createLimiter(60, '1 h')  // 60 map lookups/hour/
 export const adminLoginLimiter = createLimiter(5, '15 m') // 5 login attempts/15min/IP
 
 export function getClientIp(request: Request): string {
+  const vercelForwarded = request.headers.get('x-vercel-forwarded-for')
+  if (vercelForwarded) return vercelForwarded.split(',')[0]?.trim() ?? 'unknown'
+
   // x-real-ip is set by Vercel/proxies and cannot be spoofed by clients
   const realIp = request.headers.get('x-real-ip')
   if (realIp) return realIp
 
-  // x-forwarded-for: "client, proxy1, proxy2" — read the FIRST (leftmost) IP
-  // which is the original client. The last IP is the most recent proxy — spoofable.
+  // x-forwarded-for: "client, proxy1, proxy2" — prefer the RIGHTMOST entry
+  // (the most recent proxy), which is the one Vercel/edge stacks typically preserve
+  // for the client-facing address after proxy hops.
   const forwarded = request.headers.get('x-forwarded-for')
   if (forwarded) {
-    return forwarded.split(',')[0]?.trim() ?? 'unknown'
+    const parts = forwarded.split(',').map((part) => part.trim()).filter(Boolean)
+    return parts[parts.length - 1] ?? 'unknown'
   }
 
   return 'unknown'

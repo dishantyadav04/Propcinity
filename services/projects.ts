@@ -277,48 +277,6 @@ export async function getProjectsByIds(ids: string[]): Promise<Project[]> {
   )
 }
 
-export async function saveProject(userId: string, projectId: string): Promise<void> {
-  const supabase = await createServerSupabaseClient()
-  if (!supabase) return
-  await supabase
-    .from('saved_projects')
-    .upsert({ user_id: userId, project_id: projectId })
-}
-
-export async function unsaveProject(userId: string, projectId: string): Promise<void> {
-  const supabase = await createServerSupabaseClient()
-  if (!supabase) return
-  await supabase
-    .from('saved_projects')
-    .delete()
-    .eq('user_id', userId)
-    .eq('project_id', projectId)
-}
-
-export async function getSavedProjects(userId: string): Promise<Project[]> {
-  const supabase = await createServerSupabaseClient()
-  if (!supabase) return []
-  const { data } = await supabase
-    .from('saved_projects')
-    .select('project_id')
-    .eq('user_id', userId)
-
-  if (!data?.length) return []
-  return getProjectsByIds(data.map((row) => row.project_id))
-}
-
-export async function rejectProject(
-  userId: string,
-  projectId: string,
-  reason: string
-): Promise<void> {
-  const supabase = await createServerSupabaseClient()
-  if (!supabase) return
-  await supabase
-    .from('rejected_projects')
-    .upsert({ user_id: userId, project_id: projectId, reason })
-}
-
 export async function adminGetAllProjects(page = 1, limit = 50): Promise<{ projects: unknown[]; total: number; page: number; limit: number }> {
   const supabase = createAdminSupabaseClient()
   if (!supabase) {
@@ -449,20 +407,52 @@ export async function adminUpdateProject(
     throw new Error(`Project update failed: ${updateError.message}`)
   }
 
-  // ── 3. Handle unit_configs replacement ───────────────────────────────────
+  // ── 3. Handle unit_configs sync — diff by ID instead of delete+reinsert,
+  //      so existing IDs (and any leads.unit_config_id referencing them)
+  //      stay stable across edits. ────────────────────────────────────────
   if (unitConfigs !== undefined) {
-    await supabase
-      .from('unit_configs')
-      .delete()
-      .eq('project_id', id)
+    const existingUnits: { id: string }[] = ((existing as any)?.unit_configs ?? [])
+    const existingIds = new Set(existingUnits.map((u) => u.id))
+    const incoming = unitConfigs as Array<Record<string, unknown>>
+    const incomingIds = new Set(incoming.filter((u) => u.id).map((u) => u.id as string))
 
-    if (unitConfigs.length) {
-      const { error: unitError } = await supabase.from('unit_configs').insert(
-        unitConfigs.map((unit: Record<string, unknown>) => ({ ...unit, project_id: id }))
+    const idsToDelete = [...existingIds].filter((eid) => !incomingIds.has(eid))
+    const toUpdate = incoming.filter((u) => u.id && existingIds.has(u.id as string))
+    const toInsert = incoming.filter((u) => !u.id || !existingIds.has(u.id as string))
+
+    if (idsToDelete.length) {
+      const { error: delError } = await supabase
+        .from('unit_configs')
+        .delete()
+        .in('id', idsToDelete)
+      if (delError) {
+        console.error('[adminUpdateProject] unit_configs delete failed:', delError.message)
+        throw new Error(`unit_configs delete failed: ${delError.message}`)
+      }
+    }
+
+    for (const unit of toUpdate) {
+      const { id: unitId, ...patch } = unit
+      const { error: updError } = await supabase
+        .from('unit_configs')
+        .update(patch)
+        .eq('id', unitId as string)
+      if (updError) {
+        console.error('[adminUpdateProject] unit_configs update failed:', updError.message)
+        throw new Error(`unit_configs update failed: ${updError.message}`)
+      }
+    }
+
+    if (toInsert.length) {
+      const { error: insError } = await supabase.from('unit_configs').insert(
+        toInsert.map((unit) => {
+          const { id: _drop, ...rest } = unit
+          return { ...rest, project_id: id }
+        })
       )
-      if (unitError) {
-        console.error('[adminUpdateProject] unit_configs insert failed:', unitError.message)
-        throw new Error(`unit_configs insert failed: ${unitError.message}`)
+      if (insError) {
+        console.error('[adminUpdateProject] unit_configs insert failed:', insError.message)
+        throw new Error(`unit_configs insert failed: ${insError.message}`)
       }
     }
   }

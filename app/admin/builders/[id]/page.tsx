@@ -8,6 +8,8 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { toast } from 'sonner';
+import sanitizeHtml from 'sanitize-html';
+import { SANITIZE_CONFIG } from '@/lib/sanitize';
 
 export default function BuilderDetailPage() {
   const params = useParams();
@@ -129,7 +131,7 @@ export default function BuilderDetailPage() {
               [&_h1]:text-xl [&_h1]:font-bold [&_h2]:text-lg [&_h2]:font-bold
               [&_p]:leading-relaxed [&_a]:text-[var(--primary)] [&_a]:underline
               [&_ul]:list-disc [&_ul]:pl-4 [&_ol]:list-decimal [&_ol]:pl-4"
-            dangerouslySetInnerHTML={{ __html: builder.description }}
+            dangerouslySetInnerHTML={{ __html: sanitizeHtml(builder.description, SANITIZE_CONFIG) }}
           />
         </div>
       )}

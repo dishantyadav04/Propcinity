@@ -32,7 +32,8 @@ export async function GET(req: NextRequest) {
     .order('created_at', { ascending: false })
     .range(offset, offset + limit - 1)
 
-  if (search) query = query.or(`name.ilike.%${search}%,phone.ilike.%${search}%`)
+  const sanitizedSearch = search.replace(/[,()/]/g, '')
+  if (sanitizedSearch) query = query.or(`name.ilike.%${sanitizedSearch}%,phone.ilike.%${sanitizedSearch}%`)
   if (status) query = query.eq('status', status)
   if (intentLabel) query = query.eq('intent_label', intentLabel)
   const journeyStage = searchParams.get('journey') || ''

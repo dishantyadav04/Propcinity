@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto'
 import { NextRequest, NextResponse } from 'next/server'
 import { generateEmbedding, intentToEmbeddingText } from '@/services/recommendations'
 import { createServerSupabaseClient } from '@/lib/supabase-server'
@@ -27,7 +28,7 @@ export async function POST(request: NextRequest) {
 
     // Build stable text + hash for this intent
     const intentText = intentToEmbeddingText(intent)
-    const intentHash = Buffer.from(intentText).toString('base64').slice(0, 40)
+    const intentHash = createHash('sha256').update(intentText).digest('hex')
 
     // 1. Check DB cache first — avoid re-calling OpenAI for same intent
     let intentEmbedding: number[] | null = null

@@ -3,21 +3,7 @@ import { Blog, BlogFaqItem } from '@/types/blog'
 import { BlogInput } from '@/lib/blog-schema'
 import { cleanupRemovedR2Files, deleteFromR2 } from '@/lib/r2'
 import sanitizeHtml from 'sanitize-html'
-
-const SANITIZE_CONFIG: sanitizeHtml.IOptions = {
-  allowedTags: sanitizeHtml.defaults.allowedTags.concat([
-    'img', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
-    'figure', 'figcaption', 'table', 'thead', 'tbody', 'tr', 'th', 'td',
-    'iframe', 'pre', 'code',
-  ]),
-  allowedAttributes: {
-    ...sanitizeHtml.defaults.allowedAttributes,
-    img: ['src', 'alt', 'title', 'width', 'height', 'loading'],
-    iframe: ['src', 'width', 'height', 'frameborder', 'allowfullscreen'],
-    '*': ['class', 'id'],
-  },
-  allowedSchemes: ['http', 'https', 'mailto'],
-}
+import { SANITIZE_CONFIG } from '@/lib/sanitize'
 
 type SupabaseBlogRow = {
   id: string
@@ -53,7 +39,7 @@ function mapBlogRow(row: SupabaseBlogRow): Blog {
     slug: row.slug,
     title: row.title,
     excerpt: row.excerpt ?? undefined,
-    contentHtml: sanitizeHtml(row.content_html, SANITIZE_CONFIG),
+    contentHtml: row.content_html,
     contentJson: row.content_json ?? undefined,
     coverImage: row.cover_image ?? undefined,
     coverImageAlt: row.cover_image_alt ?? undefined,

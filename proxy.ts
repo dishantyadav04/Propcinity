@@ -1,11 +1,26 @@
 // proxy.ts  ← Next.js 16 convention (replaces middleware.ts)
 import { createServerClient } from '@supabase/ssr'
 import { NextRequest, NextResponse } from 'next/server'
+import { isAdminAuthenticatedEdge } from '@/lib/admin-auth-edge'
 
 export async function proxy(request: NextRequest) {
   let supabaseResponse = NextResponse.next({
     request,
   })
+
+  const { pathname: earlyPathname } = request.nextUrl
+
+  if (earlyPathname.startsWith('/admin')) {
+    const isAdminRoute = earlyPathname === '/admin/login' || earlyPathname.startsWith('/admin/login/')
+    if (!isAdminRoute) {
+      const isAdminAuthenticated = await isAdminAuthenticatedEdge(request)
+      if (!isAdminAuthenticated) {
+        const loginUrl = new URL('/admin/login', request.url)
+        loginUrl.searchParams.set('from', earlyPathname)
+        return NextResponse.redirect(loginUrl)
+      }
+    }
+  }
 
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
   const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
@@ -87,5 +102,5 @@ export async function proxy(request: NextRequest) {
 
 // Strictly scope the proxy (middleware) to match only the target routes to avoid performance overhead
 export const config = {
-  matcher: ['/', '/dashboard/:path*', '/profile/:path*', '/saved/:path*'],
+  matcher: ['/', '/dashboard/:path*', '/profile/:path*', '/saved/:path*', '/admin/:path*'],
 }

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { fetchNearbyPlaces } from '@/lib/overpass'
 import { nearbyLimiter, getClientIp, checkRateLimit } from '@/lib/rate-limit'
+import { getRedis } from '@/lib/redis'
 
 const querySchema = z.object({
   lat: z.coerce.number().min(-90).max(90),
@@ -12,22 +13,31 @@ const querySchema = z.object({
   ),
 })
 
-const cache = new Map<string, { data: { places: Awaited<ReturnType<typeof fetchNearbyPlaces>> }; expiresAt: number }>()
+type NearbyCacheEntry = { data: { places: Awaited<ReturnType<typeof fetchNearbyPlaces>> }; expiresAt: number }
 
 const CACHE_TTL = 60 * 60 * 1000
 const ERROR_CACHE_TTL = 5 * 60 * 1000
 const MAX_CACHE_SIZE = 200
 
-function evictIfNeeded() {
-  if (cache.size > MAX_CACHE_SIZE) {
-    const now = Date.now()
-    for (const [key, val] of cache.entries()) {
-      if (now >= val.expiresAt) cache.delete(key)
-    }
-    if (cache.size > MAX_CACHE_SIZE) {
-      const oldest = [...cache.entries()].sort((a, b) => a[1].expiresAt - b[1].expiresAt)[0]
-      if (oldest) cache.delete(oldest[0])
-    }
+async function getNearbyCache(key: string): Promise<NearbyCacheEntry | null> {
+  const redis = getRedis()
+  if (!redis) return null
+  try {
+    const entry = await redis.get<NearbyCacheEntry>(`nearby:${key}`)
+    if (entry && typeof entry === 'object') return entry
+  } catch (error) {
+    console.warn('[nearby] Redis get failed:', error)
+  }
+  return null
+}
+
+async function setNearbyCache(key: string, value: NearbyCacheEntry): Promise<void> {
+  const redis = getRedis()
+  if (!redis) return
+  try {
+    await redis.set(`nearby:${key}`, value, { px: value.expiresAt - Date.now() })
+  } catch (error) {
+    console.warn('[nearby] Redis set failed:', error)
   }
 }
 
@@ -51,7 +61,7 @@ export async function GET(request: NextRequest) {
 
   const { lat, lng, radius } = parsed.data
   const cacheKey = `${lat.toFixed(4)},${lng.toFixed(4)},${radius}`
-  const cached = cache.get(cacheKey)
+  const cached = await getNearbyCache(cacheKey)
 
   if (cached && Date.now() < cached.expiresAt) {
     return NextResponse.json(cached.data, { headers: { 'X-Cache': 'HIT' } })
@@ -60,8 +70,7 @@ export async function GET(request: NextRequest) {
   try {
     const places = await fetchNearbyPlaces(lat, lng, radius)
     const data = { places, fallback: places.length === 0 ? true : undefined }
-    cache.set(cacheKey, { data, expiresAt: Date.now() + CACHE_TTL })
-    evictIfNeeded()
+    await setNearbyCache(cacheKey, { data, expiresAt: Date.now() + CACHE_TTL })
 
     return NextResponse.json(data, {
       headers: {
@@ -72,8 +81,7 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     console.error('Overpass error:', error)
     const data = { places: [], fallback: true, error: 'Could not fetch nearby places' }
-    cache.set(cacheKey, { data, expiresAt: Date.now() + ERROR_CACHE_TTL })
-    evictIfNeeded()
+    await setNearbyCache(cacheKey, { data, expiresAt: Date.now() + ERROR_CACHE_TTL })
 
     return NextResponse.json(
       data,
