@@ -23,7 +23,7 @@ export default function CookieBanner({
   onCloseModal,
   hasExistingConsent,
 }: CookieBannerProps) {
-  const [prefs, setPrefs] = useState({ analytics: true, functional: true })
+  const [prefs, setPrefs] = useState({ analytics: false, functional: false })
   const modalRef = useRef<HTMLDivElement>(null)
   const prevFocusedRef = useRef<HTMLElement | null>(null)
   const firstFocusableRef = useRef<HTMLButtonElement | null>(null)

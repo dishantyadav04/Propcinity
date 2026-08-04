@@ -37,6 +37,7 @@ type SupabaseProjectRow = {
   rera_link?: string
   possession_date: string
   rera_possession_date?: string
+  updated_at?: string | null
   pros: string[] | null
   cons: string[] | null
   amenities: string[] | null
@@ -122,6 +123,7 @@ function mapProject(row: SupabaseProjectRow & Record<string, unknown>, unitConfi
     reraStatus: (row.rera_status || 'not_registered') as Project['reraStatus'],
     possessionDate: row.possession_date,
     reraPossessionDate: row.rera_possession_date,
+    updatedAt: row.updated_at ?? null,
     landParcelAcres: row.land_parcel_acres,
     totalTowers: row.total_towers,
     floorsPerTower: row.floors_per_tower,

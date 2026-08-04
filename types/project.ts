@@ -86,6 +86,7 @@ export interface Project {
   // Dates
   possessionDate: string        // Target possession
   reraPossessionDate?: string   // RERA possession
+  updatedAt?: string | null
 
   // Project specs
   landParcelAcres?: number      // e.g. 7.5

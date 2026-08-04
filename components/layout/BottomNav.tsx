@@ -30,7 +30,8 @@ export default function BottomNav() {
     pathname === '/' ||
     pathname === '/onboarding' ||
     pathname === '/privacy' ||
-    pathname === '/terms'
+    pathname === '/terms' ||
+    pathname === '/cookies'
   ) return null;
 
   const resolvedItems = isGuest ? GUEST_NAV_ITEMS : USER_NAV_ITEMS;

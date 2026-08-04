@@ -130,7 +130,9 @@ Nothing in these terms excludes liability for fraud, death, or personal injury c
   },
   {
     title: '12. Privacy',
-    body: `Your use of Propcinity is also governed by our Privacy Policy, which is incorporated into these Terms by reference. Please read it at propcinity.in/privacy.`
+    body: `Your use of Propcinity is also governed by our Privacy Policy and our Cookie Policy, both incorporated into these Terms by reference. Please read them at propcinity.in/privacy and propcinity.in/cookies.
+
+Under India's Digital Personal Data Protection Act, 2023, Propcinity acts as a "Data Fiduciary" and you as a "Data Principal." Your rights as a Data Principal — including access, correction, erasure, grievance redressal, and nomination — are set out in full in our Privacy Policy.`
   },
   {
     title: '13. Termination',
@@ -157,8 +159,9 @@ For consumer disputes, you may also approach the appropriate Consumer Forum unde
     body: `For any questions about these Terms:
 
 Email: legal@propcinity.in
-Grievance Officer: grievance@propcinity.in
-Response time: Within 3 business days
+Response time: within 3 business days
+
+For data-protection-specific grievances under the DPDPA 2023, contact our Grievance Officer directly — see Section 13 of our Privacy Policy for full details.
 
 Propcinity, Pune, Maharashtra, India`
   },
@@ -186,7 +189,7 @@ export default function TermsPage() {
             Terms & Conditions
           </h1>
           <p className="text-sm text-[var(--text-muted)]">
-            Last updated: June 2026 · Effective: June 2026 · Applies to Propcinity.in and our mobile app
+            Last updated: August 2026 · Effective: August 2026 · Applies to Propcinity.in and our mobile app
           </p>
         </div>
 
@@ -205,6 +208,8 @@ export default function TermsPage() {
           <p>Questions? Email <a href="mailto:legal@propcinity.in" className="text-[var(--primary)] hover:underline">legal@propcinity.in</a></p>
           <p>
             <Link href="/privacy" className="text-[var(--primary)] hover:underline">Privacy Policy</Link>
+            {' · '}
+            <Link href="/cookies" className="text-[var(--primary)] hover:underline">Cookie Policy</Link>
             {' · '}
             <Link href="/" className="text-[var(--primary)] hover:underline">Back to Propcinity</Link>
           </p>
