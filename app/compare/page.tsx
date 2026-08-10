@@ -165,10 +165,10 @@ function CompareContent() {
             className="p-2 hover:bg-[var(--surface-raised)] rounded-[var(--radius-xs)] transition-colors">
             <ArrowLeft className="w-5 h-5 text-[var(--text-secondary)]" />
           </Link>
-          <h1 className="font-black text-[var(--text-primary)] text-lg flex-1"
+          <h2 className="font-black text-[var(--text-primary)] text-lg flex-1"
             style={{ fontFamily: 'var(--font-display)' }}>
             Comparing {projects.length} Project{projects.length !== 1 ? 's' : ''}
-          </h1>
+          </h2>
           <Link href="/explore"
             className="text-xs font-bold text-[var(--primary)] flex items-center gap-1">
             <Plus className="w-3.5 h-3.5" /> Add More

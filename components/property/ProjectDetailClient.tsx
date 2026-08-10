@@ -64,15 +64,10 @@ function possessionLabel(possessionDate: string): string {
   return '5+ Years'
 }
 
-export default function ProjectDetailPage() {
-  const params = useParams();
+export default function ProjectDetailClient({ project }: { project: Project }) {
   const router = useRouter();
-  const slug = params?.slug as string;
   const { isGuest: isGuestRaw, isChecking } = useGuestMode();
   const isGuest = !isChecking && isGuestRaw;
-  const [project, setProject] = useState<Project | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [notFound, setNotFound] = useState(false);
   const [isQualificationOpen, setIsQualificationOpen] = useState(false);
   const [isAIModalOpen, setIsAIModalOpen] = useState(false);
   const [selectedUnit, setSelectedUnit] = useState<UnitConfig | undefined>();
@@ -89,20 +84,6 @@ export default function ProjectDetailPage() {
 
   useEffect(() => {
     setActivePricingType('');
-    const load = async () => {
-      try {
-        const res = await fetch(`/api/projects/${slug}`);
-        if (!res.ok) throw new Error('Not found');
-        setProject(await res.json());
-      } catch {
-        setProject(null);
-        setNotFound(true);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    load();
-
     const openSheet = (e: any) => {
       setSelectedUnit(e.detail?.unitConfig);
       setIsQualificationOpen(true);
@@ -113,7 +94,7 @@ export default function ProjectDetailPage() {
       window.removeEventListener('open-qualification-sheet', openSheet);
       window.removeEventListener('open-ai-modal', () => setIsAIModalOpen(true));
     };
-  }, [slug]);
+  }, []);
 
   useEffect(() => {
     if (project) {
@@ -339,33 +320,7 @@ export default function ProjectDetailPage() {
     );
   }
 
-  if (isLoading) return <PageLoader />;
-  if (!isLoading && notFound) {
-    return (
-      <div className="min-h-screen flex flex-col items-center justify-center gap-4 text-center px-6">
-        <div className="text-5xl">🏗️</div>
-        <h2 className="text-2xl font-black text-[var(--text-primary)]" style={{ fontFamily: 'var(--font-display)' }}>
-          Project not found
-        </h2>
-        <p className="text-[var(--text-secondary)] max-w-sm">
-          This project may have been removed or the link is incorrect.
-        </p>
-        <Link href="/explore" className="px-6 py-3 bg-[var(--primary)] text-white font-bold rounded-[var(--radius)]">
-          Browse Projects
-        </Link>
-      </div>
-    );
-  }
-  if (!project) return (
-    <div className="min-h-screen flex flex-col items-center justify-center gap-5 px-6 text-center">
-      <div className="text-6xl">🏗️</div>
-      <h2 className="text-2xl font-black text-[var(--text-primary)]">Project not found</h2>
-      <Link href="/explore"
-        className="px-6 py-3 bg-[var(--primary)] text-white font-bold rounded-[var(--radius)]">
-        Browse Projects
-      </Link>
-    </div>
-  );
+  if (!project) return null;
 
   const minPrice = project.unitConfigs?.length
     ? Math.min(...project.unitConfigs.map(u => u.price)) : 0;

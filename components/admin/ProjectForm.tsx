@@ -837,6 +837,7 @@ export default function ProjectForm({ initialData }: ProjectFormProps) {
           value={project.images}
           onUpload={(url) => setProject({...project, images: [...(project.images || []), url]})}
           onRemove={(url) => setProject({...project, images: project.images?.filter(i => i !== url)})}
+          label="Project Gallery"
         />
         {renderFieldError('images')}
       </div>
@@ -853,6 +854,7 @@ export default function ProjectForm({ initialData }: ProjectFormProps) {
           onUpload={(url) => setProject(prev => ({...prev, masterPlanImages: [...(prev.masterPlanImages || []), url]}))}
           onRemove={(url) => setProject(prev => ({...prev, masterPlanImages: (prev.masterPlanImages || []).filter(i => i !== url)}))}
           value={project.masterPlanImages || []}
+          label="Master Plan Image"
         />
         {renderFieldError('master_plan_images')}
       </div>
@@ -869,6 +871,7 @@ export default function ProjectForm({ initialData }: ProjectFormProps) {
           onUpload={(url) => setProject(prev => ({...prev, floorPlanImages: [...(prev.floorPlanImages || []), url]}))}
           onRemove={(url) => setProject(prev => ({...prev, floorPlanImages: (prev.floorPlanImages || []).filter(i => i !== url)}))}
           value={project.floorPlanImages || []}
+          label="Floor Plan Image"
         />
         {renderFieldError('floor_plan_images')}
       </div>

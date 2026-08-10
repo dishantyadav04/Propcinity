@@ -238,7 +238,7 @@ export default function ProfilePage() {
             </Link>
             <span className="text-[var(--border-strong)]">·</span>
             <Link
-              href="/terms"
+              href="/terms-and-conditions"
               className="text-xs text-[var(--text-muted)] hover:text-[var(--primary)] transition-colors font-semibold"
             >
               Terms & Conditions

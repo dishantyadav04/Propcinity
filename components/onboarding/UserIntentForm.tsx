@@ -308,6 +308,7 @@ export default function UserIntentForm() {
 
   return (
     <div className="min-h-screen bg-[var(--background)] flex flex-col">
+      <h1 className="sr-only">Tell us what you&apos;re looking for</h1>
       <div className="sticky top-0 z-10 bg-white/90 backdrop-blur border-b border-[var(--border)] px-4 sm:px-6 py-3">
         <div className="max-w-lg mx-auto">
           <div className="flex items-center justify-between mb-2">
@@ -782,7 +783,7 @@ export default function UserIntentForm() {
                     <p className="text-xs text-[var(--text-secondary)] leading-relaxed">
                       I agree to Propcinity's{' '}
                       <a
-                        href="/terms"
+                        href="/terms-and-conditions"
                         target="_blank"
                         rel="noopener noreferrer"
                         className="text-[var(--primary)] font-semibold underline underline-offset-2"

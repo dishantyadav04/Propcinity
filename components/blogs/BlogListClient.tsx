@@ -5,16 +5,20 @@ import Link from 'next/link';
 import { Blog } from '@/types/blog';
 import { Newspaper, Search, Loader2 } from 'lucide-react';
 
-export default function BlogsPage() {
-  const [blogs, setBlogs] = useState<Blog[]>([]);
-  const [total, setTotal] = useState(0);
+export default function BlogListClient({ initialBlogs, initialTotal }: { initialBlogs: Blog[], initialTotal: number }) {
+  const [blogs, setBlogs] = useState<Blog[]>(initialBlogs);
+  const [total, setTotal] = useState(initialTotal);
   const [page, setPage] = useState(1);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [activeCategory, setActiveCategory] = useState('');
   const limit = 12;
 
   useEffect(() => {
+    if (page === 1 && !activeCategory && blogs.length > 0 && total > 0) {
+      // Bypassing initial fetch, already have data
+      return;
+    }
     setIsLoading(true);
     const params = new URLSearchParams({ page: String(page), limit: String(limit) });
     if (activeCategory) params.set('category', activeCategory);

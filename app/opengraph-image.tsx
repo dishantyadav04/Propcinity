@@ -17,24 +17,25 @@ export default function Image() {
           flexDirection: 'column',
           alignItems: 'center',
           justifyContent: 'center',
-          background: 'linear-gradient(135deg, #0D2B1A 0%, #064e3b 100%)',
+          background: 'linear-gradient(135deg, #FF4500 0%, #cc3700 100%)',
           fontFamily: 'Arial, sans-serif',
         }}
       >
         <div
           style={{
-            fontSize: 72,
+            fontSize: 84,
             fontWeight: 900,
-            color: '#22C55E',
+            color: '#FFFFFF',
             marginBottom: 24,
+            letterSpacing: '-0.02em',
           }}
         >
           Propcinity
         </div>
         <div
           style={{
-            fontSize: 28,
-            color: '#a7f3d0',
+            fontSize: 32,
+            color: '#FFF1EC',
             opacity: 0.9,
             marginBottom: 8,
           }}
@@ -43,19 +44,22 @@ export default function Image() {
         </div>
         <div
           style={{
-            fontSize: 28,
-            color: '#a7f3d0',
+            fontSize: 32,
+            color: '#FFF1EC',
             opacity: 0.9,
-            marginBottom: 40,
+            marginBottom: 48,
           }}
         >
           We help you choose the right one.
         </div>
         <div
           style={{
-            fontSize: 18,
-            color: '#6ee7b7',
-            opacity: 0.6,
+            fontSize: 22,
+            color: '#FFFFFF',
+            opacity: 0.8,
+            backgroundColor: 'rgba(255, 255, 255, 0.2)',
+            padding: '12px 24px',
+            borderRadius: 100,
           }}
         >
           Zero Brokerage · AI-Powered · Match % Scoring

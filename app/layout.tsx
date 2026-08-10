@@ -11,6 +11,7 @@ import ClientLayoutExtras from '@/components/layout/ClientLayoutExtras'
 import CookieConsentProvider from '@/components/consent/CookieConsentProvider'
 import PostHogProvider from '@/components/analytics/PostHogProvider'
 import PostHogPageView from '@/components/analytics/PostHogPageView'
+import { canonicalUrl } from '@/lib/seo'
 // ✅ TASK 1 DONE
 
 const syne = Syne({
@@ -47,6 +48,9 @@ export const metadata: Metadata = {
   authors: [{ name: 'Propcinity' }],
   creator: 'Propcinity',
   metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || 'https://propcinity.in'),
+  alternates: {
+    canonical: canonicalUrl('/'),
+  },
   openGraph: {
     siteName: 'Propcinity',
     title: 'Propcinity — Find the Right Property in Pune',

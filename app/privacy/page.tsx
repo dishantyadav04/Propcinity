@@ -208,7 +208,7 @@ export default function PrivacyPage() {
         <div className="border-t border-[var(--border)] pt-6 text-sm text-[var(--text-muted)] space-y-1">
           <p>Questions? Email <a href="mailto:privacy@propcinity.in" className="text-[var(--primary)] hover:underline">privacy@propcinity.in</a></p>
           <p>
-            <Link href="/terms" className="text-[var(--primary)] hover:underline">Terms & Conditions</Link>
+            <Link href="/terms-and-conditions" className="text-[var(--primary)] hover:underline">Terms & Conditions</Link>
             {' · '}
             <Link href="/cookies" className="text-[var(--primary)] hover:underline">Cookie Policy</Link>
             {' · '}

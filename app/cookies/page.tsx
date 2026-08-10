@@ -107,7 +107,7 @@ export default function CookiesPage() {
           <p>
             <Link href="/privacy" className="text-[var(--primary)] hover:underline">Privacy Policy</Link>
             {' · '}
-            <Link href="/terms" className="text-[var(--primary)] hover:underline">Terms & Conditions</Link>
+            <Link href="/terms-and-conditions" className="text-[var(--primary)] hover:underline">Terms & Conditions</Link>
             {' · '}
             <Link href="/" className="text-[var(--primary)] hover:underline">Back to Propcinity</Link>
           </p>

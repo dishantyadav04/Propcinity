@@ -19,6 +19,16 @@ const nextConfig = {
 
   compress: true,
 
+  async redirects() {
+    return [
+      {
+        source: '/terms',
+        destination: '/terms-and-conditions',
+        permanent: true,
+      },
+    ]
+  },
+
   async headers() {
     const isDev = process.env.NODE_ENV === 'development'
 

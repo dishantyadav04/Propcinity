@@ -105,7 +105,7 @@ export default function AdminBlogsPage() {
                 <td className="px-6 py-4">
                   <div className="flex items-center gap-3">
                     {blog.coverImage && (
-                      <img src={blog.coverImage} alt="" className="w-10 h-10 rounded-lg object-cover border border-[var(--border)]" />
+                      <img src={blog.coverImage} alt={blog.title} className="w-10 h-10 rounded-lg object-cover border border-[var(--border)]" />
                     )}
                     <div>
                       <p className="text-sm font-bold text-[var(--text-primary)]">{blog.title}</p>

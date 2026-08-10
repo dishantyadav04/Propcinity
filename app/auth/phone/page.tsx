@@ -78,7 +78,7 @@ function PhoneContent() {
           </button>
           <p className="text-xs text-center text-[var(--text-muted)]">
             By continuing you agree to our{' '}
-            <Link href="/terms" className="underline hover:text-[var(--primary)]">Terms</Link>
+            <Link href="/terms-and-conditions" className="underline hover:text-[var(--primary)]">Terms</Link>
             {' '}and{' '}
             <Link href="/privacy" className="underline hover:text-[var(--primary)]">Privacy Policy</Link>.
           </p>

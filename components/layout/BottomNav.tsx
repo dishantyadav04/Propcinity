@@ -30,7 +30,7 @@ export default function BottomNav() {
     pathname === '/' ||
     pathname === '/onboarding' ||
     pathname === '/privacy' ||
-    pathname === '/terms' ||
+    pathname === '/terms-and-conditions' ||
     pathname === '/cookies'
   ) return null;
 

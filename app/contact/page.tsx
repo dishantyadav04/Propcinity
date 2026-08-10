@@ -229,7 +229,7 @@ export default function ContactPage() {
           </p>
           <div className="flex items-center gap-4 text-xs font-semibold">
             <Link href="/privacy" className="text-[var(--text-secondary)] hover:text-[var(--primary)] transition-colors">Privacy Policy</Link>
-            <Link href="/terms" className="text-[var(--text-secondary)] hover:text-[var(--primary)] transition-colors">Terms</Link>
+            <Link href="/terms-and-conditions" className="text-[var(--text-secondary)] hover:text-[var(--primary)] transition-colors">Terms &amp; Conditions</Link>
           </div>
         </div>
 

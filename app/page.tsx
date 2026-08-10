@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { ArrowRight, ShieldCheck, Star, Building2, MapPin, TrendingUp } from "lucide-react";
-import { motion } from "framer-motion";
+import FadeIn from "@/components/ui/FadeIn";
 import { useEffect, useState } from "react";
 
 // Inline SVG background — architectural city silhouette
@@ -108,10 +108,8 @@ function StatCard({ icon: Icon, value, label, delay }: {
   value: string; label: string; delay: number;
 }) {
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay, duration: 0.4 }}
+    <FadeIn
+      delay={delay}
       className="flex items-center gap-3 bg-white/90 backdrop-blur-md
         border border-[var(--border)] rounded-[var(--radius-sm)] px-4 py-3
         shadow-[var(--shadow-md)]"
@@ -125,7 +123,7 @@ function StatCard({ icon: Icon, value, label, delay }: {
           style={{ fontFamily: 'var(--font-display)' }}>{value}</p>
         <p className="text-[10px] text-[var(--text-muted)] font-bold mt-1 uppercase tracking-tight">{label}</p>
       </div>
-    </motion.div>
+    </FadeIn>
   );
 }
 
@@ -150,39 +148,38 @@ export default function LandingPage() {
           <div className="max-w-2xl space-y-8">
 
             {/* Eyebrow */}
-            <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}
+            <FadeIn delay={0}
               className="inline-flex items-center gap-2 px-3 py-1.5
                 bg-[var(--primary-light)] text-[var(--primary)] text-xs font-bold rounded-full
                 border border-[var(--primary)]/20">
               <Star className="w-3 h-3 fill-[var(--primary)]" />
               Trusted by Pune homebuyers · Zero brokerage
-            </motion.div>
+            </FadeIn>
 
             {/* Headline */}
-            <motion.h1
-              initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.1 }}
+            <FadeIn
+              as="h1"
+              delay={0.1}
               className="text-5xl sm:text-6xl lg:text-7xl font-black text-[var(--text-primary)]
                 leading-[1.0] tracking-tighter"
               style={{ fontFamily: 'var(--font-display)' }}>
               Find the right<br />
               property.<br />
               <span className="text-[var(--primary)]">Not just listings.</span>
-            </motion.h1>
+            </FadeIn>
 
             {/* Subtext */}
-            <motion.p
-              initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.2 }}
+            <FadeIn
+              as="p"
+              delay={0.2}
               className="text-lg sm:text-xl text-[var(--text-secondary)] max-w-lg leading-relaxed">
               AI recommendations. Trust scores. Expert advisors.
               We protect buyers from builder risks — completely free.
-            </motion.p>
+            </FadeIn>
 
             {/* CTAs */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.3 }}
+            <FadeIn
+              delay={0.3}
               className="flex flex-col sm:flex-row gap-4">
               <Link href="/auth/signup"
                 className="inline-flex items-center justify-center gap-2 px-8 py-4
@@ -197,16 +194,16 @@ export default function LandingPage() {
                   transition-colors">
                 Explore Projects
               </Link>
-            </motion.div>
+            </FadeIn>
 
             {/* Trust line */}
-            <motion.p
-              initial={{ opacity: 0 }} animate={{ opacity: 1 }}
-              transition={{ delay: 0.4 }}
+            <FadeIn
+              as="p"
+              delay={0.4}
               className="text-sm text-[var(--text-muted)] flex items-center gap-1.5">
               <ShieldCheck className="w-4 h-4 text-[var(--success)]" />
               Zero brokerage · Builders pay us · You pay nothing
-            </motion.p>
+            </FadeIn>
           </div>
 
           {/* Floating stat cards — desktop only, top-right area */}

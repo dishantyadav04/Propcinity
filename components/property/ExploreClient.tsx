@@ -39,15 +39,15 @@ const SORT_OPTIONS: { value: SortOption; label: string; icon: string }[] = [
   { value: 'newest', label: 'Newest First', icon: '🆕' },
 ];
 
-function ExplorePageContent() {
+function ExplorePageContent({ initialProjects }: { initialProjects: Project[] }) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { isGuest: isGuestRaw, isChecking } = useGuestMode();
   const isGuest = !isChecking && isGuestRaw;
-  const [projects, setProjects] = useState<Project[]>([]);
-  const [filtered, setFiltered] = useState<Project[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [selectedProject, setSelectedProject] = useState<Project | null>(null);
+  const [projects, setProjects] = useState<Project[]>(initialProjects);
+  const [filtered, setFiltered] = useState<Project[]>(initialProjects);
+  const [isLoading, setIsLoading] = useState(false);
+  const [selectedProject, setSelectedProject] = useState<Project | null>(initialProjects.length > 0 ? initialProjects[0] : null);
 
   // UI state
   const [searchQuery, setSearchQuery] = useState('');
@@ -112,38 +112,7 @@ function ExplorePageContent() {
     return () => document.removeEventListener('mousedown', handler);
   }, []);
 
-  // Fetch projects
-  useEffect(() => {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 10000);
 
-    fetch('/api/projects', { signal: controller.signal })
-      .then(r => {
-        if (!r.ok) throw new Error('HTTP ' + r.status);
-        return r.json();
-      })
-      .then((data: Project[]) => {
-        setProjects(data);
-        setFiltered(data);
-        if (data.length > 0) setSelectedProject(data[0]);
-      })
-      .catch(err => {
-        if (err.name !== 'AbortError') {
-          console.error('Projects fetch failed:', err);
-          setProjects([]);
-          setFiltered([]);
-        }
-      })
-      .finally(() => {
-        clearTimeout(timeout);
-        setIsLoading(false);
-      });
-
-    return () => {
-      clearTimeout(timeout);
-      controller.abort();
-    };
-  }, []);
 
   const applyFilters = useCallback(() => {
     let result = [...projects];
@@ -762,10 +731,10 @@ function ExplorePageContent() {
   );
 }
 
-export default function ExplorePage() {
+export default function ExploreClient({ initialProjects }: { initialProjects: Project[] }) {
   return (
     <Suspense fallback={null}>
-      <ExplorePageContent />
+      <ExplorePageContent initialProjects={initialProjects} />
     </Suspense>
   );
 }

@@ -8,9 +8,11 @@ interface ImageUploadProps {
   onUpload: (url: string) => void;
   value?: string[];
   onRemove: (url: string) => void;
+  /** Used to build descriptive alt text, e.g. "Project Gallery". Defaults to "Uploaded image". */
+  label?: string;
 }
 
-export default function ImageUpload({ onUpload, value = [], onRemove }: ImageUploadProps) {
+export default function ImageUpload({ onUpload, value = [], onRemove, label = 'Uploaded image' }: ImageUploadProps) {
   const [isUploading, setIsUploading] = useState(false);
 
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -50,9 +52,9 @@ export default function ImageUpload({ onUpload, value = [], onRemove }: ImageUpl
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-        {value.map((url) => (
+        {value.map((url, index) => (
           <div key={url} className="relative aspect-square rounded-lg overflow-hidden border border-[var(--border)] group">
-            <img src={url} className="w-full h-full object-cover" />
+            <img src={url} alt={`${label} ${index + 1}`} className="w-full h-full object-cover" />
             <button 
               onClick={() => onRemove(url)}
               className="absolute top-1 right-1 p-1 bg-black/50 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
