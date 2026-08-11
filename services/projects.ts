@@ -1,4 +1,4 @@
-import { createAdminSupabaseClient, createServerSupabaseClient } from '@/lib/supabase-server'
+import { createAdminSupabaseClient, createServerSupabaseClient, createStaticSupabaseClient } from '@/lib/supabase-server'
 import { Project, UnitConfig, BuilderProject } from '@/types/project'
 import { MOCK_PROJECTS } from '@/lib/mock-data'
 import { deleteFromR2, cleanupRemovedR2Files } from '@/lib/r2'
@@ -185,7 +185,8 @@ export async function getPublishedProjects(filters?: {
   const supabase = await createServerSupabaseClient()
   if (!supabase) {
     if (process.env.NEXT_PUBLIC_USE_MOCK_DATA === 'true') return MOCK_PROJECTS
-    throw new Error('Supabase client unavailable. Check NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY in Vercel env vars.')
+    console.warn('[getPublishedProjects] Supabase client unavailable — missing env vars. Returning empty list.')
+    return []
   }
 
   let query = supabase
@@ -231,6 +232,30 @@ export async function getPublishedProjects(filters?: {
   }
 
   return results
+}
+
+// Build-time-safe variant for generateStaticParams. Fetches only slugs,
+// via a cookie-free client, so it can run without a request context.
+// Note: projects_public view already filters is_published=true at DB level.
+export async function getPublishedProjectSlugs(): Promise<string[]> {
+  const supabase = createStaticSupabaseClient()
+  if (!supabase) {
+    if (process.env.NEXT_PUBLIC_USE_MOCK_DATA === 'true') {
+      return MOCK_PROJECTS.map((p) => p.slug)
+    }
+    return []
+  }
+
+  const { data, error } = await supabase
+    .from('projects_public')
+    .select('slug')
+
+  if (error) {
+    console.error('[getPublishedProjectSlugs] Supabase error:', error.message, error.code)
+    return []
+  }
+
+  return (data ?? []).map((row) => row.slug as string)
 }
 
 export async function getProjectBySlug(slug: string): Promise<Project | null> {

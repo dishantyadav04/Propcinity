@@ -1,6 +1,10 @@
 import { createServerClient } from '@supabase/ssr'
+import { createClient } from '@supabase/supabase-js'
 import { cookies } from 'next/headers'
 
+// NOTE: Do not call this from generateStaticParams or any function that
+// Next.js may execute at build time — it reads cookies() and will throw.
+// Use createStaticSupabaseClient() for build-time-safe queries instead.
 export async function createServerSupabaseClient() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL
   const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
@@ -41,4 +45,16 @@ export function createAdminSupabaseClient() {
       remove: () => undefined,
     },
   })
+}
+
+// Cookie-free client safe to call from generateStaticParams / other build-time
+// contexts. Uses the public anon key — only ever query public tables/views
+// with this client. Never pass user-scoped or RLS-sensitive queries through it.
+export function createStaticSupabaseClient() {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+
+  if (!url || !key) return null
+
+  return createClient(url, key)
 }

@@ -1,10 +1,10 @@
 import { notFound } from 'next/navigation'
-import { getProjectBySlug, getPublishedProjects } from '@/services/projects'
+import { getProjectBySlug, getPublishedProjectSlugs } from '@/services/projects'
 import ProjectDetailClient from '@/components/property/ProjectDetailClient'
 
 export async function generateStaticParams() {
-  const projects = await getPublishedProjects({})
-  return projects.map((p) => ({ slug: p.slug }))
+  const slugs = await getPublishedProjectSlugs()
+  return slugs.map((slug) => ({ slug }))
 }
 
 export default async function ProjectDetailPage({
