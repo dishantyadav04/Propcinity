@@ -65,6 +65,9 @@
   },
   "devDependencies": {
     "@types/node": "^26.2.0",
-    "@types/sanitize-html": "^2.16.1"
+    "@types/sanitize-html": "^2.16.1",
+    "@eslint/eslintrc": "^3.2.0",
+    "eslint": "^9.19.0",
+    "eslint-config-next": "^16.2.7"
   }
 }
