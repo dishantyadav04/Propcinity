@@ -19,6 +19,7 @@ interface ProjectFormProps {
 export default function ProjectForm({ initialData }: ProjectFormProps) {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
+  const [isSavingDraft, setIsSavingDraft] = useState(false);
   const [builders, setBuilders] = useState<any[]>([]);
   const [selectedBuilderId, setSelectedBuilderId] = useState((initialData as any)?.builder_id || '');
   const [builderSearch, setBuilderSearch] = useState('');
@@ -238,9 +239,12 @@ export default function ProjectForm({ initialData }: ProjectFormProps) {
     return isNaN(n) ? undefined : n
   }
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsLoading(true);
+  const saveProject = async (publish: boolean) => {
+    if (publish) {
+      setIsLoading(true);
+    } else {
+      setIsSavingDraft(true);
+    }
     setErrors({});
     setFormErrors([]);
 
@@ -257,7 +261,7 @@ export default function ProjectForm({ initialData }: ProjectFormProps) {
         floors_per_tower: project.floorsPerTower,
         construction_status: project.constructionStatus,
         construction_percent: project.constructionPercent ?? 0,
-        is_published: project.isPublished ?? true,
+        is_published: publish,
         rera_id: project.reraId,
         rera_expiry: project.reraExpiry,
         rera_link: project.reraLink,
@@ -351,14 +355,28 @@ export default function ProjectForm({ initialData }: ProjectFormProps) {
         throw new Error(err.error || "Failed to save project");
       }
 
-      toast.success(initialData ? "Project updated" : "Project created");
+      toast.success(
+        publish
+          ? (initialData ? "Project updated" : "Project published")
+          : "Draft saved"
+      );
       router.push('/admin/projects');
       router.refresh();
     } catch (err: any) {
       toast.error(err.message || "Something went wrong");
     } finally {
       setIsLoading(false);
+      setIsSavingDraft(false);
     }
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    saveProject(true);
+  };
+
+  const handleSaveDraft = () => {
+    saveProject(false);
   };
 
   return (
@@ -1325,10 +1343,19 @@ export default function ProjectForm({ initialData }: ProjectFormProps) {
         {renderFieldError('nearby_locations')}
       </div>
 
-      <div className="flex justify-end pt-4 pb-20 md:pb-4">
+      <div className="flex justify-end gap-3 pt-4 pb-20 md:pb-4">
+        <button
+          type="button"
+          onClick={handleSaveDraft}
+          disabled={isLoading || isSavingDraft}
+          className="flex items-center gap-2 bg-[var(--surface-raised)] text-[var(--text-primary)] font-bold py-4 px-8 rounded-xl border border-[var(--border)] hover:bg-[var(--surface)] transition-all disabled:opacity-50"
+        >
+          {isSavingDraft ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}
+          <span>Save Draft</span>
+        </button>
         <button
           type="submit"
-          disabled={isLoading}
+          disabled={isLoading || isSavingDraft}
           className="flex items-center gap-2 bg-[var(--primary)] text-white font-bold py-4 px-12 rounded-xl shadow-lg shadow-[var(--primary)]/20 hover:scale-[1.02] transition-all disabled:opacity-50"
         >
           {isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}
