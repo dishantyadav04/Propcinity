@@ -793,7 +793,7 @@ export default function UserIntentForm() {
                       </a>
                       {' '}and{' '}
                       <a
-                        href="/privacy"
+                        href="/privacy-policy"
                         target="_blank"
                         rel="noopener noreferrer"
                         className="text-[var(--primary)] font-semibold underline underline-offset-2"

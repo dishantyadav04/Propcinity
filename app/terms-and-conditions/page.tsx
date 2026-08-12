@@ -130,10 +130,10 @@ Nothing in these terms excludes liability for fraud, death, or personal injury c
   },
   {
     title: '12. Privacy',
-    body: `Your use of Propcinity is also governed by our Privacy Policy and our Cookie Policy, both incorporated into these Terms by reference. Please read them at propcinity.in/privacy and propcinity.in/cookies.
+    body: `Your use of Propcinity is also governed by our Privacy Policy and our Cookie Policy, both incorporated into these Terms by reference. Please read them at propcinity.in/privacy-policy and propcinity.in/cookies.
 
 Under India's Digital Personal Data Protection Act, 2023, Propcinity acts as a "Data Fiduciary" and you as a "Data Principal." Your rights as a Data Principal — including access, correction, erasure, grievance redressal, and nomination — are set out in full in our Privacy Policy.`
-  },
+  }
   {
     title: '13. Termination',
     body: `We reserve the right to suspend or terminate your account at any time if you breach these Terms. You may delete your account at any time via your profile settings or by emailing hello@propcinity.in.
@@ -207,7 +207,7 @@ export default function TermsPage() {
         <div className="border-t border-[var(--border)] pt-6 text-sm text-[var(--text-muted)] space-y-1">
           <p>Questions? Email <a href="mailto:legal@propcinity.in" className="text-[var(--primary)] hover:underline">legal@propcinity.in</a></p>
           <p>
-            <Link href="/privacy" className="text-[var(--primary)] hover:underline">Privacy Policy</Link>
+            <Link href="/privacy-policy" className="text-[var(--primary)] hover:underline">Privacy Policy</Link>
             {' · '}
             <Link href="/cookies" className="text-[var(--primary)] hover:underline">Cookie Policy</Link>
             {' · '}

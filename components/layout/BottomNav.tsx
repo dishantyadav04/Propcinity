@@ -29,7 +29,7 @@ export default function BottomNav() {
     pathname.startsWith('/auth') ||
     pathname === '/' ||
     pathname === '/onboarding' ||
-    pathname === '/privacy' ||
+    pathname === '/privacy-policy' ||
     pathname === '/terms-and-conditions' ||
     pathname === '/cookies'
   ) return null;

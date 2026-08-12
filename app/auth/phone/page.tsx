@@ -49,7 +49,7 @@ function PhoneContent() {
           <p className="text-xs text-[var(--text-muted)] mt-1">
             Your number is only shared with a builder when <span className="font-semibold">you</span> choose
             to enquire about a property. We never sell or market it.{' '}
-            <Link href="/privacy" className="underline hover:text-[var(--primary)] transition-colors">
+              <Link href="/privacy-policy" className="underline hover:text-[var(--primary)] transition-colors">
               Privacy Policy
             </Link>
           </p>
@@ -80,7 +80,7 @@ function PhoneContent() {
             By continuing you agree to our{' '}
             <Link href="/terms-and-conditions" className="underline hover:text-[var(--primary)]">Terms</Link>
             {' '}and{' '}
-            <Link href="/privacy" className="underline hover:text-[var(--primary)]">Privacy Policy</Link>.
+            <Link href="/privacy-policy" className="underline hover:text-[var(--primary)]">Privacy Policy</Link>.
           </p>
         </form>
       </div>

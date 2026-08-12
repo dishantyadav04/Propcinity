@@ -231,7 +231,7 @@ export default function ProfilePage() {
         <SectionContainer>
           <div className="flex items-center justify-center gap-6 py-4 border-t border-[var(--border)]">
             <Link
-              href="/privacy"
+              href="/privacy-policy"
               className="text-xs text-[var(--text-muted)] hover:text-[var(--primary)] transition-colors font-semibold"
             >
               Privacy Policy

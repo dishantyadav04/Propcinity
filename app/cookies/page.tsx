@@ -7,10 +7,10 @@ import { ArrowLeft, Cookie } from 'lucide-react'
 const SECTIONS = [
   {
     title: '1. What this policy covers',
-    body: `This Cookie Policy explains how Propcinity ("we", "us", "our") uses cookies and similar technologies (local storage, session storage) on propcinity.in and our mobile app, and how you can control them. It should be read together with our Privacy Policy (propcinity.in/privacy).
+    body: `This Cookie Policy explains how Propcinity ("we", "us", "our") uses cookies and similar technologies (local storage, session storage) on propcinity.in and our mobile app, and how you can control them. It should be read together with our Privacy Policy (propcinity.in/privacy-policy).
 
 Under India's Digital Personal Data Protection Act, 2023, any cookie that collects personal data requires your free, specific, informed, and unambiguous consent before it's set — except cookies strictly necessary for the site to function.`
-  },
+  }
   {
     title: '2. Cookie categories we use',
     body: `STRICTLY NECESSARY (always active — no consent required, cannot be disabled)
@@ -105,7 +105,7 @@ export default function CookiesPage() {
         <div className="border-t border-[var(--border)] pt-6 text-sm text-[var(--text-muted)] space-y-1">
           <p>Questions? Email <a href="mailto:privacy@propcinity.in" className="text-[var(--primary)] hover:underline">privacy@propcinity.in</a></p>
           <p>
-            <Link href="/privacy" className="text-[var(--primary)] hover:underline">Privacy Policy</Link>
+            <Link href="/privacy-policy" className="text-[var(--primary)] hover:underline">Privacy Policy</Link>
             {' · '}
             <Link href="/terms-and-conditions" className="text-[var(--primary)] hover:underline">Terms & Conditions</Link>
             {' · '}

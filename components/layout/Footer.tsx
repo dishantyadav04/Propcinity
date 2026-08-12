@@ -5,7 +5,7 @@ import { usePathname } from 'next/navigation'
 import { useCookieConsent } from '@/components/consent/CookieConsentProvider'
 
 // Routes where BottomNav returns null — must be kept in sync with BottomNav.tsx
-const NO_BOTTOM_NAV_ROUTES = ['/', '/onboarding', '/privacy', '/terms-and-conditions', '/cookies']
+const NO_BOTTOM_NAV_ROUTES = ['/', '/onboarding', '/privacy-policy', '/terms-and-conditions', '/cookies']
 
 export default function Footer() {
   const pathname = usePathname()
@@ -69,7 +69,7 @@ export default function Footer() {
           <div>
             <p className={sectionHeadingClass}>Legal</p>
             <ul className="space-y-2">
-              <li><Link href="/privacy" className={linkClass}>Privacy Policy</Link></li>
+              <li><Link href="/privacy-policy" className={linkClass}>Privacy Policy</Link></li>
               <li><Link href="/terms-and-conditions" className={linkClass}>Terms &amp; Conditions</Link></li>
               <li><Link href="/cookies" className={linkClass}>Cookie Policy</Link></li>
               <li>

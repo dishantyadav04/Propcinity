@@ -26,6 +26,11 @@ const nextConfig = {
         destination: '/terms-and-conditions',
         permanent: true,
       },
+      {
+        source: '/privacy',
+        destination: '/privacy-policy',
+        permanent: true,
+      },
     ]
   },
 
