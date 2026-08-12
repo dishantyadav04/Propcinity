@@ -10,7 +10,7 @@ const SECTIONS = [
     body: `This Cookie Policy explains how Propcinity ("we", "us", "our") uses cookies and similar technologies (local storage, session storage) on propcinity.in and our mobile app, and how you can control them. It should be read together with our Privacy Policy (propcinity.in/privacy-policy).
 
 Under India's Digital Personal Data Protection Act, 2023, any cookie that collects personal data requires your free, specific, informed, and unambiguous consent before it's set — except cookies strictly necessary for the site to function.`
-  }
+  },
   {
     title: '2. Cookie categories we use',
     body: `STRICTLY NECESSARY (always active — no consent required, cannot be disabled)
@@ -27,25 +27,25 @@ We do NOT use advertising or retargeting cookies, and we do NOT use third-party 
   {
     title: '3. The specific cookies and storage keys we use',
     body: `STRICTLY NECESSARY
-• Supabase auth session cookies (sb-*-auth-token) — keeps you signed in. Expires per session/refresh-token policy.
-• admin_session — admin-panel authentication only (not set for regular visitors).
-• onboarding_complete — remembers that you've finished the onboarding questionnaire, so you're not asked again. Set for 1 year.
-• cookie-consent (local storage) — remembers your cookie preferences so we don't ask again on every visit. Set for 1 year, or until you clear your browser storage.
+- Supabase auth session cookies (sb-*-auth-token) — keeps you signed in. Expires per session/refresh-token policy.
+- admin_session — admin-panel authentication only (not set for regular visitors).
+- onboarding_complete — remembers that you've finished the onboarding questionnaire, so you're not asked again. Set for 1 year.
+- cookie-consent (local storage) — remembers your cookie preferences so we don't ask again on every visit. Set for 1 year, or until you clear your browser storage.
 
 ANALYTICS (only if you consent)
-• PostHog cookies (ph_*) — page views, feature usage, and (if separately enabled) session recording. IP addresses are anonymised. Typically expire after 1 year.
+- PostHog cookies (ph_*) — page views, feature usage, and (if separately enabled) session recording. IP addresses are anonymised. Typically expire after 1 year.
 
 FUNCTIONAL (only if you consent)
-• AI assistant conversation state (local storage) — lets the AI assistant remember context within your session. Cleared when you close the conversation or after 30 days.
-• Saved property-preference drafts (local storage) — remembers in-progress preferences before you sign in, so you don't lose them.`
+- AI assistant conversation state (local storage) — lets the AI assistant remember context within your session. Cleared when you close the conversation or after 30 days.
+- Saved property-preference drafts (local storage) — remembers in-progress preferences before you sign in, so you don't lose them.`
   },
   {
     title: '4. How to manage your cookie preferences',
     body: `You can change your cookie preferences at any time:
 
-• Click "Cookie Preferences" in the footer of any page
-• Choose "Accept All", "Essential Only", or open "Manage Preferences" to toggle Analytics and Functional cookies individually
-• Your choice is saved locally and respected on every future visit until you change it again
+- Click "Cookie Preferences" in the footer of any page
+- Choose "Accept All", "Essential Only", or open "Manage Preferences" to toggle Analytics and Functional cookies individually
+- Your choice is saved locally and respected on every future visit until you change it again
 
 You can also block or delete cookies directly through your browser settings, though this may affect how well Propcinity works, particularly the AI assistant and sign-in.
 

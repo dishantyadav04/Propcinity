@@ -21,11 +21,11 @@ You must provide accurate, complete, and current information when registering. Y
     title: '3. Nature of our service',
     body: `Propcinity is a real estate channel partner platform. We:
 
-• Curate and present residential real estate projects in Pune (and expanding markets)
-• Use AI to match properties to your stated preferences (your "Match %")
-• Act as your channel partner with RERA-registered developers — including
+- Curate and present residential real estate projects in Pune (and expanding markets)
+- Use AI to match properties to your stated preferences (your "Match %")
+- Act as your channel partner with RERA-registered developers — including
   negotiating on your behalf for pricing, terms, and unit selection
-• Provide this service at zero cost to buyers
+- Provide this service at zero cost to buyers
 
 Propcinity operates as a channel partner to real estate developers. We
 negotiate with developers on your behalf throughout your property search and
@@ -49,8 +49,8 @@ This commercial relationship does not compromise our buyer-first advisory commit
     title: '5. Lead submission and developer contact',
     body: `When you submit an enquiry or click "Contact Builder" for a specific project, you explicitly consent to:
 
-• Propcinity sharing your name, phone number, and email with the developer of that project
-• The developer or their representatives contacting you via phone, WhatsApp, SMS, or email about that project
+- Propcinity sharing your name, phone number, and email with the developer of that project
+- The developer or their representatives contacting you via phone, WhatsApp, SMS, or email about that project
 
 Propcinity is not responsible for the conduct, representations, or omissions of third-party developers. Any commitments made by a developer are solely between you and that developer.
 
@@ -61,8 +61,8 @@ You may request removal from a developer's contact list by emailing hello@propci
     body: `Our AI Match % and property recommendations are algorithmic assessments
 based on:
 
-• Preferences you provide (location, budget, BHK, property type)
-• Publicly available project data and RERA registration status
+- Preferences you provide (location, budget, BHK, property type)
+- Publicly available project data and RERA registration status
 
 IMPORTANT DISCLAIMER: Match % is an informational tool to help your
 decision-making based on YOUR stated preferences. It is NOT an assessment of
@@ -70,10 +70,10 @@ builder reliability, project quality, or investment merit, and is not a
 guarantee of any outcome.
 
 These recommendations are NOT:
-• Professional legal advice
-• Architectural or structural assessments
-• Financial investment advice
-• Guarantees of property quality, possession timeline, or appreciation
+- Professional legal advice
+- Architectural or structural assessments
+- Financial investment advice
+- Guarantees of property quality, possession timeline, or appreciation
 
 You must engage your own legal, financial, and technical advisors before committing to any property purchase. Propcinity is not liable for decisions made based on AI recommendations.`
   },
@@ -87,12 +87,12 @@ Projects labelled "RERA Pending" are listed for informational awareness only —
     title: '8. User conduct',
     body: `You agree NOT to:
 
-• Use Propcinity to scrape, harvest, or extract property data systematically
-• Reverse-engineer, decompile, or attempt to access our AI models or databases
-• Create fake accounts or submit false enquiries
-• Use our platform for any unlawful purpose
-• Harass, impersonate, or harm other users or our staff
-• Post or transmit malicious code
+- Use Propcinity to scrape, harvest, or extract property data systematically
+- Reverse-engineer, decompile, or attempt to access our AI models or databases
+- Create fake accounts or submit false enquiries
+- Use our platform for any unlawful purpose
+- Harass, impersonate, or harm other users or our staff
+- Post or transmit malicious code
 
 Violation of these terms may result in immediate account termination and legal action.`
   },
@@ -108,21 +108,21 @@ You may not reproduce, redistribute, republish, or create derivative works from 
     title: '10. Payments (if applicable)',
     body: `Propcinity is currently free for buyers. If we introduce paid features (e.g. premium reports, verified listings), the following applies:
 
-• All payments are processed via Razorpay, a PCI-DSS compliant payment gateway
-• We do not store your card or bank account details
-• Refunds for digital services will be evaluated case-by-case within 7 business days of request
-• Email payments@propcinity.in for any payment disputes`
+- All payments are processed via Razorpay, a PCI-DSS compliant payment gateway
+- We do not store your card or bank account details
+- Refunds for digital services will be evaluated case-by-case within 7 business days of request
+- Email payments@propcinity.in for any payment disputes`
   },
   {
     title: '11. Limitation of liability',
     body: `TO THE MAXIMUM EXTENT PERMITTED BY APPLICABLE LAW:
 
 Propcinity is not liable for:
-• Any loss or damage arising from your reliance on property data, AI scores, or recommendations on this platform
-• Any acts or omissions of third-party developers
-• Loss of profit, opportunity, or investment value from any property transaction
-• Any data breach caused by third-party service providers despite reasonable security measures
-• Interruptions to service, downtime, or data loss
+- Any loss or damage arising from your reliance on property data, AI scores, or recommendations on this platform
+- Any acts or omissions of third-party developers
+- Loss of profit, opportunity, or investment value from any property transaction
+- Any data breach caused by third-party service providers despite reasonable security measures
+- Interruptions to service, downtime, or data loss
 
 Our maximum aggregate liability to you for any claim arising from your use of Propcinity shall not exceed ₹5,000 (Indian Rupees Five Thousand only).
 
@@ -133,7 +133,7 @@ Nothing in these terms excludes liability for fraud, death, or personal injury c
     body: `Your use of Propcinity is also governed by our Privacy Policy and our Cookie Policy, both incorporated into these Terms by reference. Please read them at propcinity.in/privacy-policy and propcinity.in/cookies.
 
 Under India's Digital Personal Data Protection Act, 2023, Propcinity acts as a "Data Fiduciary" and you as a "Data Principal." Your rights as a Data Principal — including access, correction, erasure, grievance redressal, and nomination — are set out in full in our Privacy Policy.`
-  }
+  },
   {
     title: '13. Termination',
     body: `We reserve the right to suspend or terminate your account at any time if you breach these Terms. You may delete your account at any time via your profile settings or by emailing hello@propcinity.in.
@@ -218,4 +218,3 @@ export default function TermsPage() {
     </div>
   )
 }
-// ✅ TASK 4 DONE
