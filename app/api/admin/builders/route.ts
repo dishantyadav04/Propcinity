@@ -28,7 +28,11 @@ export async function POST(req: NextRequest) {
 
   const parsedBody = builderSchema.safeParse(body)
   if (!parsedBody.success) {
-    return NextResponse.json({ error: 'Invalid builder payload' }, { status: 400 })
+    const includeDetails = process.env.NODE_ENV !== 'production' || process.env.ADMIN_DEBUG === 'true'
+    const payload: any = { error: 'Invalid builder payload' }
+    if (includeDetails) payload.details = parsedBody.error.flatten()
+    console.warn('[admin/builders] Validation failed:', includeDetails ? JSON.stringify(payload.details) : '(suppressed)')
+    return NextResponse.json(payload, { status: 400 })
   }
 
   const supabase = createAdminSupabaseClient()
@@ -62,7 +66,11 @@ export async function PUT(req: NextRequest) {
 
   const parsedBody = builderSchema.safeParse(body)
   if (!parsedBody.success) {
-    return NextResponse.json({ error: 'Invalid builder payload' }, { status: 400 })
+    const includeDetails = process.env.NODE_ENV !== 'production' || process.env.ADMIN_DEBUG === 'true'
+    const payload: any = { error: 'Invalid builder payload' }
+    if (includeDetails) payload.details = parsedBody.error.flatten()
+    console.warn('[admin/builders] Validation failed (PUT):', includeDetails ? JSON.stringify(payload.details) : '(suppressed)')
+    return NextResponse.json(payload, { status: 400 })
   }
 
   const supabase = createAdminSupabaseClient()

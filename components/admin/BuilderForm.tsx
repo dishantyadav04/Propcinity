@@ -94,6 +94,7 @@ export default function BuilderForm({ initial, mode }: BuilderFormProps) {
         ...form,
         builder_score: builderScore,
         years_in_business: computedYearsInBusiness,
+        established_year: form.established_year ? String(form.established_year) : null,
         total_projects_delivered: Number(form.total_projects_delivered),
         on_time_delivery_percent: Number(form.on_time_delivery_percent),
         avg_delay_months: Number(form.avg_delay_months),
@@ -109,6 +110,14 @@ export default function BuilderForm({ initial, mode }: BuilderFormProps) {
     } else {
       const err = await res.json();
       toast.error(err.error || 'Failed');
+      if (err.details) {
+        try {
+          const flattened = typeof err.details === 'string' ? err.details : JSON.stringify(err.details)
+          toast.error(flattened)
+        } catch (e) {
+          // ignore
+        }
+      }
     }
     setIsLoading(false);
   };

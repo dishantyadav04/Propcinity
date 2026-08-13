@@ -1,4 +1,4 @@
-import { createAdminSupabaseClient, createServerSupabaseClient } from '@/lib/supabase-server'
+import { createAdminSupabaseClient, createServerSupabaseClient, createStaticSupabaseClient } from '@/lib/supabase-server'
 import { Blog, BlogFaqItem } from '@/types/blog'
 import { BlogInput } from '@/lib/blog-schema'
 import { cleanupRemovedR2Files, deleteFromR2 } from '@/lib/r2'
@@ -135,6 +135,30 @@ export async function getPublishedBlogs(
     blogs: (data as SupabaseBlogRow[]).map(mapBlogRow),
     total: count ?? 0,
   }
+}
+
+// Build-time/cookie-free variant for app/sitemap.ts. Fetches only slug +
+// updated_at via the static client — sitemap.ts is statically rendered by
+// Next.js and cannot use cookies(), so it must never call
+// createServerSupabaseClient(). Replicates the same published-visibility
+// filter as getPublishedBlogs.
+export async function getPublishedBlogsForSitemap(): Promise<{ slug: string; updatedAt: string }[]> {
+  const supabase = createStaticSupabaseClient()
+  if (!supabase) return []
+
+  const now = new Date().toISOString()
+  const { data, error } = await supabase
+    .from('blogs')
+    .select('slug, updated_at')
+    .eq('status', 'published')
+    .lte('published_at', now)
+
+  if (error) {
+    console.error('[getPublishedBlogsForSitemap] Supabase error:', error.message)
+    return []
+  }
+
+  return (data ?? []).map((row) => ({ slug: row.slug as string, updatedAt: row.updated_at as string }))
 }
 
 export async function getBlogBySlug(slug: string): Promise<Blog | null> {
@@ -286,7 +310,7 @@ export async function adminUpdateBlog(id: string, data: BlogInput): Promise<void
     cleanupRemovedR2Files(
       [existing.cover_image, existing.author_avatar, existing.og_image],
       [data.coverImage ?? null, data.authorAvatar ?? null, data.ogImage ?? null]
-    ).catch(() => {})
+    ).catch(() => { })
   }
 }
 
@@ -313,7 +337,7 @@ export async function adminDeleteBlog(id: string): Promise<void> {
     ].filter((url): url is string => !!url && url.startsWith('http'))
 
     if (r2Urls.length) {
-      Promise.allSettled(r2Urls.map((url) => deleteFromR2(url))).catch(() => {})
+      Promise.allSettled(r2Urls.map((url) => deleteFromR2(url))).catch(() => { })
     }
   }
 }

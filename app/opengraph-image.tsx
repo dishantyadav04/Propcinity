@@ -1,6 +1,8 @@
 import { ImageResponse } from 'next/og'
 
-export const runtime = 'edge'
+// Next.js ImageResponse defaults to Node; explicitly set to nodejs to avoid
+// the deprecated edge runtime warning.
+export const runtime = 'nodejs'
 
 export const alt = 'Propcinity — Find the Right Property'
 export const size = { width: 1200, height: 630 }

@@ -1,6 +1,6 @@
 import { MetadataRoute } from 'next'
-import { getPublishedProjects } from '@/services/projects'
-import { getPublishedBlogs } from '@/services/blogs'
+import { getPublishedProjectsForSitemap } from '@/services/projects'
+import { getPublishedBlogsForSitemap } from '@/services/blogs'
 
 const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://propcinity.in'
 
@@ -10,11 +10,9 @@ const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://propcinity.in'
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   let projectEntries: MetadataRoute.Sitemap = []
   try {
-    const projects = await getPublishedProjects({})
+    const projects = await getPublishedProjectsForSitemap()
     projectEntries = projects.map((p) => ({
       url: `${BASE_URL}/projects/${p.slug}`,
-      // Falls back to "now" only if a project somehow has no updated_at —
-      // real projects always carry it from the DB (NOT NULL DEFAULT now()).
       lastModified: p.updatedAt ? new Date(p.updatedAt) : new Date(),
       changeFrequency: 'weekly' as const,
       priority: 0.8,
@@ -25,7 +23,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   let blogEntries: MetadataRoute.Sitemap = []
   try {
-    const { blogs } = await getPublishedBlogs(1, 1000)
+    const blogs = await getPublishedBlogsForSitemap()
     blogEntries = blogs.map((b) => ({
       url: `${BASE_URL}/blogs/${b.slug}`,
       lastModified: new Date(b.updatedAt),

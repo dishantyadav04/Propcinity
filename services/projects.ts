@@ -258,6 +258,27 @@ export async function getPublishedProjectSlugs(): Promise<string[]> {
   return (data ?? []).map((row) => row.slug as string)
 }
 
+// Build-time/cookie-free variant for app/sitemap.ts. Fetches only slug +
+// updated_at via the static client — sitemap.ts is statically rendered by
+// Next.js and cannot use cookies(), so it must never call
+// createServerSupabaseClient(). projects_public view already filters
+// is_published=true at DB level.
+export async function getPublishedProjectsForSitemap(): Promise<{ slug: string; updatedAt: string | null }[]> {
+  const supabase = createStaticSupabaseClient()
+  if (!supabase) return []
+
+  const { data, error } = await supabase
+    .from('projects_public')
+    .select('slug, updated_at')
+
+  if (error) {
+    console.error('[getPublishedProjectsForSitemap] Supabase error:', error.message, error.code)
+    return []
+  }
+
+  return (data ?? []).map((row) => ({ slug: row.slug as string, updatedAt: row.updated_at as string | null }))
+}
+
 export async function getProjectBySlug(slug: string): Promise<Project | null> {
   const supabase = await createServerSupabaseClient()
   if (!supabase) {
@@ -488,19 +509,19 @@ export async function adminUpdateProject(
   if (existing) {
     // Project-level image arrays
     if (masterPlanImages !== undefined) {
-      cleanupRemovedR2Files(existing.master_plan_images ?? [], masterPlanImages).catch(() => {})
+      cleanupRemovedR2Files(existing.master_plan_images ?? [], masterPlanImages).catch(() => { })
     }
     if (floorPlanImages !== undefined) {
-      cleanupRemovedR2Files(existing.floor_plan_images ?? [], floorPlanImages).catch(() => {})
+      cleanupRemovedR2Files(existing.floor_plan_images ?? [], floorPlanImages).catch(() => { })
     }
     if (project.images !== undefined) {
-      cleanupRemovedR2Files(existing.images ?? [], project.images as string[]).catch(() => {})
+      cleanupRemovedR2Files(existing.images ?? [], project.images as string[]).catch(() => { })
     }
     if (brochureUrl !== undefined) {
       cleanupRemovedR2Files(
         existing.brochure_url ? [existing.brochure_url] : [],
         brochureUrl ? [brochureUrl] : []
-      ).catch(() => {})
+      ).catch(() => { })
     }
 
     // Unit config R2 files — diff old vs new floor_plan + images per unit
@@ -516,7 +537,7 @@ export async function adminUpdateProject(
       cleanupRemovedR2Files(
         [...oldFloorPlans, ...oldUnitImages],
         [...newFloorPlans, ...newUnitImages]
-      ).catch(() => {})
+      ).catch(() => { })
     }
   }
 }
