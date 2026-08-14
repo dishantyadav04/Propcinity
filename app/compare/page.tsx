@@ -89,7 +89,7 @@ function CompareContent() {
     {
       label: 'Config', render: p => (
         <span className="text-xs text-[var(--text-secondary)]">
-          {Array.from(new Set((p.unitConfigs || []).map(u => u.type))).join(', ') || '—'}
+          {Array.from(new Set((p.unitConfigs || []).map(u => u.type || 'Unit'))).join(', ') || '—'}
         </span>
       )
     },

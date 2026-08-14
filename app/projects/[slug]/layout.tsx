@@ -15,7 +15,7 @@ export async function generateMetadata({
   const canonical = `https://propcinity.in/projects/${project.slug}`
 
   const description = project.description?.slice(0, 160)
-    || `${project.name} in ${project.location}, ${project.city}. ${project.unitConfigs?.length ? project.unitConfigs.map(u => u.type).join(', ') + ' available.' : ''} Explore pricing, floor plans, RERA status and more.`
+    || `${project.name} in ${project.location}, ${project.city}. ${project.unitConfigs?.length ? project.unitConfigs.map(u => u.type || 'Unit').join(', ') + ' available.' : ''} Explore pricing, floor plans, RERA status and more.`
 
   const title = `${project.name} by ${project.builderName} — Propcinity`
 

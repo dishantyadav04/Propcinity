@@ -197,7 +197,8 @@ export default function ProjectDetailClient({ project }: { project: Project }) {
     if (!project?.unitConfigs?.length) return [] as [string, any[]][];
     return Array.from(
       project!.unitConfigs.reduce((map, unit) => {
-        const base = unit.type.match(/^(\d+(?:\.\d+)?(?:\s*BHK|RK)?)/i)?.[0]?.trim() || unit.type.split(/[-–(]/)[0].trim();
+        const typeStr = unit.type || 'Unit';
+        const base = typeStr.match(/^(\d+(?:\.\d+)?(?:\s*BHK|RK)?)/i)?.[0]?.trim() || typeStr.split(/[-–(]/)[0].trim();
         if (!map.has(base)) map.set(base, []);
         map.get(base)!.push(unit);
         return map;
@@ -326,8 +327,8 @@ export default function ProjectDetailClient({ project }: { project: Project }) {
     ? Math.min(...project.unitConfigs.map(u => u.price)) : 0;
   const maxPrice = project.unitConfigs?.length
     ? Math.max(...project.unitConfigs.map(u => u.price)) : 0;
-  const configSummary = Array.from(new Set(project.unitConfigs.map(u =>
-    u.type.match(/^(\d+(?:\.\d+)?(?:\s*BHK|RK)?)/i)?.[0] || u.type
+  const configSummary = Array.from(new Set((project.unitConfigs || []).map(u =>
+    (u.type || 'Unit').match(/^(\d+(?:\.\d+)?(?:\s*BHK|RK)?)/i)?.[0] || u.type || 'Unit'
   ))).join(', ');
   const areaMin = project.unitConfigs?.length ? Math.min(...project.unitConfigs.map(u => u.area)) : 0;
   const areaMax = project.unitConfigs?.length ? Math.max(...project.unitConfigs.map(u => u.area)) : 0;
@@ -350,7 +351,7 @@ export default function ProjectDetailClient({ project }: { project: Project }) {
     },
     offers: project.unitConfigs.map(u => ({
       '@type': 'Offer',
-      name: u.type,
+      name: u.type || 'Unit',
       price: u.price,
       priceCurrency: 'INR',
     })),

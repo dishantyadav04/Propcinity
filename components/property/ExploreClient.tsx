@@ -152,8 +152,8 @@ function ExplorePageContent({ initialProjects }: { initialProjects: Project[] })
     // BHK filter
     if (bhkFilter) {
       result = result.filter(p =>
-        p.unitConfigs.some(u => u.type.toLowerCase().includes(bhkFilter.toLowerCase()))
-      );
+          p.unitConfigs.some(u => (u.type || '').toLowerCase().includes(bhkFilter.toLowerCase()))
+        );
     }
     if (budgetFilter !== 'all') {
       const ranges: Record<string, [number, number]> = {
@@ -645,7 +645,7 @@ function ExplorePageContent({ initialProjects }: { initialProjects: Project[] })
             {visibleProjects.map((project, index) => {
               const minPrice = project.unitConfigs?.length
                 ? Math.min(...project.unitConfigs.map(u => u.price)) : 0;
-              const configs = Array.from(new Set((project.unitConfigs || []).map(u => u.type)));
+              const configs = Array.from(new Set((project.unitConfigs || []).map(u => u.type || 'Unit')));
               return (
                 <motion.div key={project.id}
                   initial={{ opacity: 0, y: 10 }}

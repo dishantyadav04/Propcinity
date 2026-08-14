@@ -67,7 +67,7 @@ export default function ProjectCard({
   const [isComparing, setIsComparing] = useState(isComparingProp ?? false);
   const [isCurated, setIsCurated] = useState(false);
 
-  const unitTypes = Array.from(new Set(project.unitConfigs.map(u => u.type)));
+  const unitTypes = Array.from(new Set(project.unitConfigs.map(u => u.type || 'Unit')));
 
   const shortLabel = (type: string) => {
     const match = type.match(/(\d+\s*BHK)/i);
