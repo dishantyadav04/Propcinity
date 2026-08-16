@@ -20,6 +20,7 @@ import {
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
+import { createPortal } from 'react-dom';
 import { toast } from 'sonner';
 import { addToCompare } from '@/lib/utils';
 import { storage, STORAGE_KEYS } from '@/lib/storage';
@@ -90,6 +91,16 @@ function ExplorePageContent({ initialProjects }: { initialProjects: Project[] })
   const [showAllProjects, setShowAllProjects] = useState(false);
 
   const sortRef = useRef<HTMLDivElement>(null);
+  const sortButtonRef = useRef<HTMLButtonElement>(null);
+  const [sortMenuPos, setSortMenuPos] = useState<{ top: number; right: number } | null>(null);
+
+  const handleSortToggle = () => {
+    if (!sortOpen && sortButtonRef.current) {
+      const rect = sortButtonRef.current.getBoundingClientRect();
+      setSortMenuPos({ top: rect.bottom + 6, right: window.innerWidth - rect.right });
+    }
+    setSortOpen(!sortOpen);
+  };
 
   // Load localStorage once on client
   useEffect(() => {
@@ -384,7 +395,8 @@ function ExplorePageContent({ initialProjects }: { initialProjects: Project[] })
             {/* Custom sort dropdown */}
             <div ref={sortRef} className="relative flex-shrink-0">
               <button
-                onClick={() => setSortOpen(!sortOpen)}
+                ref={sortButtonRef}
+                onClick={handleSortToggle}
                 className={`flex items-center gap-2 pl-3 pr-2.5 py-2.5
                   bg-[var(--surface-raised)] border rounded-[var(--radius-xs)]
                   text-sm font-semibold transition-all whitespace-nowrap ${sortOpen
@@ -397,53 +409,57 @@ function ExplorePageContent({ initialProjects }: { initialProjects: Project[] })
                 <ChevronDown className={`w-3.5 h-3.5 transition-transform ${sortOpen ? 'rotate-180' : ''}`} />
               </button>
 
-              <AnimatePresence>
-                {sortOpen && (
-                  <motion.div
-                    initial={{ opacity: 0, y: -8, scale: 0.96 }}
-                    animate={{ opacity: 1, y: 0, scale: 1 }}
-                    exit={{ opacity: 0, y: -8, scale: 0.96 }}
-                    transition={{ duration: 0.12 }}
-                    className="absolute right-0 top-[calc(100%+6px)] z-50 w-52
-                      bg-white border border-[var(--border)] rounded-[var(--radius)]
-                      shadow-[var(--shadow-lg)] overflow-hidden"
-                  >
-                    <div className="px-3 py-2 border-b border-[var(--border)]">
-                      <p className="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-wider">
-                        Sort by
-                      </p>
-                    </div>
-                    <div className="p-1.5 space-y-0.5">
-                      {SORT_OPTIONS.map(opt => {
-                        const locked = isGuest && opt.value !== 'relevance';
-                        return (
-                          <button key={opt.value}
-                            onClick={() => {
-                              if (locked) {
-                                toast('Sign up to sort by price or date', {
-                                  action: { label: 'Get Started', onClick: () => router.push('/onboarding') }
-                                });
-                                return;
-                              }
-                              setSortBy(opt.value);
-                              setSortOpen(false);
-                            }}
-                            className={`w-full flex items-center gap-3 px-3 py-2.5
-                              rounded-[var(--radius-xs)] text-sm font-semibold transition-all text-left ${sortBy === opt.value
-                                ? 'bg-[var(--primary-light)] text-[var(--primary)]'
-                                : 'text-[var(--text-secondary)] hover:bg-[var(--surface-raised)]'
-                              } ${locked ? 'opacity-50' : ''}`}>
-                            <span className="text-base w-5 text-center">{opt.icon}</span>
-                            <span className="flex-1">{opt.label}</span>
-                            {locked && <Lock className="w-3 h-3 ml-auto text-[var(--text-muted)]" />}
-                            {sortBy === opt.value && !locked && <Check className="w-3.5 h-3.5 text-[var(--primary)]" />}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
+              {typeof document !== 'undefined' && createPortal(
+                <AnimatePresence>
+                  {sortOpen && sortMenuPos && (
+                    <motion.div
+                      initial={{ opacity: 0, y: -8, scale: 0.96 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: -8, scale: 0.96 }}
+                      transition={{ duration: 0.12 }}
+                      style={{ position: 'fixed', top: sortMenuPos.top, right: sortMenuPos.right }}
+                      className="z-[999] w-52
+                        bg-white border border-[var(--border)] rounded-[var(--radius)]
+                        shadow-[var(--shadow-lg)] overflow-hidden"
+                    >
+                      <div className="px-3 py-2 border-b border-[var(--border)]">
+                        <p className="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-wider">
+                          Sort by
+                        </p>
+                      </div>
+                      <div className="p-1.5 space-y-0.5">
+                        {SORT_OPTIONS.map(opt => {
+                          const locked = isGuest && opt.value !== 'relevance';
+                          return (
+                            <button key={opt.value}
+                              onClick={() => {
+                                if (locked) {
+                                  toast('Sign up to sort by price or date', {
+                                    action: { label: 'Get Started', onClick: () => router.push('/onboarding') }
+                                  });
+                                  return;
+                                }
+                                setSortBy(opt.value);
+                                setSortOpen(false);
+                              }}
+                              className={`w-full flex items-center gap-3 px-3 py-2.5
+                                rounded-[var(--radius-xs)] text-sm font-semibold transition-all text-left ${sortBy === opt.value
+                                  ? 'bg-[var(--primary-light)] text-[var(--primary)]'
+                                  : 'text-[var(--text-secondary)] hover:bg-[var(--surface-raised)]'
+                                } ${locked ? 'opacity-50' : ''}`}>
+                              <span className="text-base w-5 text-center">{opt.icon}</span>
+                              <span className="flex-1">{opt.label}</span>
+                              {locked && <Lock className="w-3 h-3 ml-auto text-[var(--text-muted)]" />}
+                              {sortBy === opt.value && !locked && <Check className="w-3.5 h-3.5 text-[var(--primary)]" />}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>,
+                document.body
+              )}
             </div>
 
             {/* View mode — desktop (hidden for guests) */}

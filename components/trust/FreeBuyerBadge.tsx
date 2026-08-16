@@ -15,8 +15,8 @@ export default function FreeBuyerBadge({ variant = 'default', className }: FreeB
       variant === 'default' && "bg-[var(--success-light)] px-2 py-1 rounded-[var(--radius-xs)]",
       className
     )}>
-      <ShieldCheck className="w-4 h-4" />
-      <span>100% Free Service for Buyers</span>
+      <ShieldCheck className="w-4 h-4 flex-shrink-0" />
+      <span className="leading-none">100% Free Service for Buyers</span>
     </div>
   );
 }

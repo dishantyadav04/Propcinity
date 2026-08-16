@@ -722,7 +722,7 @@ export default function ProjectForm({ initialData }: ProjectFormProps) {
               <label className="text-[10px] text-[var(--text-muted)] uppercase font-bold">Latitude</label>
               <input
                 type="text"
-                inputMode="numeric"
+                inputMode="decimal"
                 value={project.lat ?? ''}
                 onChange={(e) => setProject({...project, lat: parseFloatInput(e.target.value) ?? 18.5204})}
                 className={`w-full bg-[var(--surface-raised)] border rounded-xl px-4 py-2.5 text-sm ${errors.lat ? 'border-red-500' : 'border-[var(--border)]'}`}
@@ -733,7 +733,7 @@ export default function ProjectForm({ initialData }: ProjectFormProps) {
               <label className="text-[10px] text-[var(--text-muted)] uppercase font-bold">Longitude</label>
               <input
                 type="text"
-                inputMode="numeric"
+                inputMode="decimal"
                 value={project.lng ?? ''}
                 onChange={(e) => setProject({...project, lng: parseFloatInput(e.target.value) ?? 73.8567})}
                 className={`w-full bg-[var(--surface-raised)] border rounded-xl px-4 py-2.5 text-sm ${errors.lng ? 'border-red-500' : 'border-[var(--border)]'}`}
@@ -791,7 +791,7 @@ export default function ProjectForm({ initialData }: ProjectFormProps) {
             <label className="text-[10px] text-[var(--text-muted)] uppercase font-bold">Land Parcel (acres)</label>
             <input
               type="text"
-              inputMode="numeric"
+              inputMode="decimal"
               value={project.landParcelAcres ?? ''}
               onChange={(e) => setProject({...project, landParcelAcres: parseFloatInput(e.target.value)})}
               className={`w-full bg-[var(--surface-raised)] border rounded-xl px-4 py-2.5 text-sm ${errors.land_parcel_acres ? 'border-red-500' : 'border-[var(--border)]'}`}

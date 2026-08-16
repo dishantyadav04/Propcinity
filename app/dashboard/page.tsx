@@ -17,6 +17,7 @@ import { useGuestMode } from '@/hooks/useGuestMode';
 import PersonalizedWelcome from '@/components/onboarding/PersonalizedWelcome';
 import { hashIntent, getLocalAIRank, setLocalAIRank } from '@/lib/ai-rank-cache';
 import { syncIntentToSupabase, fetchIntentFromSupabase } from '@/lib/intent-sync';
+import { getCachedProjects, setCachedProjects } from '@/lib/projects-cache';
 
 function getSmartMatchLabel(project: Project, intent: any): string | null {
   if (!intent) return null;
@@ -218,6 +219,13 @@ export default function DashboardPage() {
   }, []);
 
   useEffect(() => {
+    const cached = getCachedProjects();
+    if (cached) {
+      setProjects(cached);
+      setIsLoading(false);
+      return; // skip the network call entirely — data is fresh enough
+    }
+
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 10000);
 
@@ -226,7 +234,11 @@ export default function DashboardPage() {
         if (!r.ok) throw new Error(`HTTP ${r.status}`);
         return r.json();
       })
-      .then(data => setProjects(Array.isArray(data) ? data : []))
+      .then(data => {
+        const list = Array.isArray(data) ? data : [];
+        setProjects(list);
+        setCachedProjects(list);
+      })
       .catch(err => {
         if (err.name !== 'AbortError') {
           console.error('Projects fetch failed:', err);
