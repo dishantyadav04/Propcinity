@@ -110,7 +110,7 @@ export default function ProfilePage() {
             <h2 className="text-xs font-black text-[var(--text-muted)] uppercase tracking-widest">
               Current Search Preferences
             </h2>
-            <Link href="/onboarding?step=2" className="text-xs font-black text-[var(--primary)] hover:underline">
+            <Link href="/onboarding?step=1" className="text-xs font-black text-[var(--primary)] hover:underline">
               Retake Quiz
             </Link>
           </div>

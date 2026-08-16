@@ -2,7 +2,14 @@ import { createServerSupabaseClient } from '@/lib/supabase-server'
 import { redirect } from 'next/navigation'
 import UserIntentForm from "@/components/onboarding/UserIntentForm";
 
-export default async function OnboardingPage() {
+export default async function OnboardingPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>
+}) {
+  const params = await searchParams
+  const isRetake = params.step !== undefined
+
   const supabase = await createServerSupabaseClient()
 
   if (!supabase) redirect('/auth/signin?next=/onboarding')
@@ -23,7 +30,7 @@ export default async function OnboardingPage() {
     .eq('id', user.id)
     .maybeSingle()
 
-  if (intent && profile?.onboarding_complete) {
+  if (intent && profile?.onboarding_complete && !isRetake) {
     redirect('/dashboard')
   }
 

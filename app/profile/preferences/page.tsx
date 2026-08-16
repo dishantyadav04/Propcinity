@@ -93,7 +93,7 @@ export default function PreferencesPage() {
             </div>
 
             <div className="flex gap-3">
-              <button onClick={() => router.push('/onboarding?step=2')}
+              <button onClick={() => router.push('/onboarding?step=1')}
                 className="flex-1 py-3 bg-[var(--primary)] text-white text-sm font-bold
                   rounded-[var(--radius)] shadow-[var(--shadow-primary)] hover:opacity-90 transition-opacity">
                 Retake Quiz

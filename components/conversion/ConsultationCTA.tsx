@@ -55,7 +55,7 @@ export default function ConsultationCTA({ project, unitConfig, variant, triggerS
 
   if (variant === 'sticky') {
     return (
-      <div className="fixed bottom-0 left-0 right-0 z-40 bg-[var(--surface)]/90 backdrop-blur-xl border-t border-[var(--border)] pb-[env(safe-area-inset-bottom)] p-4 space-y-4">
+      <div className="space-y-4">
         <div className="flex justify-center">
           <FreeBuyerBadge variant="inline" />
         </div>

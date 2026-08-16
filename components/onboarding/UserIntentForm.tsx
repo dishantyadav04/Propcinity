@@ -685,7 +685,7 @@ export default function UserIntentForm() {
                 {(form.budgetMin > 0 || form.budgetMax > 0) && (
                   <div className="p-4 bg-[var(--primary-light)] border border-[var(--primary)]/20 rounded-[var(--radius)]">
                     <p className="text-xs font-bold text-[var(--text-muted)] uppercase tracking-wider mb-1">Your Budget</p>
-                    <p className="text-xl font-black text-[var(--primary)]" style={{ fontFamily: 'var(--font-display)' }}>
+                    <p className="text-lg font-bold text-[var(--primary)]">
                       {form.budgetMin > 0 ? formatBudget(form.budgetMin) : '₹0'}
                       {' '}&mdash;{' '}
                       {form.isOpenMax ? `Above ₹10Cr` : form.budgetMax > 0 ? formatBudget(form.budgetMax) : '?'}
@@ -767,9 +767,8 @@ export default function UserIntentForm() {
                         className="sr-only"
                       />
                       <div
-                        onClick={() => setConsentGiven(v => !v)}
                         className={cn(
-                          "w-5 h-5 rounded border-2 flex items-center justify-center transition-all cursor-pointer",
+                          "w-5 h-5 rounded border-2 flex items-center justify-center transition-all",
                           consentGiven
                             ? "bg-[var(--primary)] border-[var(--primary)]"
                             : "bg-white border-[var(--border-strong)] group-hover:border-[var(--primary)]"
