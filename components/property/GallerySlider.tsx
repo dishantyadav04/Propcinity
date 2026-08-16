@@ -52,19 +52,19 @@ export default function GallerySlider({ images }: GallerySliderProps) {
 
       <button 
         onClick={prev}
-        className="absolute left-2 top-1/2 -translate-y-1/2 p-2 bg-black/20 backdrop-blur-md rounded-full text-white opacity-0 group-hover:opacity-100 transition-opacity"
+        className="absolute left-2 top-1/2 -translate-y-1/2 p-2 bg-black/55 rounded-full text-white opacity-0 group-hover:opacity-100 transition-opacity"
       >
         <ChevronLeft className="w-5 h-5" />
       </button>
       <button 
         onClick={next}
-        className="absolute right-2 top-1/2 -translate-y-1/2 p-2 bg-black/20 backdrop-blur-md rounded-full text-white opacity-0 group-hover:opacity-100 transition-opacity"
+        className="absolute right-2 top-1/2 -translate-y-1/2 p-2 bg-black/55 rounded-full text-white opacity-0 group-hover:opacity-100 transition-opacity"
       >
         <ChevronRight className="w-5 h-5" />
       </button>
 
       <div className="absolute top-4 right-4 flex items-center gap-2">
-        <div className="bg-black/40 backdrop-blur-md px-2.5 py-1 rounded-lg text-[10px] font-bold text-white uppercase tracking-wider">
+        <div className="bg-black/65 px-2.5 py-1 rounded-lg text-[10px] font-bold text-white uppercase tracking-wider">
           {index + 1} / {images.length}
         </div>
       </div>

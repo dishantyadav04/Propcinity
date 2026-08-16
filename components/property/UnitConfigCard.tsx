@@ -6,6 +6,7 @@ import { formatINR } from "@/lib/finance-calculations";
 import { Maximize, Compass, ZoomIn, X } from "lucide-react";
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import Image from "next/image";
 
 interface UnitConfigCardProps {
   unit: UnitConfig;
@@ -46,11 +47,15 @@ export default function UnitConfigCard({ unit, project }: UnitConfigCardProps) {
                 </button>
               </div>
               <div className="p-5 bg-[var(--surface-raised)]">
-                <img
+                <div className="relative w-full h-[min(70vh,500px)]">
+                  <Image
                   src={unit.floorPlan}
                   alt={`${unit.type} floor plan`}
-                  className="w-full h-auto max-h-[500px] object-contain rounded-[var(--radius-xs)]"
-                />
+                    fill
+                    sizes="(max-width: 768px) 90vw, 672px"
+                    className="object-contain rounded-[var(--radius-xs)]"
+                  />
+                </div>
               </div>
             </motion.div>
           </motion.div>
@@ -64,10 +69,12 @@ export default function UnitConfigCard({ unit, project }: UnitConfigCardProps) {
         {unit.floorPlan ? (
           <div className="relative h-40 bg-[var(--surface-raised)] overflow-hidden cursor-pointer group"
             onClick={() => setFloorPlanOpen(true)}>
-            <img
+            <Image
               src={unit.floorPlan}
               alt={`${unit.type} floor plan`}
-              className="w-full h-full object-contain p-2 transition-transform duration-300 group-hover:scale-105"
+              fill
+              sizes="(max-width: 768px) 100vw, 33vw"
+              className="object-contain p-2 transition-transform duration-300 group-hover:scale-105"
             />
             <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors
               flex items-center justify-center">

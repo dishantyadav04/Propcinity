@@ -4,14 +4,21 @@
 
 import * as Sentry from "@sentry/nextjs";
 
+const configuredProductionTraceSampleRate = Number.parseFloat(
+  process.env.NEXT_PUBLIC_SENTRY_TRACES_SAMPLE_RATE ?? "0.15"
+);
+const productionTraceSampleRate = Number.isFinite(configuredProductionTraceSampleRate)
+  ? configuredProductionTraceSampleRate
+  : 0.15;
+
 Sentry.init({
   dsn: "https://cbf495551b261dd7a0f809052a464920@o4511584789921792.ingest.us.sentry.io/4511584914374656",
 
   // Add optional integrations for additional features
   integrations: [Sentry.replayIntegration()],
 
-  // Define how likely traces are sampled. Adjust this value in production, or use tracesSampler for greater control.
-  tracesSampleRate: 1,
+  // Keep local traces complete while avoiding 100% production tracing on mobile clients.
+  tracesSampleRate: process.env.NODE_ENV === "production" ? productionTraceSampleRate : 1,
   // Enable logs to be sent to Sentry
   enableLogs: true,
 

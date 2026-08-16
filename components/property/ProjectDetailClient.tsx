@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState, useRef, useMemo } from "react";
 import dynamic from "next/dynamic";
+import Image from "next/image";
 import { Project, UnitConfig } from "@/types/project";
 const GallerySlider = dynamic(() => import("@/components/property/GallerySlider"), {
   ssr: false,
@@ -276,11 +277,15 @@ export default function ProjectDetailClient({ project }: { project: Project }) {
                   </div>
                 </div>
                 <div className="p-4 bg-[var(--surface-raised)]">
-                  <img
+                  <div className="relative w-full h-[70vh]">
+                    <Image
                     src={images[lightboxIndex]}
                     alt={labels?.[lightboxIndex] ?? label}
-                    className="w-full h-auto max-h-[70vh] object-contain rounded-[var(--radius-xs)]"
-                  />
+                      fill
+                      sizes="(max-width: 768px) 92vw, 896px"
+                      className="object-contain rounded-[var(--radius-xs)]"
+                    />
+                  </div>
                 </div>
               </motion.div>
             </motion.div>
@@ -295,10 +300,12 @@ export default function ProjectDetailClient({ project }: { project: Project }) {
                 rounded-[var(--radius-sm)] overflow-hidden cursor-pointer group relative"
               onClick={() => setLightboxIndex(idx)}
             >
-              <img
+              <Image
                 src={img}
                 alt={labels?.[idx] ?? `${label} ${idx + 1}`}
-                className="w-full h-full object-contain p-2 transition-transform duration-300 group-hover:scale-105"
+                fill
+                sizes="208px"
+                className="object-contain p-2 transition-transform duration-300 group-hover:scale-105"
               />
               <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors
                 flex items-center justify-center">
@@ -704,8 +711,13 @@ export default function ProjectDetailClient({ project }: { project: Project }) {
                                           className="w-14 h-14 bg-[var(--surface-raised)] border border-[var(--border)] rounded-lg
                                             overflow-hidden group relative hover:border-[var(--primary)] transition-colors"
                                         >
-                                          <img src={unit.floorPlan} alt="unit plan"
-                                            className="w-full h-full object-contain p-1" />
+                                          <Image
+                                            src={unit.floorPlan}
+                                            alt="unit plan"
+                                            fill
+                                            sizes="56px"
+                                            className="object-contain p-1"
+                                          />
                                           <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors
                                             flex items-center justify-center">
                                             <ZoomIn className="w-3 h-3 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
@@ -906,9 +918,12 @@ export default function ProjectDetailClient({ project }: { project: Project }) {
                               className="group flex flex-col items-center gap-1">
                               <div className="w-28 h-28 bg-white border border-[var(--border)] rounded-lg overflow-hidden
                                 group-hover:shadow-md transition-shadow p-1.5">
-                                <img
+                                <Image
                                   src={`https://api.qrserver.com/v1/create-qr-code/?data=${encodeURIComponent(reg.reraLink)}&size=160x160&margin=0`}
                                   alt={`QR for ${reg.reraId}`}
+                                  width={160}
+                                  height={160}
+                                  sizes="112px"
                                   className="w-full h-full object-contain"
                                 />
                               </div>
@@ -953,7 +968,16 @@ export default function ProjectDetailClient({ project }: { project: Project }) {
                       className="flex items-center gap-2 px-4 py-2 bg-white border border-[var(--border)]
                         rounded-[var(--radius-sm)] shadow-sm">
                       {bank.logoUrl
-                        ? <img src={bank.logoUrl} alt={bank.bankName} className="h-6 object-contain" />
+                        ? (
+                          <Image
+                            src={bank.logoUrl}
+                            alt={bank.bankName}
+                            width={96}
+                            height={24}
+                            sizes="96px"
+                            className="h-6 w-auto object-contain"
+                          />
+                        )
                         : <span className="text-sm font-bold text-[var(--text-primary)]">{bank.bankName}</span>
                       }
                     </div>
@@ -976,8 +1000,14 @@ export default function ProjectDetailClient({ project }: { project: Project }) {
                 <div className="p-5 bg-[var(--surface-raised)] border border-[var(--border)] rounded-[var(--radius)]">
                   <div className="flex items-center gap-4 mb-4">
                     {project.builderLogo && (
-                      <img src={project.builderLogo} alt={project.builderName}
-                        className="w-16 h-16 object-contain rounded-lg border border-[var(--border)] bg-white p-1" />
+                      <Image
+                        src={project.builderLogo}
+                        alt={project.builderName}
+                        width={64}
+                        height={64}
+                        sizes="64px"
+                        className="w-16 h-16 object-contain rounded-lg border border-[var(--border)] bg-white p-1"
+                      />
                     )}
                     <div>
                       <p className="font-black text-[var(--text-primary)] text-lg">{project.builderName}</p>
@@ -1172,8 +1202,15 @@ export default function ProjectDetailClient({ project }: { project: Project }) {
                 </button>
               </div>
               <div className="p-4 bg-[var(--surface-raised)]">
-                <img src={expandedFloorPlan.src} alt={expandedFloorPlan.label}
-                  className="w-full h-auto max-h-[70vh] object-contain rounded-[var(--radius-xs)]" />
+                <div className="relative w-full h-[70vh]">
+                  <Image
+                    src={expandedFloorPlan.src}
+                    alt={expandedFloorPlan.label}
+                    fill
+                    sizes="(max-width: 768px) 92vw, 896px"
+                    className="object-contain rounded-[var(--radius-xs)]"
+                  />
+                </div>
               </div>
             </motion.div>
           </motion.div>

@@ -31,6 +31,7 @@ const MapView = dynamic(() => import('@/components/map/MapView'), {
 
 type SortOption = 'relevance' | 'price_asc' | 'price_desc' | 'newest';
 type ViewMode = 'grid' | 'list';
+const PROJECT_PAGE_SIZE = 12;
 
 const SORT_OPTIONS: { value: SortOption; label: string; icon: string }[] = [
   { value: 'relevance', label: 'Best Match', icon: '⭐' },
@@ -38,6 +39,17 @@ const SORT_OPTIONS: { value: SortOption; label: string; icon: string }[] = [
   { value: 'price_desc', label: 'Price: High → Low', icon: '↓' },
   { value: 'newest', label: 'Newest First', icon: '🆕' },
 ];
+
+function useDebouncedValue<T>(value: T, delayMs: number) {
+  const [debouncedValue, setDebouncedValue] = useState(value);
+
+  useEffect(() => {
+    const timeout = window.setTimeout(() => setDebouncedValue(value), delayMs);
+    return () => window.clearTimeout(timeout);
+  }, [value, delayMs]);
+
+  return debouncedValue;
+}
 
 function ExplorePageContent({ initialProjects }: { initialProjects: Project[] }) {
   const router = useRouter();
@@ -51,6 +63,7 @@ function ExplorePageContent({ initialProjects }: { initialProjects: Project[] })
 
   // UI state
   const [searchQuery, setSearchQuery] = useState('');
+  const debouncedSearchQuery = useDebouncedValue(searchQuery, 275);
   const [sortBy, setSortBy] = useState<SortOption>('relevance');
   const [showFilters, setShowFilters] = useState(false);
   const [sortOpen, setSortOpen] = useState(false);
@@ -59,6 +72,7 @@ function ExplorePageContent({ initialProjects }: { initialProjects: Project[] })
   const [budgetFilter, setBudgetFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('');
   const [bhkFilter, setBhkFilter] = useState('');
+  const [visibleCount, setVisibleCount] = useState(PROJECT_PAGE_SIZE);
   // Bug 3 fixed: riskFilter state removed — riskLabel deleted from Project type
 
   // Seed search from URL param on mount
@@ -118,12 +132,12 @@ function ExplorePageContent({ initialProjects }: { initialProjects: Project[] })
     let result = [...projects];
 
     // Search
-    if (searchQuery) {
-      const q = searchQuery.toLowerCase();
+    const normalizedSearchQuery = debouncedSearchQuery.trim().toLowerCase();
+    if (normalizedSearchQuery) {
       result = result.filter(p =>
-        p.name.toLowerCase().includes(q) ||
-        p.location.toLowerCase().includes(q) ||
-        (p.builderName || '').toLowerCase().includes(q)
+        p.name.toLowerCase().includes(normalizedSearchQuery) ||
+        p.location.toLowerCase().includes(normalizedSearchQuery) ||
+        (p.builderName || '').toLowerCase().includes(normalizedSearchQuery)
       );
     }
 
@@ -206,10 +220,14 @@ function ExplorePageContent({ initialProjects }: { initialProjects: Project[] })
     if (result.length > 0 && !result.find(p => p.id === selectedProject?.id)) {
       setSelectedProject(result[0]);
     }
-  }, [projects, searchQuery, sortBy, typeFilter, budgetFilter, statusFilter, bhkFilter,
-    userIntent, showAllProjects]);
+  }, [projects, debouncedSearchQuery, sortBy, typeFilter, budgetFilter, statusFilter, bhkFilter,
+    userIntent, showAllProjects, selectedProject?.id]);
 
   useEffect(() => { applyFilters(); }, [applyFilters]);
+
+  useEffect(() => {
+    setVisibleCount(PROJECT_PAGE_SIZE);
+  }, [debouncedSearchQuery, sortBy, typeFilter, budgetFilter, statusFilter, bhkFilter, showAllProjects]);
 
   const toggleCurated = (id: string, e: React.MouseEvent) => {
     e.preventDefault(); e.stopPropagation();
@@ -254,11 +272,12 @@ function ExplorePageContent({ initialProjects }: { initialProjects: Project[] })
     typeFilter !== 'all', budgetFilter !== 'all', !!statusFilter, !!bhkFilter
   ].filter(Boolean).length;
 
-  // Guest card visibility
-  const visibleProjects = isGuest
-    ? filtered.slice(0, GUEST_LIMITS.explore.visibleCards)
-    : filtered;
-  const hasHiddenProjects = isGuest && filtered.length > GUEST_LIMITS.explore.visibleCards;
+  const guestVisibleLimit = isGuest ? GUEST_LIMITS.explore.visibleCards : Infinity;
+  const effectiveVisibleCount = Math.min(visibleCount, guestVisibleLimit);
+  const visibleProjects = filtered.slice(0, effectiveVisibleCount);
+  const hasMoreProjects = filtered.length > effectiveVisibleCount;
+  const hasGuestLockedProjects = isGuest && filtered.length > guestVisibleLimit;
+  const canLoadMoreProjects = hasMoreProjects && !hasGuestLockedProjects;
 
   return (
     <div className="min-h-screen bg-[var(--background)] pb-40">
@@ -577,7 +596,7 @@ function ExplorePageContent({ initialProjects }: { initialProjects: Project[] })
         ) : viewMode === 'grid' ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 items-start">
             {visibleProjects.map((project, index) => (
-              <motion.div key={project.id} layout
+              <motion.div key={project.id}
                 initial={{ opacity: 0, y: 16 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: Math.min(index * 0.04, 0.3) }}
@@ -613,7 +632,7 @@ function ExplorePageContent({ initialProjects }: { initialProjects: Project[] })
                   title={curatedIds.includes(project.id) ? 'Remove from Dashboard' : 'Add to Dashboard'}
                   className={`absolute top-3 right-3 z-30 w-7 h-7 rounded-full
                     flex items-center justify-center
-                    transition-all duration-150 shadow-sm backdrop-blur-sm
+                    transition-all duration-150 shadow-sm
                     hover:scale-110 ${curatedIds.includes(project.id)
                       ? 'bg-[var(--primary)] text-white'
                       : 'bg-black/40 text-white hover:bg-[var(--primary)]'
@@ -628,11 +647,11 @@ function ExplorePageContent({ initialProjects }: { initialProjects: Project[] })
             ))}
 
             {/* Guest placeholder cards */}
-            {hasHiddenProjects && Array.from({ length: 3 }).map((_, i) => (
+            {hasGuestLockedProjects && Array.from({ length: 3 }).map((_, i) => (
               <GuestGate
                 key={`placeholder-${i}`}
                 isGuest={true}
-                label={i === 0 ? `+${filtered.length - GUEST_LIMITS.explore.visibleCards} more projects — sign up to see all` : undefined}
+                label={i === 0 ? `+${filtered.length - effectiveVisibleCount} more projects — sign up to see all` : undefined}
                 blur={true}
               >
                 <div className="bg-white border border-[var(--border)] rounded-[var(--radius)] h-[360px]" />
@@ -724,6 +743,16 @@ function ExplorePageContent({ initialProjects }: { initialProjects: Project[] })
                 </motion.div>
               );
             })}
+          </div>
+        )}
+        {canLoadMoreProjects && (
+          <div className="flex justify-center pt-6">
+            <button
+              onClick={() => setVisibleCount(count => Math.min(count + PROJECT_PAGE_SIZE, filtered.length))}
+              className="px-5 py-2.5 rounded-[var(--radius)] bg-[var(--primary)] text-white text-sm font-bold shadow-[var(--shadow-sm)] hover:opacity-90 transition-opacity"
+            >
+              Load more
+            </button>
           </div>
         )}
       </div>

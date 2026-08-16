@@ -149,7 +149,7 @@ export default function ProjectCard({
           title={isCurated ? 'Remove from Dashboard' : 'Add to Dashboard'}
           className={`absolute top-3 right-3 z-30 w-7 h-7 rounded-full
             flex items-center justify-center
-            transition-all duration-150 shadow-sm backdrop-blur-sm
+            transition-all duration-150 shadow-sm
             hover:scale-110 ${isCurated
               ? 'bg-[var(--primary)] text-white'
               : 'bg-black/40 text-white hover:bg-[var(--primary)]'
@@ -178,8 +178,8 @@ export default function ProjectCard({
           {/* RERA Verified badge — top-left overlay */}
           {project.reraStatus === 'registered' && (
             <div className="absolute top-2.5 left-2.5 z-10 group/rera">
-              <div className="flex items-center justify-center w-6 h-6 rounded-full backdrop-blur-sm cursor-default"
-                style={{ background: 'rgba(22,163,74,0.22)', border: '1px solid rgba(22,163,74,0.4)' }}>
+              <div className="flex items-center justify-center w-6 h-6 rounded-full cursor-default"
+                style={{ background: 'rgba(22,163,74,0.45)', border: '1px solid rgba(22,163,74,0.55)' }}>
                 <ShieldCheck className="w-3.5 h-3.5 text-green-300" />
               </div>
               {/* Tooltip */}
