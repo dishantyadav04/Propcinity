@@ -24,7 +24,8 @@ import { SHOW_BUILDER_SCORE } from "@/lib/feature-flags";
 import {
   MapPin, Share2, Heart, ShieldCheck, Download, Sparkles,
   Play, ChevronRight, CheckCircle2, XCircle, X, ZoomIn,
-  Building2, Home, CalendarDays, Layers, ArrowLeft, LayoutDashboard, Lock
+  Building2, Home, CalendarDays, Layers, ArrowLeft, LayoutDashboard, Lock,
+  ChevronUp, ChevronDown
 } from "lucide-react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
@@ -71,6 +72,7 @@ export default function ProjectDetailClient({ project }: { project: Project }) {
   const isGuest = !isChecking && isGuestRaw;
   const [isQualificationOpen, setIsQualificationOpen] = useState(false);
   const [isAIModalOpen, setIsAIModalOpen] = useState(false);
+  const [isMobileCtaExpanded, setIsMobileCtaExpanded] = useState(false);
   const [selectedUnit, setSelectedUnit] = useState<UnitConfig | undefined>();
   const [activeTab, setActiveTab] = useState('overview');
   const [activeVideo, setActiveVideo] = useState(0);
@@ -1175,10 +1177,47 @@ export default function ProjectDetailClient({ project }: { project: Project }) {
         </div>
       </div>
 
-      {/* ── Mobile sticky bottom CTA ──────────────────── */}
-      <div className="fixed bottom-[64px] md:bottom-0 left-0 right-0 z-30
-        bg-white border-t border-[var(--border)] p-3 lg:hidden">
-        <ConsultationCTA project={project} variant="sticky" triggerSource="project_detail_sticky" />
+      {/* ── Mobile sticky bottom CTA (collapsible) ──────── */}
+      <div className="lg:hidden">
+        <AnimatePresence mode="wait">
+          {isMobileCtaExpanded ? (
+            <motion.div
+              key="expanded"
+              initial={{ y: 40, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              exit={{ y: 40, opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              className="fixed bottom-[64px] md:bottom-0 left-0 right-0 z-30
+                bg-white border-t border-[var(--border)] p-3 pt-2"
+            >
+              <button
+                onClick={() => setIsMobileCtaExpanded(false)}
+                className="flex items-center justify-center w-full mb-1.5 text-[var(--text-muted)]"
+                aria-label="Hide contact options"
+              >
+                <ChevronDown className="w-4 h-4" />
+              </button>
+              <ConsultationCTA project={project} variant="sticky" triggerSource="project_detail_sticky" />
+            </motion.div>
+          ) : (
+            <motion.button
+              key="collapsed"
+              initial={{ y: 40, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              exit={{ y: 40, opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              onClick={() => setIsMobileCtaExpanded(true)}
+              className="fixed bottom-[76px] right-4 z-30 flex items-center gap-2
+                bg-[var(--primary)] text-white font-bold pl-4 pr-3 py-3 rounded-full
+                shadow-lg shadow-[var(--primary)]/30"
+              aria-label="Show contact options"
+            >
+              <Sparkles className="w-4 h-4" />
+              <span className="text-sm">Contact</span>
+              <ChevronUp className="w-4 h-4" />
+            </motion.button>
+          )}
+        </AnimatePresence>
       </div>
 
       {/* Unit plan lightbox */}
