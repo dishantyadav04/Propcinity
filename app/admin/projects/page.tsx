@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { Project } from "@/types/project";
 import Link from "next/link";
-import { Plus, Edit, Trash2, ExternalLink } from "lucide-react";
+import { Plus, Edit, Trash2, ExternalLink, Search } from "lucide-react";
 import { formatINR } from "@/lib/finance-calculations";
 
 export default function AdminProjectsPage() {
@@ -12,12 +12,21 @@ export default function AdminProjectsPage() {
   const [page, setPage] = useState(1);
   const [isLoading, setIsLoading] = useState(true);
   const [togglingId, setTogglingId] = useState<string | null>(null);
+  const [locationFilter, setLocationFilter] = useState('');
+  const [debouncedLocation, setDebouncedLocation] = useState('');
   const limit = 20;
 
-  const loadProjects = async (pageNum: number) => {
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedLocation(locationFilter), 300);
+    return () => clearTimeout(t);
+  }, [locationFilter]);
+
+  const loadProjects = async (pageNum: number, location: string) => {
     setIsLoading(true);
     try {
-      const res = await fetch(`/api/admin/projects?page=${pageNum}&limit=${limit}`, {
+      const params = new URLSearchParams({ page: String(pageNum), limit: String(limit) });
+      if (location.trim()) params.set('location', location.trim());
+      const res = await fetch(`/api/admin/projects?${params.toString()}`, {
         credentials: 'include',
       });
       if (!res.ok) throw new Error('Unauthorized');
@@ -67,8 +76,12 @@ export default function AdminProjectsPage() {
   };
 
   useEffect(() => {
-    loadProjects(page);
-  }, [page]);
+    setPage(1);
+  }, [debouncedLocation]);
+
+  useEffect(() => {
+    loadProjects(page, debouncedLocation);
+  }, [page, debouncedLocation]);
 
   const totalPages = Math.ceil(total / limit);
 
@@ -86,6 +99,18 @@ export default function AdminProjectsPage() {
           <Plus className="w-5 h-5" />
           <span>New Project</span>
         </Link>
+      </div>
+
+      <div className="relative max-w-xs">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-muted)]" />
+        <input
+          type="text"
+          value={locationFilter}
+          onChange={(e) => setLocationFilter(e.target.value)}
+          placeholder="Filter by location..."
+          className="w-full pl-9 pr-3 py-2 bg-[var(--surface-raised)] border border-[var(--border)]
+            rounded-[var(--radius-xs)] text-sm focus:outline-none focus:border-[var(--primary)]"
+        />
       </div>
 
       <div className="bg-[var(--surface)] border border-[var(--border)] rounded-2xl overflow-x-auto">

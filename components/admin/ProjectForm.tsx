@@ -115,6 +115,10 @@ export default function ProjectForm({ initialData }: ProjectFormProps) {
     constructionPercent: undefined
   });
 
+  const [landParcelInput, setLandParcelInput] = useState<string>(
+    initialData?.landParcelAcres != null ? String(initialData.landParcelAcres) : ''
+  );
+
   // Fetch builders on mount
   useEffect(() => {
     fetch('/api/admin/builders', { credentials: 'include' })
@@ -792,8 +796,14 @@ export default function ProjectForm({ initialData }: ProjectFormProps) {
             <input
               type="text"
               inputMode="decimal"
-              value={project.landParcelAcres ?? ''}
-              onChange={(e) => setProject({...project, landParcelAcres: parseFloatInput(e.target.value)})}
+              value={landParcelInput}
+              onChange={(e) => {
+                const raw = e.target.value;
+                if (/^\d*\.?\d*$/.test(raw)) {
+                  setLandParcelInput(raw);
+                  setProject({ ...project, landParcelAcres: parseFloatInput(raw) });
+                }
+              }}
               className={`w-full bg-[var(--surface-raised)] border rounded-xl px-4 py-2.5 text-sm ${errors.land_parcel_acres ? 'border-red-500' : 'border-[var(--border)]'}`}
             />
             {renderFieldError('land_parcel_acres')}

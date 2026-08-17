@@ -325,7 +325,7 @@ export async function getProjectsByIds(ids: string[]): Promise<Project[]> {
   )
 }
 
-export async function adminGetAllProjects(page = 1, limit = 50): Promise<{ projects: unknown[]; total: number; page: number; limit: number }> {
+export async function adminGetAllProjects(page = 1, limit = 50, location?: string): Promise<{ projects: unknown[]; total: number; page: number; limit: number }> {
   const supabase = createAdminSupabaseClient()
   if (!supabase) {
     if (process.env.NEXT_PUBLIC_USE_MOCK_DATA === 'true') return { projects: MOCK_PROJECTS, total: MOCK_PROJECTS.length, page, limit }
@@ -333,11 +333,17 @@ export async function adminGetAllProjects(page = 1, limit = 50): Promise<{ proje
   }
   const from = (page - 1) * limit
   const to = from + limit - 1
-  const { data, error, count } = await supabase
+
+  let query = supabase
     .from('projects')
     .select('*, unit_configs(*)', { count: 'exact' })
     .order('created_at', { ascending: false })
-    .range(from, to)
+
+  if (location && location.trim()) {
+    query = query.ilike('location', `%${location.trim()}%`)
+  }
+
+  const { data, error, count } = await query.range(from, to)
 
   const mapped = (data || []).map((row: any) => ({
     ...row,
