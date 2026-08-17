@@ -83,6 +83,7 @@ export default function ProjectDetailClient({ project }: { project: Project }) {
   const [activePricingType, setActivePricingType] = useState('');
   const [savedToShortlist, setSavedToShortlist] = useState(false);
   const [addedToDashboard, setAddedToDashboard] = useState(false);
+  const [showDashboardHint, setShowDashboardHint] = useState(false);
   const tabsRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -110,6 +111,20 @@ export default function ProjectDetailClient({ project }: { project: Project }) {
       }
     }
   }, [project]);
+
+  // One-time hint teaching mobile users what the dashboard icon does
+  useEffect(() => {
+    if (typeof window === 'undefined' || isGuest) return;
+    const seen = window.localStorage.getItem('propcinity_dashboard_hint_seen');
+    if (!seen) {
+      const showTimer = setTimeout(() => setShowDashboardHint(true), 600);
+      const hideTimer = setTimeout(() => {
+        setShowDashboardHint(false);
+        window.localStorage.setItem('propcinity_dashboard_hint_seen', '1');
+      }, 4600);
+      return () => { clearTimeout(showTimer); clearTimeout(hideTimer); };
+    }
+  }, [isGuest]);
 
   const handleTabClick = (tabId: string) => {
     if (isGuest && GUEST_LIMITS.project.lockedTabs.includes(tabId as any)) {
@@ -388,14 +403,34 @@ export default function ProjectDetailClient({ project }: { project: Project }) {
             className="p-1.5 text-[var(--text-secondary)]">
             <Share2 className="w-5 h-5" />
           </button>
-          <button onClick={handleAddToDashboard}
-            className={`p-1.5 transition-colors ${
-              addedToDashboard ? 'text-[var(--primary)]' : 'text-[var(--text-secondary)]'
-            }`}
-            title={addedToDashboard ? 'Remove from Dashboard' : 'Add to Dashboard'}
-          >
-            <LayoutDashboard className={`w-5 h-5`} />
-          </button>
+          <div className="relative">
+            <button onClick={() => { handleAddToDashboard(); setShowDashboardHint(false); }}
+              className={`p-1.5 rounded-full transition-colors ${
+                addedToDashboard
+                  ? 'bg-[var(--primary-light)] text-[var(--primary)]'
+                  : 'text-[var(--text-secondary)]'
+              }`}
+              title={addedToDashboard ? 'Remove from Dashboard' : 'Add to Dashboard'}
+            >
+              <LayoutDashboard className="w-5 h-5" />
+            </button>
+
+            <AnimatePresence>
+              {showDashboardHint && !addedToDashboard && (
+                <motion.div
+                  initial={{ opacity: 0, y: -6 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -6 }}
+                  className="absolute right-0 top-full mt-2 w-max max-w-[180px]
+                    bg-[var(--text-primary)] text-white text-[11px] font-semibold
+                    px-3 py-2 rounded-[var(--radius-xs)] shadow-lg z-50"
+                >
+                  Tap to save this to your Dashboard
+                  <div className="absolute -top-1 right-4 w-2 h-2 bg-[var(--text-primary)] rotate-45" />
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
         </div>
       </div>
 
@@ -1187,7 +1222,7 @@ export default function ProjectDetailClient({ project }: { project: Project }) {
               animate={{ y: 0, opacity: 1 }}
               exit={{ y: 40, opacity: 0 }}
               transition={{ duration: 0.2 }}
-              className="fixed bottom-[64px] md:bottom-0 left-0 right-0 z-30
+              className="fixed bottom-[calc(64px_+_env(safe-area-inset-bottom))] md:bottom-0 left-0 right-0 z-50
                 bg-white border-t border-[var(--border)] p-3 pt-2"
             >
               <button
@@ -1207,7 +1242,7 @@ export default function ProjectDetailClient({ project }: { project: Project }) {
               exit={{ y: 40, opacity: 0 }}
               transition={{ duration: 0.2 }}
               onClick={() => setIsMobileCtaExpanded(true)}
-              className="fixed bottom-[76px] right-4 z-30 flex items-center gap-2
+              className="fixed bottom-[calc(76px_+_env(safe-area-inset-bottom))] right-4 z-50 flex items-center gap-2
                 bg-[var(--primary)] text-white font-bold pl-4 pr-3 py-3 rounded-full
                 shadow-lg shadow-[var(--primary)]/30"
               aria-label="Show contact options"
