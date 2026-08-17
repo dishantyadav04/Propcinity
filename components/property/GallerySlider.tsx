@@ -3,7 +3,7 @@
 import { useState } from "react";
 import ProjectImage from "./ProjectImage";
 import { motion, AnimatePresence } from "framer-motion";
-import { ChevronLeft, ChevronRight, Maximize2 } from "lucide-react";
+import { ChevronLeft, ChevronRight, Maximize2, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface GallerySliderProps {
@@ -12,6 +12,7 @@ interface GallerySliderProps {
 
 export default function GallerySlider({ images }: GallerySliderProps) {
   const [index, setIndex] = useState(0);
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
 
   const next = () => setIndex((prev) => (prev + 1) % images.length);
   const prev = () => setIndex((prev) => (prev - 1 + images.length) % images.length);
@@ -26,18 +27,25 @@ export default function GallerySlider({ images }: GallerySliderProps) {
           exit={{ opacity: 0, x: -20 }}
           className="absolute inset-0"
         >
-          <ProjectImage
-            src={images[index]}
-            alt={`Gallery image ${index + 1}`}
-            priority={index === 0}
-            sizes="(max-width: 768px) 100vw, 70vw"
-          />
+          <button
+            type="button"
+            onClick={() => setIsPreviewOpen(true)}
+            className="absolute inset-0 w-full h-full"
+            aria-label="Open full preview"
+          >
+            <ProjectImage
+              src={images[index]}
+              alt={`Gallery image ${index + 1}`}
+              priority={index === 0}
+              sizes="(max-width: 768px) 100vw, 70vw"
+            />
+          </button>
         </motion.div>
       </AnimatePresence>
 
       <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent pointer-events-none" />
 
-      {/* Navigation */}
+      {/* Navigation dots */}
       <div className="absolute bottom-4 left-0 right-0 flex justify-center gap-1.5 px-4">
         {images.map((_, i) => (
           <div 
@@ -50,24 +58,94 @@ export default function GallerySlider({ images }: GallerySliderProps) {
         ))}
       </div>
 
-      <button 
-        onClick={prev}
-        className="absolute left-2 top-1/2 -translate-y-1/2 p-2 bg-black/55 rounded-full text-white opacity-0 group-hover:opacity-100 transition-opacity"
-      >
-        <ChevronLeft className="w-5 h-5" />
-      </button>
-      <button 
-        onClick={next}
-        className="absolute right-2 top-1/2 -translate-y-1/2 p-2 bg-black/55 rounded-full text-white opacity-0 group-hover:opacity-100 transition-opacity"
-      >
-        <ChevronRight className="w-5 h-5" />
-      </button>
+      {images.length > 1 && (
+        <>
+          <button 
+            onClick={prev}
+            className="absolute left-2 top-1/2 -translate-y-1/2 p-2 bg-black/55 rounded-full text-white
+              opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity z-10"
+            aria-label="Previous image"
+          >
+            <ChevronLeft className="w-5 h-5" />
+          </button>
+          <button 
+            onClick={next}
+            className="absolute right-2 top-1/2 -translate-y-1/2 p-2 bg-black/55 rounded-full text-white
+              opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity z-10"
+            aria-label="Next image"
+          >
+            <ChevronRight className="w-5 h-5" />
+          </button>
+        </>
+      )}
 
-      <div className="absolute top-4 right-4 flex items-center gap-2">
+      <div className="absolute top-4 right-4 flex items-center gap-2 z-10">
+        <button
+          onClick={() => setIsPreviewOpen(true)}
+          className="bg-black/65 p-1.5 rounded-lg text-white hover:bg-black/80 transition-colors"
+          aria-label="Expand image"
+        >
+          <Maximize2 className="w-3.5 h-3.5" />
+        </button>
         <div className="bg-black/65 px-2.5 py-1 rounded-lg text-[10px] font-bold text-white uppercase tracking-wider">
           {index + 1} / {images.length}
         </div>
       </div>
+
+      {/* Full-screen preview lightbox */}
+      <AnimatePresence>
+        {isPreviewOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[200] bg-black/95 flex items-center justify-center"
+            onClick={() => setIsPreviewOpen(false)}
+          >
+            <button
+              onClick={() => setIsPreviewOpen(false)}
+              className="absolute top-4 right-4 p-2.5 bg-white/10 hover:bg-white/20 rounded-full text-white z-10"
+              aria-label="Close preview"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            <div className="absolute top-4 left-4 bg-black/65 px-3 py-1.5 rounded-lg text-xs font-bold text-white uppercase tracking-wider">
+              {index + 1} / {images.length}
+            </div>
+
+            <div
+              className="relative w-full h-full max-w-4xl max-h-[85vh] m-auto flex items-center justify-center px-4"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <img
+                src={images[index]}
+                alt={`Gallery image ${index + 1} full preview`}
+                className="max-w-full max-h-full object-contain rounded-[var(--radius)]"
+              />
+            </div>
+
+            {images.length > 1 && (
+              <>
+                <button
+                  onClick={(e) => { e.stopPropagation(); prev(); }}
+                  className="absolute left-3 top-1/2 -translate-y-1/2 p-2.5 bg-white/10 hover:bg-white/20 rounded-full text-white"
+                  aria-label="Previous image"
+                >
+                  <ChevronLeft className="w-6 h-6" />
+                </button>
+                <button
+                  onClick={(e) => { e.stopPropagation(); next(); }}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 p-2.5 bg-white/10 hover:bg-white/20 rounded-full text-white"
+                  aria-label="Next image"
+                >
+                  <ChevronRight className="w-6 h-6" />
+                </button>
+              </>
+            )}
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
