@@ -43,7 +43,7 @@ export default function TopHeader() {
       ];
 
   return (
-    <header className="sticky top-0 z-40 bg-[var(--surface)]/95 backdrop-blur-xl border-b border-[var(--border)]">
+    <header className="sticky top-0 z-40 bg-[var(--surface)] border-b border-[var(--border)]">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-4">
 
         {/* Logo */}
