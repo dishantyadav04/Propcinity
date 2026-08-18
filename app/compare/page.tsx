@@ -1,11 +1,11 @@
 'use client';
 
-import { useEffect, useState, useMemo, Suspense } from "react";
+import { useEffect, useState, useMemo, useRef, Suspense } from "react";
 import Image from "next/image";
 import { useSearchParams, useRouter } from "next/navigation";
 import { Project } from "@/types/project";
 import { formatINR } from "@/lib/finance-calculations";
-import { CheckCircle2, XCircle, ArrowLeft, Plus, Loader2, Minus, Lock } from "lucide-react";
+import { CheckCircle2, XCircle, ArrowLeft, Plus, Loader2, Minus, Lock, ChevronLeft, ChevronRight } from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
 import { useGuestMode } from "@/hooks/useGuestMode";
@@ -51,6 +51,52 @@ function CompareContent() {
 
     setIsLoading(false);
   }, [idsParam]);
+
+  // ── Horizontal scroll: refs, drag-to-scroll, and arrow-button state ──
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const isDraggingRef = useRef(false);
+  const dragStartXRef = useRef(0);
+  const dragStartScrollLeftRef = useRef(0);
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
+  const [canScrollRight, setCanScrollRight] = useState(false);
+
+  const updateScrollButtons = () => {
+    const el = scrollRef.current;
+    if (!el) return;
+    setCanScrollLeft(el.scrollLeft > 4);
+    setCanScrollRight(el.scrollLeft < el.scrollWidth - el.clientWidth - 4);
+  };
+
+  useEffect(() => {
+    updateScrollButtons();
+    window.addEventListener('resize', updateScrollButtons);
+    return () => window.removeEventListener('resize', updateScrollButtons);
+  }, [projects]);
+
+  const scrollByAmount = (amount: number) => {
+    scrollRef.current?.scrollBy({ left: amount, behavior: 'smooth' });
+  };
+
+  const handleMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
+    const el = scrollRef.current;
+    if (!el) return;
+    isDraggingRef.current = true;
+    dragStartXRef.current = e.pageX - el.offsetLeft;
+    dragStartScrollLeftRef.current = el.scrollLeft;
+  };
+
+  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    const el = scrollRef.current;
+    if (!isDraggingRef.current || !el) return;
+    e.preventDefault();
+    const x = e.pageX - el.offsetLeft;
+    const walk = (x - dragStartXRef.current) * 1.3;
+    el.scrollLeft = dragStartScrollLeftRef.current - walk;
+  };
+
+  const handleMouseUpOrLeave = () => {
+    isDraggingRef.current = false;
+  };
 
   const allAmenities = useMemo(() => {
     const s = new Set<string>();
@@ -176,156 +222,141 @@ function CompareContent() {
         </div>
       </div>
 
-      {/* ── MOBILE: stacked attribute cards ──────────────── */}
-      <div className="sm:hidden px-4 py-6 space-y-4">
-        {/* Project header cards */}
-        <div className="grid gap-3" style={{ gridTemplateColumns: `repeat(${projects.length}, 1fr)` }}>
-          {projects.map(p => (
-            <div key={p.id}
-              className="bg-white border border-[var(--border)] rounded-[var(--radius)] overflow-hidden shadow-[var(--shadow-sm)] block">
-              {p.images?.[0] && (
-                <div className="relative w-full h-20">
-                  <Image src={p.images[0]} alt={p.name} fill className="object-cover" sizes="200px" />
-                </div>
-              )}
-              <div className="p-2 text-center">
-                <p className="text-xs font-bold text-[var(--text-primary)] line-clamp-2 leading-tight">{p.name}</p>
-                <p className="text-[9px] text-[var(--primary)] font-black mt-0.5">
-                  {p.unitConfigs?.length ? formatINR(Math.min(...(p.unitConfigs || []).map(u => u.price))) : '—'}
-                </p>
-                {viewDetailsLink(p)}
-              </div>
-            </div>
-          ))}
-        </div>
-
-        {/* Attribute rows as cards — free rows */}
-        {freeRows.map(row => (
-          <div key={row.label}
-            className="bg-white border border-[var(--border)] rounded-[var(--radius)] overflow-hidden shadow-[var(--shadow-sm)]">
-            <div className="px-4 py-2 bg-[var(--surface-raised)] border-b border-[var(--border)]">
-              <p className="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-wider">
-                {row.label}
-              </p>
-            </div>
-            <div className="grid divide-x divide-[var(--border)]"
-              style={{ gridTemplateColumns: `repeat(${projects.length}, 1fr)` }}>
-              {projects.map(p => (
-                <div key={p.id} className="p-3 flex flex-col items-center gap-1 text-center">
-                  <p className="text-[9px] font-bold text-[var(--text-muted)] truncate w-full text-center">
-                    {p.name.split(' ').slice(0, 2).join(' ')}
-                  </p>
-                  <div className="flex justify-center">{row.render(p)}</div>
-                </div>
-              ))}
-            </div>
-          </div>
-        ))}
-
-        {/* Locked rows in GuestGate */}
-        {lockedRows.length > 0 && (
-          <GuestGate
-            isGuest={true}
-            label={`${lockedRows.length} more comparison rows — sign up to unlock`}
-            blur={true}
-          >
-            {lockedRows.map(row => (
-              <div key={row.label}
-                className="bg-white border border-[var(--border)] rounded-[var(--radius)] overflow-hidden shadow-[var(--shadow-sm)]">
-                <div className="px-4 py-2 bg-[var(--surface-raised)] border-b border-[var(--border)]">
-                  <p className="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-wider">
-                    {row.label}
-                  </p>
-                </div>
-                <div className="grid divide-x divide-[var(--border)]"
-                  style={{ gridTemplateColumns: `repeat(${projects.length}, 1fr)` }}>
-                  {projects.map(p => (
-                    <div key={p.id} className="p-3 flex flex-col items-center gap-1 text-center">
-                      <p className="text-[9px] font-bold text-[var(--text-muted)] truncate w-full text-center">
-                        {p.name.split(' ').slice(0, 2).join(' ')}
-                      </p>
-                      <div className="flex justify-center">{row.render(p)}</div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            ))}
-          </GuestGate>
+      {/* ── Comparison table (one responsive, swipeable table for all screen sizes) ── */}
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 py-6">
+        {projects.length > 2 && (
+          <p className="sm:hidden flex items-center justify-center gap-1 text-[10px] font-bold
+            text-[var(--text-muted)] mb-2">
+            <ChevronLeft className="w-3 h-3" /> Swipe to compare all {projects.length} <ChevronRight className="w-3 h-3" />
+          </p>
         )}
-      </div>
 
-      {/* ── DESKTOP: standard table ───────────────────────── */}
-      <div className="hidden sm:block max-w-5xl mx-auto px-4 sm:px-6 py-6 overflow-x-auto">
-        <table className="w-full border-collapse"
-          style={{ minWidth: `${projects.length * 200 + 160}px` }}>
-          <thead>
-            <tr>
-              <th className="w-36 p-3 text-left text-[10px] font-black text-[var(--text-muted)]
-                uppercase tracking-wider bg-[var(--surface-raised)] border border-[var(--border)]
-                sticky left-0 z-10">
-                Feature
-              </th>
-              {projects.map(p => (
-                <th key={p.id} className="p-3 bg-[var(--surface)] border border-[var(--border)] min-w-[180px]">
-                  <div className="space-y-2 text-center">
-                    {p.images?.[0] && (
-                      <div className="relative w-full h-24">
-                        <Image src={p.images[0]} alt={p.name} fill className="object-cover rounded-[var(--radius-xs)]" sizes="180px" />
+        <div className="relative">
+          {canScrollLeft && (
+            <button
+              onClick={() => scrollByAmount(-240)}
+              aria-label="Scroll left"
+              className="hidden sm:flex absolute -left-3 top-1/2 -translate-y-1/2 z-20 items-center justify-center
+                w-8 h-8 rounded-full bg-white border border-[var(--border)] shadow-[var(--shadow-sm)]
+                hover:bg-[var(--surface-raised)] transition-colors"
+            >
+              <ChevronLeft className="w-4 h-4 text-[var(--text-secondary)]" />
+            </button>
+          )}
+          {canScrollRight && (
+            <button
+              onClick={() => scrollByAmount(240)}
+              aria-label="Scroll right"
+              className="hidden sm:flex absolute -right-3 top-1/2 -translate-y-1/2 z-20 items-center justify-center
+                w-8 h-8 rounded-full bg-white border border-[var(--border)] shadow-[var(--shadow-sm)]
+                hover:bg-[var(--surface-raised)] transition-colors"
+            >
+              <ChevronRight className="w-4 h-4 text-[var(--text-secondary)]" />
+            </button>
+          )}
+
+          <div
+            ref={scrollRef}
+            onScroll={updateScrollButtons}
+            onMouseDown={handleMouseDown}
+            onMouseMove={handleMouseMove}
+            onMouseUp={handleMouseUpOrLeave}
+            onMouseLeave={handleMouseUpOrLeave}
+            style={{ WebkitOverflowScrolling: 'touch' }}
+            className="overflow-x-auto pb-2 touch-pan-x select-none cursor-grab active:cursor-grabbing
+              [&::-webkit-scrollbar]:h-2.5
+              [&::-webkit-scrollbar-track]:bg-[var(--surface-raised)]
+              [&::-webkit-scrollbar-track]:rounded-full
+              [&::-webkit-scrollbar-thumb]:bg-[var(--border-strong)]
+              [&::-webkit-scrollbar-thumb]:rounded-full"
+          >
+            <table
+              className="border-collapse"
+              style={{ minWidth: `${projects.length * 150 + 112}px` }}
+            >
+              <thead>
+                <tr>
+                  <th className="w-28 sm:w-36 p-2 sm:p-3 text-left text-[10px] font-black text-[var(--text-muted)]
+                    uppercase tracking-wider bg-[var(--surface-raised)] border border-[var(--border)]
+                    sticky left-0 z-10">
+                    Feature
+                  </th>
+                  {projects.map(p => (
+                    <th key={p.id} className="p-2 sm:p-3 bg-white border border-[var(--border)] min-w-[150px] sm:min-w-[180px]">
+                      <div className="space-y-2 text-center">
+                        {p.images?.[0] && (
+                          <div className="relative w-full h-16 sm:h-24">
+                            <Image
+                              src={p.images[0]}
+                              alt={p.name}
+                              fill
+                              draggable={false}
+                              className="object-cover rounded-[var(--radius-xs)] pointer-events-none"
+                              sizes="180px"
+                            />
+                          </div>
+                        )}
+                        <p className="font-bold text-xs sm:text-sm text-[var(--text-primary)] line-clamp-2">{p.name}</p>
+                        <p className="text-[9px] sm:text-[10px] text-[var(--text-muted)]">{p.location}</p>
+                        {viewDetailsLink(p)}
                       </div>
-                    )}
-                    <p className="font-bold text-sm text-[var(--text-primary)] line-clamp-2">{p.name}</p>
-                    <p className="text-[10px] text-[var(--text-muted)]">{p.location}</p>
-                    {viewDetailsLink(p)}
-                  </div>
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {freeRows.map((row, i) => (
-              <tr key={row.label}
-                className={i % 2 === 0 ? 'bg-white' : 'bg-[var(--surface-raised)]/40'}>
-                <td className="p-3 text-xs font-bold text-[var(--text-muted)] border border-[var(--border)]
-                  uppercase tracking-wider sticky left-0 bg-inherit z-10 whitespace-nowrap">
-                  {row.label}
-                </td>
-                {projects.map(p => (
-                  <td key={p.id} className="p-3 text-center border border-[var(--border)]">
-                    <div className="flex items-center justify-center">{row.render(p)}</div>
-                  </td>
-                ))}
-              </tr>
-            ))}
-            {lockedRows.length > 0 && (
-              <tr>
-                <td colSpan={projects.length + 1} className="p-0">
-                  <GuestGate
-                    isGuest={true}
-                    label={`${lockedRows.length} more comparison rows — sign up to unlock`}
-                    blur={true}
-                  >
-                    <table className="w-full border-collapse pointer-events-none">
-                      <tbody>
-                        {lockedRows.map((row, i) => (
-                          <tr key={row.label} className={i % 2 === 0 ? 'bg-white' : 'bg-[var(--surface-raised)]/40'}>
-                            <td className="p-3 text-xs font-bold text-[var(--text-muted)] border border-[var(--border)] w-36 uppercase tracking-wider whitespace-nowrap">
-                              {row.label}
-                            </td>
-                            {projects.map(p => (
-                              <td key={p.id} className="p-3 text-center border border-[var(--border)]">
-                                <div className="flex items-center justify-center">{row.render(p)}</div>
-                              </td>
-                            ))}
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </GuestGate>
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {freeRows.map((row, i) => {
+                  const rowBg = i % 2 === 0 ? 'bg-white' : 'bg-[#FAFAF8]';
+                  return (
+                    <tr key={row.label} className={rowBg}>
+                      <td className={`p-2 sm:p-3 text-[10px] sm:text-xs font-bold text-[var(--text-muted)] border border-[var(--border)]
+                        uppercase tracking-wider sticky left-0 z-10 whitespace-nowrap ${rowBg}`}>
+                        {row.label}
+                      </td>
+                      {projects.map(p => (
+                        <td key={p.id} className="p-2 sm:p-3 text-center border border-[var(--border)]">
+                          <div className="flex items-center justify-center">{row.render(p)}</div>
+                        </td>
+                      ))}
+                    </tr>
+                  );
+                })}
+                {lockedRows.length > 0 && (
+                  <tr>
+                    <td colSpan={projects.length + 1} className="p-0">
+                      <GuestGate
+                        isGuest={true}
+                        label={`${lockedRows.length} more comparison rows — sign up to unlock`}
+                        blur={true}
+                      >
+                        <table className="w-full border-collapse pointer-events-none">
+                          <tbody>
+                            {lockedRows.map((row, i) => {
+                              const rowBg = i % 2 === 0 ? 'bg-white' : 'bg-[#FAFAF8]';
+                              return (
+                                <tr key={row.label} className={rowBg}>
+                                  <td className={`p-2 sm:p-3 text-[10px] sm:text-xs font-bold text-[var(--text-muted)] border border-[var(--border)]
+                                    w-28 sm:w-36 uppercase tracking-wider whitespace-nowrap ${rowBg}`}>
+                                    {row.label}
+                                  </td>
+                                  {projects.map(p => (
+                                    <td key={p.id} className="p-2 sm:p-3 text-center border border-[var(--border)]">
+                                      <div className="flex items-center justify-center">{row.render(p)}</div>
+                                    </td>
+                                  ))}
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                      </GuestGate>
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
       </div>
     </div>
   );
