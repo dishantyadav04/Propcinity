@@ -99,7 +99,7 @@ export default function ContactPage() {
         {/* Contact info */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           {[
-            { icon: Mail, label: 'Email', value: 'hello@propcinity.in' },
+            { icon: Mail, label: 'Email', value: 'contact@propcinity.in' },
             { icon: MapPin, label: 'Location', value: 'Pune, Maharashtra' },
           ].map(({ icon: Icon, label, value }) => (
             <div key={label}

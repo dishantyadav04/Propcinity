@@ -24,7 +24,7 @@ import { SHOW_BUILDER_SCORE } from "@/lib/feature-flags";
 import {
   MapPin, Share2, Heart, ShieldCheck, Download, Sparkles,
   Play, ChevronRight, CheckCircle2, XCircle, X, ZoomIn,
-  Building2, Home, CalendarDays, Layers, ArrowLeft, LayoutDashboard, Lock,
+  Building2, Home, CalendarDays, Layers, ArrowLeft, Plus, Check, Lock,
   ChevronUp, ChevronDown
 } from "lucide-react";
 import { useParams, useRouter } from "next/navigation";
@@ -412,7 +412,9 @@ export default function ProjectDetailClient({ project }: { project: Project }) {
               }`}
               title={addedToDashboard ? 'Remove from Dashboard' : 'Add to Dashboard'}
             >
-              <LayoutDashboard className="w-5 h-5" />
+              {addedToDashboard
+                ? <Check className="w-5 h-5" />
+                : <Plus className="w-5 h-5" />}
             </button>
 
             <AnimatePresence>
@@ -1201,8 +1203,10 @@ export default function ProjectDetailClient({ project }: { project: Project }) {
                       ? 'bg-[var(--primary-light)] border-[var(--primary)]/30 text-[var(--primary)]'
                       : 'border-[var(--border)] text-[var(--text-secondary)] hover:bg-[var(--primary-light)] hover:border-[var(--primary)] hover:text-[var(--primary)]'
                   }`}>
-                  <LayoutDashboard className="w-4 h-4" />
-                  {addedToDashboard ? 'Added ✓' : 'Add to Dashboard'}
+                  {addedToDashboard
+                    ? <Check className="w-4 h-4" />
+                    : <Plus className="w-4 h-4" />}
+                  {addedToDashboard ? 'Added' : 'Add to Dashboard'}
                 </button>
               </div>
 
