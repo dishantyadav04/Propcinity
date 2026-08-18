@@ -1,8 +1,8 @@
 'use client';
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import ProjectImage from "./ProjectImage";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, PanInfo } from "framer-motion";
 import { ChevronLeft, ChevronRight, Maximize2, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -13,9 +13,31 @@ interface GallerySliderProps {
 export default function GallerySlider({ images }: GallerySliderProps) {
   const [index, setIndex] = useState(0);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+  const isDragging = useRef(false);
 
   const next = () => setIndex((prev) => (prev + 1) % images.length);
   const prev = () => setIndex((prev) => (prev - 1 + images.length) % images.length);
+
+  // Swipe threshold: distance in px OR flick velocity, whichever comes first
+  const handleDragEnd = (_: unknown, info: PanInfo) => {
+    const SWIPE_DISTANCE = 45;
+    const SWIPE_VELOCITY = 400;
+
+    if (info.offset.x < -SWIPE_DISTANCE || info.velocity.x < -SWIPE_VELOCITY) {
+      next();
+    } else if (info.offset.x > SWIPE_DISTANCE || info.velocity.x > SWIPE_VELOCITY) {
+      prev();
+    }
+    // Small delay so the click handler that fires right after a drag
+    // doesn't also open/close the preview
+    setTimeout(() => {
+      isDragging.current = false;
+    }, 50);
+  };
+
+  const handleDragStart = () => {
+    isDragging.current = true;
+  };
 
   return (
     <div className="relative aspect-[4/3] w-full overflow-hidden rounded-[var(--radius)] group">
@@ -25,11 +47,19 @@ export default function GallerySlider({ images }: GallerySliderProps) {
           initial={{ opacity: 0, x: 20 }}
           animate={{ opacity: 1, x: 0 }}
           exit={{ opacity: 0, x: -20 }}
-          className="absolute inset-0"
+          drag={images.length > 1 ? "x" : false}
+          dragConstraints={{ left: 0, right: 0 }}
+          dragElastic={0.7}
+          onDragStart={handleDragStart}
+          onDragEnd={handleDragEnd}
+          className="absolute inset-0 touch-pan-y cursor-grab active:cursor-grabbing"
         >
           <button
             type="button"
-            onClick={() => setIsPreviewOpen(true)}
+            onClick={() => {
+              if (isDragging.current) return;
+              setIsPreviewOpen(true);
+            }}
             className="absolute inset-0 w-full h-full"
             aria-label="Open full preview"
           >
@@ -100,7 +130,10 @@ export default function GallerySlider({ images }: GallerySliderProps) {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             className="fixed inset-0 z-[200] bg-black/95 flex items-center justify-center"
-            onClick={() => setIsPreviewOpen(false)}
+            onClick={() => {
+              if (isDragging.current) return;
+              setIsPreviewOpen(false);
+            }}
           >
             <button
               onClick={() => setIsPreviewOpen(false)}
@@ -114,16 +147,22 @@ export default function GallerySlider({ images }: GallerySliderProps) {
               {index + 1} / {images.length}
             </div>
 
-            <div
-              className="relative w-full h-full max-w-4xl max-h-[85vh] m-auto flex items-center justify-center px-4"
+            <motion.div
+              className="relative w-full h-full max-w-4xl max-h-[85vh] m-auto flex items-center justify-center px-4 touch-pan-y"
               onClick={(e) => e.stopPropagation()}
+              drag={images.length > 1 ? "x" : false}
+              dragConstraints={{ left: 0, right: 0 }}
+              dragElastic={0.7}
+              onDragStart={handleDragStart}
+              onDragEnd={handleDragEnd}
             >
               <img
                 src={images[index]}
                 alt={`Gallery image ${index + 1} full preview`}
-                className="max-w-full max-h-full object-contain rounded-[var(--radius)]"
+                className="max-w-full max-h-full object-contain rounded-[var(--radius)] pointer-events-none select-none"
+                draggable={false}
               />
-            </div>
+            </motion.div>
 
             {images.length > 1 && (
               <>

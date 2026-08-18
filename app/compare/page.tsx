@@ -263,7 +263,7 @@ function CompareContent() {
             onMouseUp={handleMouseUpOrLeave}
             onMouseLeave={handleMouseUpOrLeave}
             style={{ WebkitOverflowScrolling: 'touch' }}
-            className="overflow-x-auto pb-2 touch-pan-x select-none cursor-grab active:cursor-grabbing
+            className="overflow-x-auto pb-2 select-none cursor-grab active:cursor-grabbing
               [&::-webkit-scrollbar]:h-2.5
               [&::-webkit-scrollbar-track]:bg-[var(--surface-raised)]
               [&::-webkit-scrollbar-track]:rounded-full

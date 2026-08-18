@@ -74,7 +74,7 @@ export default function ProjectCard({
     return match ? match[1].replace(/\s+/, '') : type.split(' ')[0];
   };
 
-  const MAX_VISIBLE_CONFIGS = 3;
+  const MAX_VISIBLE_CONFIGS = 2;
   const visibleTypes = unitTypes.slice(0, MAX_VISIBLE_CONFIGS);
   const hiddenCount = unitTypes.length - MAX_VISIBLE_CONFIGS;
 
@@ -229,7 +229,7 @@ export default function ProjectCard({
             <p className="text-[9px] text-[var(--text-muted)] uppercase tracking-widest font-bold mb-1">
               Starting from
             </p>
-            <p className="text-[26px] font-black text-[var(--text-primary)] tracking-tight leading-none" style={{ fontFamily: 'var(--font-display)', letterSpacing: '-0.03em' }}>
+            <p className="text-[26px] font-black text-[var(--text-primary)] tracking-tight leading-none whitespace-nowrap" style={{ fontFamily: 'var(--font-display)', letterSpacing: '-0.03em' }}>
               {formatINR(minPrice)}
             </p>
           </div>
