@@ -8,7 +8,7 @@ import NearbyLocationsForm from "./NearbyLocationsForm";
 import ImageUpload from "./ImageUpload";
 import UnitConfigForm from "./UnitConfigForm";
 import AdminMapPreview from "./AdminMapPreview";
-import { Save, Plus, X, Loader2, Trash2, RefreshCw } from "lucide-react";
+import { Save, Plus, X, Loader2, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 
@@ -60,25 +60,6 @@ export default function ProjectForm({ initialData }: ProjectFormProps) {
   );
 
   const selectedBuilderName = builders.find(b => b.id === selectedBuilderId)?.name || '';
-
-  // Copies the richer builder fields from a `builders` row onto the project
-  // state. Used both when a builder is picked from the dropdown (Task 2) and
-  // by the manual "Sync details from builder" action (Task 4). Values are
-  // normalized to `undefined` when the source is empty/null so they never hit
-  // Zod with an invalid `null` (e.g. `builder_score` / `score_breakdown`).
-  const applyBuilderToProject = (b: any) => {
-    const years = b?.years_in_business;
-    const projectsDelivered = b?.total_projects_delivered;
-    return {
-      builderName: b?.name ?? '',
-      builderLogo: b?.logo_url ?? undefined,
-      builderYearsExperience: years != null && years !== '' ? Number(years) : undefined,
-      builderCompletedProjects: projectsDelivered != null && projectsDelivered !== '' ? Number(projectsDelivered) : undefined,
-      builderDescription: b?.description ?? undefined,
-      builderScore: b?.builder_score ?? undefined,
-      builderScoreBreakdown: b?.score_breakdown ?? undefined,
-    };
-  };
 
   const [locationSearch, setLocationSearch] = useState(initialData?.location || '');
   const [locationDropdownOpen, setLocationDropdownOpen] = useState(false);
@@ -276,12 +257,6 @@ export default function ProjectForm({ initialData }: ProjectFormProps) {
         ...project,
         builder_id: selectedBuilderId || null,
         builder_name: project.builderName,
-        builder_logo: project.builderLogo ?? undefined,
-        builder_years_experience: project.builderYearsExperience ?? undefined,
-        builder_completed_projects: project.builderCompletedProjects ?? undefined,
-        builder_description: project.builderDescription ?? undefined,
-        builder_score: project.builderScore ?? undefined,
-        score_breakdown: project.builderScoreBreakdown ?? undefined,
         tagline: project.tagline,
         possession_date: project.possessionDate,
         rera_possession_date: project.reraPossessionDate,
@@ -330,12 +305,6 @@ export default function ProjectForm({ initialData }: ProjectFormProps) {
           };
         }),
         builderName: undefined,
-        builderLogo: undefined,
-        builderYearsExperience: undefined,
-        builderCompletedProjects: undefined,
-        builderDescription: undefined,
-        builderScore: undefined,
-        builderScoreBreakdown: undefined,
         possessionDate: undefined,
         reraPossessionDate: undefined,
         landParcelAcres: undefined,
@@ -414,16 +383,6 @@ export default function ProjectForm({ initialData }: ProjectFormProps) {
     saveProject(false);
   };
 
-  const syncBuilderData = () => {
-    const b = builders.find(x => x.id === selectedBuilderId);
-    if (!b) {
-      toast.error('Builder not found');
-      return;
-    }
-    setProject(prev => ({ ...prev, ...applyBuilderToProject(b) }));
-    toast.success(`Synced builder details from ${b.name}`);
-  };
-
   return (
     <form onSubmit={handleSubmit} className="space-y-8 max-w-6xl">
       {/* Basic Info */}
@@ -445,22 +404,9 @@ export default function ProjectForm({ initialData }: ProjectFormProps) {
           </div>
 
           <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <label className="text-sm font-bold text-[var(--text-primary)]">
-                Builder <span className="text-red-500">*</span>
-              </label>
-              {selectedBuilderId && (
-                <button
-                  type="button"
-                  onClick={syncBuilderData}
-                  title="Copy the builder's description, experience, logo and score onto this project"
-                  className="flex items-center gap-1.5 text-xs font-bold text-[var(--primary)] hover:underline transition-colors"
-                >
-                  <RefreshCw className="w-3.5 h-3.5" />
-                  ↻ Sync details from builder
-                </button>
-              )}
-            </div>
+            <label className="text-sm font-bold text-[var(--text-primary)]">
+              Builder <span className="text-red-500">*</span>
+            </label>
             <div className="relative">
               <input
                 type="text"
@@ -488,16 +434,7 @@ export default function ProjectForm({ initialData }: ProjectFormProps) {
                   <div
                     onMouseDown={() => {
                       setSelectedBuilderId('');
-                      setProject(prev => ({
-                        ...prev,
-                        builderName: '',
-                        builderLogo: undefined,
-                        builderYearsExperience: undefined,
-                        builderCompletedProjects: undefined,
-                        builderDescription: undefined,
-                        builderScore: undefined,
-                        builderScoreBreakdown: undefined,
-                      }));
+                      setProject(prev => ({ ...prev, builderName: '' }));
                       setBuilderDropdownOpen(false);
                       setBuilderSearch('');
                     }}
@@ -513,7 +450,7 @@ export default function ProjectForm({ initialData }: ProjectFormProps) {
                         key={b.id}
                         onMouseDown={() => {
                           setSelectedBuilderId(b.id);
-                          setProject(prev => ({ ...prev, ...applyBuilderToProject(b) }));
+                          setProject(prev => ({ ...prev, builderName: b.name }));
                           setBuilderDropdownOpen(false);
                           setBuilderSearch('');
                         }}
