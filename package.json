@@ -66,7 +66,10 @@
     "zod": "^3.25.28"
   },
   "devDependencies": {
+    "@emnapi/core": "^1.11.3",
+    "@emnapi/runtime": "^1.11.3",
     "@eslint/eslintrc": "^3.2.0",
+    "@floating-ui/dom": "^1.8.0",
     "@types/node": "^26.2.0",
     "@types/sanitize-html": "^2.16.1",
     "@vitejs/plugin-react": "^6.0.5",
