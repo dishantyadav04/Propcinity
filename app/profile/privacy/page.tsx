@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from "react";
+import Link from "next/link";
 import { ArrowLeft, ShieldCheck, Eye, Bell, Trash2, LogOut } from "lucide-react";
 import { useRouter } from "next/navigation";
 import SectionContainer from "@/components/layout/SectionContainer";
@@ -165,10 +166,18 @@ export default function ProfilePrivacyPage() {
           <div className="px-4 sm:px-5 py-4 border-b border-[var(--border)]">
             <p className="text-sm font-bold text-[var(--text-primary)] mb-1">What we collect</p>
             <ul className="text-xs text-[var(--text-muted)] space-y-1 list-disc list-inside">
-              <li>Property preferences (stored locally on your device)</li>
-              <li>Consultation requests (name, phone, project interest)</li>
-              <li>Anonymous usage analytics (PostHog)</li>
+              <li>Name, email, and phone number (from sign-up and property enquiries)</li>
+              <li>Property preferences, synced to your account now that you're signed in</li>
+              <li>Questions you ask our AI assistant (sent to OpenAI to generate answers)</li>
+              <li>Usage and session analytics via PostHog, only with your consent</li>
+              <li>Device and technical data for security and fraud prevention</li>
             </ul>
+            <Link
+              href="/privacy-policy"
+              className="text-xs font-bold text-[var(--primary)] hover:underline mt-2 inline-block"
+            >
+              Read the full Privacy Policy →
+            </Link>
           </div>
           <div className="px-4 sm:px-5 py-4 border-b border-[var(--border)]">
             <p className="text-sm font-bold text-[var(--text-primary)] mb-1">What we never do</p>
