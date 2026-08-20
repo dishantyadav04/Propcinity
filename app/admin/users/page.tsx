@@ -2,13 +2,25 @@
 
 import { useEffect, useState } from 'react';
 import { Search, Users, MapPin, Target, Clock, Wallet } from 'lucide-react';
+import { createResourceCache } from '@/lib/client-cache';
+
+// 20s TTL — short enough that admin data still feels fresh, long enough to
+// skip a full refetch when just switching tabs and coming back.
+const usersCache = createResourceCache<any[]>('admin:users', 20 * 1000);
 
 export default function AdminUsersPage() {
-  const [users, setUsers] = useState<any[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [users, setUsers] = useState<any[]>(usersCache.get() ?? []);
+  const [isLoading, setIsLoading] = useState(usersCache.get() === null);
   const [search, setSearch] = useState('');
 
   useEffect(() => {
+    const cached = usersCache.get();
+    if (cached) {
+      setUsers(cached);
+      setIsLoading(false);
+      return;
+    }
+
     fetch('/api/admin/users', { credentials: 'include' })
       .then(r => {
         if (!r.ok) console.error('[admin/users] API error', r.status, r.statusText);
@@ -16,7 +28,9 @@ export default function AdminUsersPage() {
       })
       .then(d => {
         if (d.error) console.error('[admin/users] Response error:', d.error);
-        setUsers(d.users || []);
+        const list = d.users || [];
+        setUsers(list);
+        usersCache.set(list);
       })
       .catch(console.error)
       .finally(() => setIsLoading(false));

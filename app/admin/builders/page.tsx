@@ -7,16 +7,31 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { toast } from 'sonner';
+import { createResourceCache } from '@/lib/client-cache';
+
+const buildersCache = createResourceCache<any[]>('admin:builders', 20 * 1000);
 
 export default function BuildersPage() {
-  const [builders, setBuilders] = useState<any[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [builders, setBuilders] = useState<any[]>(buildersCache.get() ?? []);
+  const [isLoading, setIsLoading] = useState(buildersCache.get() === null);
   const [search, setSearch] = useState('');
 
-  const load = () => {
+  const load = (opts?: { force?: boolean }) => {
+    if (!opts?.force) {
+      const cached = buildersCache.get();
+      if (cached) {
+        setBuilders(cached);
+        setIsLoading(false);
+        return;
+      }
+    }
     fetch('/api/admin/builders', { credentials: 'include' })
       .then(r => r.json())
-      .then(d => setBuilders(d.builders || []))
+      .then(d => {
+        const list = d.builders || [];
+        setBuilders(list);
+        buildersCache.set(list);
+      })
       .catch(console.error)
       .finally(() => setIsLoading(false));
   };
@@ -26,7 +41,11 @@ export default function BuildersPage() {
   const handleDelete = async (id: string, name: string) => {
     if (!confirm(`Delete builder "${name}"? This will unlink all associated projects.`)) return;
     const res = await fetch(`/api/admin/builders?id=${id}`, { method: 'DELETE', credentials: 'include' });
-    if (res.ok) { toast.success('Builder deleted'); load(); }
+    if (res.ok) {
+      toast.success('Builder deleted');
+      buildersCache.invalidate();
+      load({ force: true });
+    }
     else toast.error('Failed to delete');
   };
 

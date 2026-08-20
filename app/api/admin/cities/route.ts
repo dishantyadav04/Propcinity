@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import * as Sentry from '@sentry/nextjs';
 import { isAdminAuthenticated } from '@/lib/admin-auth';
 import { getCities, createCity, updateCity, deleteCity } from '@/services/locations';
+import { noStore } from '@/lib/cache-control';
+import { invalidateCache } from '@/lib/server-cache';
+import { locationCacheKeys } from '@/lib/cache-keys';
 
 const unauth = () => NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
@@ -9,7 +12,7 @@ const unauth = () => NextResponse.json({ error: 'Unauthorized' }, { status: 401 
 export async function GET(request: NextRequest) {
   if (!await isAdminAuthenticated(request)) return unauth();
   const cities = await getCities();
-  return NextResponse.json({ cities });
+  return NextResponse.json({ cities }, { headers: noStore() });
 }
 
 /** POST /api/admin/cities — create a new city */
@@ -21,6 +24,7 @@ export async function POST(request: NextRequest) {
   }
   try {
     const city = await createCity(body.name, body.state);
+    await invalidateCache('locations:cities')
     return NextResponse.json({ city }, { status: 201 });
   } catch (err: any) {
     Sentry.captureException(err);
@@ -37,6 +41,8 @@ export async function PATCH(request: NextRequest) {
   if (!body) return NextResponse.json({ error: 'Invalid body' }, { status: 400 });
   try {
     await updateCity(id, body);
+    // A city's name/state can appear in cached locality lists too.
+    await Promise.all(locationCacheKeys().map(invalidateCache))
     return NextResponse.json({ success: true });
   } catch (err: any) {
     Sentry.captureException(err);
@@ -51,6 +57,8 @@ export async function DELETE(request: NextRequest) {
   if (!id) return NextResponse.json({ error: 'id is required' }, { status: 400 });
   try {
     await deleteCity(id);
+    // Deleting a city cascades its localities — bust every locality cache.
+    await Promise.all(locationCacheKeys().map(invalidateCache))
     return NextResponse.json({ success: true });
   } catch (err: any) {
     Sentry.captureException(err);

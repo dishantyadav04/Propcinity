@@ -3,8 +3,15 @@ import { isAdminAuthenticated } from '@/lib/admin-auth'
 import { createAdminSupabaseClient } from '@/lib/supabase-server'
 import { cleanupRemovedR2Files } from '@/lib/r2'
 import { builderSchema } from '@/lib/builder-schema'
+import { noStore } from '@/lib/cache-control'
+import { invalidateCache } from '@/lib/server-cache'
+import { builderCacheKeys } from '@/lib/cache-keys'
 
 const unauth = () => NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+async function invalidateBuilder(id?: string) {
+  await Promise.all(builderCacheKeys(id).map(invalidateCache))
+}
 
 export async function GET(req: NextRequest) {
   if (!await isAdminAuthenticated(req)) return unauth()
@@ -18,7 +25,7 @@ export async function GET(req: NextRequest) {
     console.error('[admin/builders] DB error:', error)
     return NextResponse.json({ error: 'Database operation failed' }, { status: 500 })
   }
-  return NextResponse.json({ builders: data })
+  return NextResponse.json({ builders: data }, { headers: noStore() })
 }
 
 export async function POST(req: NextRequest) {
@@ -52,6 +59,7 @@ export async function POST(req: NextRequest) {
     console.error('[admin/builders] DB error:', error)
     return NextResponse.json({ error: 'Database operation failed' }, { status: 500 })
   }
+  await invalidateBuilder(data.id)
   return NextResponse.json({ builder: data })
 }
 
@@ -107,6 +115,7 @@ export async function PUT(req: NextRequest) {
     ).catch(() => {})
   }
 
+  await invalidateBuilder(id)
   return NextResponse.json({ builder: data })
 }
 
@@ -122,5 +131,6 @@ export async function DELETE(req: NextRequest) {
     console.error('[admin/builders] DB error:', error)
     return NextResponse.json({ error: 'Database operation failed' }, { status: 500 })
   }
+  await invalidateBuilder(id)
   return NextResponse.json({ success: true })
 }

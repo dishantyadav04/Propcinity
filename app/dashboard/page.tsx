@@ -17,7 +17,12 @@ import { useGuestMode } from '@/hooks/useGuestMode';
 import PersonalizedWelcome from '@/components/onboarding/PersonalizedWelcome';
 import { hashIntent, getLocalAIRank, setLocalAIRank } from '@/lib/ai-rank-cache';
 import { syncIntentToSupabase, fetchIntentFromSupabase } from '@/lib/intent-sync';
-import { getCachedProjects, setCachedProjects } from '@/lib/projects-cache';
+import { createResourceCache } from '@/lib/client-cache';
+
+// Shared with app/compare/page.tsx — same cache name means both pages read
+// and populate the same in-memory store instead of each fetching the full
+// project list independently.
+const projectsCache = createResourceCache<Project[]>('projects:all', 60 * 1000);
 
 function getSmartMatchLabel(project: Project, intent: any): string | null {
   if (!intent) return null;
@@ -219,7 +224,7 @@ export default function DashboardPage() {
   }, []);
 
   useEffect(() => {
-    const cached = getCachedProjects();
+    const cached = projectsCache.get();
     if (cached) {
       setProjects(cached);
       setIsLoading(false);
@@ -237,7 +242,7 @@ export default function DashboardPage() {
       .then(data => {
         const list = Array.isArray(data) ? data : [];
         setProjects(list);
-        setCachedProjects(list);
+        projectsCache.set(list);
       })
       .catch(err => {
         if (err.name !== 'AbortError') {

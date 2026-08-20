@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import * as Sentry from '@sentry/nextjs';
 import { isAdminAuthenticated } from '@/lib/admin-auth';
 import { getLocalitiesByCity, createLocality, updateLocality, deleteLocality } from '@/services/locations';
+import { noStore } from '@/lib/cache-control';
+import { invalidateCache } from '@/lib/server-cache';
+import { locationCacheKeys } from '@/lib/cache-keys';
 
 const unauth = () => NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
@@ -11,7 +14,7 @@ export async function GET(request: NextRequest) {
   const cityId = new URL(request.url).searchParams.get('city_id');
   if (!cityId) return NextResponse.json({ error: 'city_id is required' }, { status: 400 });
   const localities = await getLocalitiesByCity(cityId);
-  return NextResponse.json({ localities });
+  return NextResponse.json({ localities }, { headers: noStore() });
 }
 
 /** POST /api/admin/localities — create a locality */
@@ -23,6 +26,7 @@ export async function POST(request: NextRequest) {
   }
   try {
     const locality = await createLocality(body.city_id, body.name);
+    await Promise.all(locationCacheKeys(body.city_id).map(invalidateCache))
     return NextResponse.json({ locality }, { status: 201 });
   } catch (err: any) {
     Sentry.captureException(err);
@@ -39,6 +43,9 @@ export async function PATCH(request: NextRequest) {
   if (!body) return NextResponse.json({ error: 'Invalid body' }, { status: 400 });
   try {
     await updateLocality(id, body);
+    // We don't know the old city_id here, so bust every locality list —
+    // cheap (Redis DELs), and correct even if the locality moved cities.
+    await invalidateCache('locations:localities:*')
     return NextResponse.json({ success: true });
   } catch (err: any) {
     Sentry.captureException(err);
@@ -53,6 +60,7 @@ export async function DELETE(request: NextRequest) {
   if (!id) return NextResponse.json({ error: 'id is required' }, { status: 400 });
   try {
     await deleteLocality(id);
+    await invalidateCache('locations:localities:*')
     return NextResponse.json({ success: true });
   } catch (err: any) {
     Sentry.captureException(err);

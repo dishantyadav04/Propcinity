@@ -1,17 +1,24 @@
 import { NextResponse } from 'next/server'
 import { createAdminSupabaseClient } from '@/lib/supabase-server'
+import { cached } from '@/lib/server-cache'
+import { CACHE_PRESETS } from '@/lib/cache-control'
 
-export async function GET() {
+async function fetchCount(): Promise<number> {
   const supabase = createAdminSupabaseClient()
-  if (!supabase) return NextResponse.json({ count: 0 })
+  if (!supabase) return 0
 
   const { count } = await supabase
     .from('projects')
     .select('*', { count: 'exact', head: true })
     .eq('is_published', true)
 
-  return NextResponse.json(
-    { count: count ?? 0 },
-    { headers: { 'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=60' } }
-  )
+  return count ?? 0
+}
+
+export async function GET() {
+  const count = await cached('projects:count', 5 * 60 * 1000, fetchCount, {
+    staleWhileRevalidateMs: 10 * 60 * 1000,
+  })
+
+  return NextResponse.json({ count }, { headers: CACHE_PRESETS.LISTING })
 }

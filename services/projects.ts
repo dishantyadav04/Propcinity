@@ -325,6 +325,14 @@ export async function getProjectsByIds(ids: string[]): Promise<Project[]> {
   )
 }
 
+/** Cheap slug lookup so DELETE/PATCH routes can revalidate the exact static page without a full project fetch. */
+export async function getProjectSlugById(id: string): Promise<string | null> {
+  const supabase = createAdminSupabaseClient()
+  if (!supabase) return null
+  const { data } = await supabase.from('projects').select('slug').eq('id', id).single()
+  return data?.slug ?? null
+}
+
 export async function adminGetAllProjects(page = 1, limit = 50, location?: string): Promise<{ projects: unknown[]; total: number; page: number; limit: number }> {
   const supabase = createAdminSupabaseClient()
   if (!supabase) {

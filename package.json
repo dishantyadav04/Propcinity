@@ -7,7 +7,9 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "keywords": [],
   "author": "",
@@ -64,10 +66,12 @@
     "zod": "^3.25.28"
   },
   "devDependencies": {
+    "@eslint/eslintrc": "^3.2.0",
     "@types/node": "^26.2.0",
     "@types/sanitize-html": "^2.16.1",
-    "@eslint/eslintrc": "^3.2.0",
+    "@vitejs/plugin-react": "^6.0.5",
     "eslint": "^9.19.0",
-    "eslint-config-next": "^16.2.7"
+    "eslint-config-next": "^16.2.7",
+    "vitest": "^4.1.11"
   }
 }

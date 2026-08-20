@@ -1,5 +1,8 @@
-/** @type {import('next').NextConfig} */
-const nextConfig = {
+import type { NextConfig } from 'next'
+import { buildApiHeaderRules } from './lib/http-headers-config'
+import { withSentryConfig } from '@sentry/nextjs'
+
+const nextConfig: NextConfig = {
   reactStrictMode: true,
 
   serverExternalPackages: ['openai', 'posthog-node'],
@@ -92,15 +95,17 @@ const nextConfig = {
         source: '/admin/(.*)',
         headers: [{ key: 'X-Robots-Tag', value: 'noindex, nofollow' }],
       },
-      {
-        source: '/api/(.*)',
-        headers: [{ key: 'Cache-Control', value: 'no-store' }],
-      },
+      // NOTE: we intentionally do NOT apply a blanket Cache-Control rule to
+      // all of /api/(.*) here anymore. Next.js appends config-level headers
+      // alongside whatever a route handler sets rather than letting one
+      // replace the other, so a blanket no-store rule here was silently
+      // shipping a second, conflicting Cache-Control header on every public
+      // route that tried to opt into caching (see lib/http-headers-config.ts
+      // for the full explanation and the routes this now covers).
+      ...buildApiHeaderRules(),
     ]
   },
 }
-
-const { withSentryConfig } = await import('@sentry/nextjs')
 
 export default withSentryConfig(nextConfig, {
   org: "propcinity",
@@ -109,6 +114,10 @@ export default withSentryConfig(nextConfig, {
   silent: !process.env.CI,
   widenClientFileUpload: true,
   tunnelRoute: "/monitoring",
+  // @ts-expect-error — still respected at runtime by @sentry/nextjs 10.x;
+  // the installed type defs just haven't caught up to their own docs yet.
+  // (This was silently untyped before too — next.config.mjs wasn't
+  // type-checked. Converting to next.config.ts is what surfaced it.)
   hideSourceMaps: true,
   telemetry: false,
 

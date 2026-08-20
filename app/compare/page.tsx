@@ -12,6 +12,12 @@ import { useGuestMode } from "@/hooks/useGuestMode";
 import { GUEST_LIMITS } from "@/lib/guest-config";
 import GuestGate from "@/components/ui/GuestGate";
 import { storage, STORAGE_KEYS } from "@/lib/storage";
+import { createResourceCache } from "@/lib/client-cache";
+
+// Same cache name/instance as app/dashboard/page.tsx — if the dashboard has
+// already fetched the full project list in this session, compare reuses it
+// instead of re-fetching from the network.
+const projectsCache = createResourceCache<Project[]>('projects:all', 60 * 1000);
 
 function CompareContent() {
   const router = useRouter();
@@ -35,9 +41,19 @@ function CompareContent() {
         return;
       }
 
+      const cachedAll = projectsCache.get();
+      if (cachedAll) {
+        setProjects(cachedAll.filter(p => ids.includes(p.id)));
+        setIsLoading(false);
+        return;
+      }
+
       fetch('/api/projects')
         .then(r => r.json())
-        .then((all: Project[]) => setProjects(all.filter(p => ids.includes(p.id))))
+        .then((all: Project[]) => {
+          projectsCache.set(all);
+          setProjects(all.filter(p => ids.includes(p.id)));
+        })
         .catch(console.error)
         .finally(() => setIsLoading(false));
       return;
