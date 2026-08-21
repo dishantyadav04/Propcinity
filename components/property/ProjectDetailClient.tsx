@@ -1051,12 +1051,12 @@ export default function ProjectDetailClient({ project }: { project: Project }) {
                     <div>
                       <p className="font-black text-[var(--text-primary)] text-lg">{project.builderName}</p>
                       <div className="flex flex-wrap gap-3 mt-1">
-                        {project.builderYearsExperience && (
+                        {project.builderYearsExperience > 0 && (
                           <p className="text-xs text-[var(--text-muted)]">
                             {project.builderYearsExperience}+ years experience
                           </p>
                         )}
-                        {project.builderCompletedProjects && (
+                        {project.builderCompletedProjects > 0 && (
                           <p className="text-xs text-[var(--text-muted)]">
                             {project.builderCompletedProjects}+ completed projects
                           </p>
