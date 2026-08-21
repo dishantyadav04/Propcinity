@@ -14,8 +14,12 @@ export default function ProjectMarker({ lat, lng, name, priceLabel }: ProjectMar
   const icon = L.divIcon({
     className: '',
     html: `
-      <div style="display: flex; flex-direction: column; align-items: center; transform: translateX(-50%);">
+      <div style="position: relative; width: 0; height: 0;">
         <div style="
+          position: absolute;
+          bottom: 40px;
+          left: 0;
+          transform: translateX(-50%);
           display: inline-flex;
           align-items: center;
           gap: 6px;
@@ -31,19 +35,26 @@ export default function ProjectMarker({ lat, lng, name, priceLabel }: ProjectMar
         ">
           📍 ${name}
         </div>
-        <div style="
-          width: 0;
-          height: 0;
-          border-left: 6px solid transparent;
-          border-right: 6px solid transparent;
-          border-top: 8px solid #FF5722;
-          margin-top: -1px;
-        "></div>
+        <svg
+          width="26"
+          height="34"
+          viewBox="0 0 26 34"
+          style="position: absolute; left: -13px; top: -34px; display: block; filter: drop-shadow(0 2px 3px rgba(0,0,0,0.3));"
+        >
+          <path
+            d="M13 33 C13 33 1.5 20.5 1.5 12.4 C1.5 6.1 6.7 1 13 1 C19.3 1 24.5 6.1 24.5 12.4 C24.5 20.5 13 33 13 33 Z"
+            fill="#FF5722"
+            stroke="#ffffff"
+            stroke-width="2"
+            stroke-linejoin="round"
+          />
+          <circle cx="13" cy="12.4" r="4.2" fill="#ffffff" />
+        </svg>
       </div>
     `,
     iconSize: [0, 0],
-    iconAnchor: [0, 40],
-    popupAnchor: [0, -44],
+    iconAnchor: [0, 0],
+    popupAnchor: [0, -46],
   });
 
   return (

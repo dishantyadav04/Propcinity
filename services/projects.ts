@@ -305,11 +305,24 @@ export async function getProjectBySlug(slug: string): Promise<Project | null> {
   // Join-at-read: overlay rich builder-table data as a fallback so the
   // "About Builder" section self-heals for all existing projects without
   // a backfill migration. Project-level values win if already set.
-  if (row.builder_id) {
+  let builderId = row.builder_id
+
+  // Pre-migration fallback: if projects_public doesn't expose builder_id yet,
+  // read it straight from the underlying projects table (same published row).
+  if (!builderId) {
+    const { data } = await supabase
+      .from('projects')
+      .select('builder_id')
+      .eq('id', row.id)
+      .maybeSingle()
+    builderId = data?.builder_id ?? undefined
+  }
+
+  if (builderId) {
     const { data: builder } = await supabase
       .from('builders')
       .select('logo_url, description, years_in_business, total_projects_delivered, builder_score, score_breakdown')
-      .eq('id', row.builder_id)
+      .eq('id', builderId)
       .maybeSingle()
 
     if (builder) {
