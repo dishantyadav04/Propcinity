@@ -14,28 +14,36 @@ export default function ProjectMarker({ lat, lng, name, priceLabel }: ProjectMar
   const icon = L.divIcon({
     className: '',
     html: `
-      <div style="
-        display: inline-flex;
-        align-items: center;
-        gap: 6px;
-        background: #FF5722;
-        color: white;
-        padding: 6px 12px;
-        border-radius: 999px;
-        font-weight: 700;
-        font-size: 12px;
-        white-space: nowrap;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.25);
-        border: 2px solid white;
-        transform: translateX(-50%);
-        position: relative;
-      ">
-        📍 ${priceLabel}
+      <div style="display: flex; flex-direction: column; align-items: center; transform: translateX(-50%);">
+        <div style="
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          background: #FF5722;
+          color: white;
+          padding: 6px 12px;
+          border-radius: 999px;
+          font-weight: 700;
+          font-size: 12px;
+          white-space: nowrap;
+          box-shadow: 0 2px 8px rgba(0,0,0,0.25);
+          border: 2px solid white;
+        ">
+          📍 ${name}
+        </div>
+        <div style="
+          width: 0;
+          height: 0;
+          border-left: 6px solid transparent;
+          border-right: 6px solid transparent;
+          border-top: 8px solid #FF5722;
+          margin-top: -1px;
+        "></div>
       </div>
     `,
     iconSize: [0, 0],
-    iconAnchor: [0, 16],
-    popupAnchor: [0, -20],
+    iconAnchor: [0, 40],
+    popupAnchor: [0, -44],
   });
 
   return (

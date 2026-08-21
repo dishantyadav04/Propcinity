@@ -17,6 +17,7 @@ type SupabaseProjectRow = {
   id: string
   slug: string
   name: string
+  builder_id?: string
   builder_name: string
   builder_score: number
   builder_logo?: string
@@ -298,7 +299,30 @@ export async function getProjectBySlug(slug: string): Promise<Project | null> {
   if (!project) return null
 
   const unitConfigMap = await fetchUnitConfigsByProjectIds([project.id])
-  return mapProject(project as SupabaseProjectRow, unitConfigMap.get(project.id) || [])
+  const row = project as SupabaseProjectRow
+  const mapped = mapProject(row, unitConfigMap.get(row.id) || [])
+
+  // Join-at-read: overlay rich builder-table data as a fallback so the
+  // "About Builder" section self-heals for all existing projects without
+  // a backfill migration. Project-level values win if already set.
+  if (row.builder_id) {
+    const { data: builder } = await supabase
+      .from('builders')
+      .select('logo_url, description, years_in_business, total_projects_delivered, builder_score, score_breakdown')
+      .eq('id', row.builder_id)
+      .maybeSingle()
+
+    if (builder) {
+      mapped.builderLogo ??= builder.logo_url ?? undefined
+      mapped.builderDescription ??= builder.description ?? undefined
+      mapped.builderYearsExperience ??= builder.years_in_business ?? undefined
+      mapped.builderCompletedProjects ??= builder.total_projects_delivered ?? undefined
+      mapped.builderScore ??= builder.builder_score ?? undefined
+      mapped.builderScoreBreakdown ??= builder.score_breakdown ?? undefined
+    }
+  }
+
+  return mapped
 }
 
 export async function getProjectsByIds(ids: string[]): Promise<Project[]> {
