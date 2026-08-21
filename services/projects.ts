@@ -2,6 +2,8 @@ import { createAdminSupabaseClient, createServerSupabaseClient, createStaticSupa
 import { Project, UnitConfig, BuilderProject } from '@/types/project'
 import { MOCK_PROJECTS } from '@/lib/mock-data'
 import { deleteFromR2, cleanupRemovedR2Files } from '@/lib/r2'
+import { SANITIZE_CONFIG } from '@/lib/sanitize'
+import sanitizeHtml from 'sanitize-html'
 import * as Sentry from '@sentry/nextjs'
 
 function sanitizeDates(obj: Record<string, unknown>): Record<string, unknown> {
@@ -333,6 +335,12 @@ export async function getProjectBySlug(slug: string): Promise<Project | null> {
       mapped.builderScore ??= builder.builder_score ?? undefined
       mapped.builderScoreBreakdown ??= builder.score_breakdown ?? undefined
     }
+  }
+
+  // Builder descriptions are rich-text HTML from the admin editor — sanitize
+  // server-side so the client can safely render via dangerouslySetInnerHTML.
+  if (mapped.builderDescription) {
+    mapped.builderDescription = sanitizeHtml(mapped.builderDescription, SANITIZE_CONFIG)
   }
 
   return mapped

@@ -1087,9 +1087,16 @@ export default function ProjectDetailClient({ project }: { project: Project }) {
                   </div>
 
                   {project.builderDescription && (
-                    <p className="text-sm text-[var(--text-secondary)] leading-relaxed mb-4">
-                      {project.builderDescription}
-                    </p>
+                    <div
+                      className="prose prose-sm max-w-none text-sm text-[var(--text-secondary)] mb-4
+                        [&_h1]:text-base [&_h1]:font-bold [&_h1]:text-[var(--text-primary)]
+                        [&_h2]:text-base [&_h2]:font-bold [&_h2]:text-[var(--text-primary)]
+                        [&_h3]:text-sm [&_h3]:font-bold [&_h3]:text-[var(--text-primary)]
+                        [&_p]:leading-relaxed [&_a]:text-[var(--primary)] [&_a]:underline
+                        [&_ul]:list-disc [&_ul]:pl-4 [&_ol]:list-decimal [&_ol]:pl-4
+                        [&_li]:leading-relaxed"
+                      dangerouslySetInnerHTML={{ __html: project.builderDescription }}
+                    />
                   )}
 
                   {project.builderTopProjects && project.builderTopProjects.length > 0 && (
