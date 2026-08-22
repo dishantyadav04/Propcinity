@@ -112,6 +112,20 @@ export default function ProjectDetailClient({ project }: { project: Project }) {
     }
   }, [project]);
 
+  // Reset per-project UI state when navigating between two projects
+  useEffect(() => {
+    if (!project) return;
+    setActiveTab('overview');
+    setActiveVideo(0);
+    setExpandedEMIRow(null);
+    setExpandedFloorPlan(null);
+    setSelectedUnit(undefined);
+    setIsQualificationOpen(false);
+    setIsAIModalOpen(false);
+    setIsMobileCtaExpanded(false);
+    window.scrollTo(0, 0);
+  }, [project.id]);
+
   // One-time hint teaching mobile users what the dashboard icon does
   useEffect(() => {
     if (typeof window === 'undefined' || isGuest) return;
@@ -437,7 +451,7 @@ export default function ProjectDetailClient({ project }: { project: Project }) {
 
       {/* ── Gallery ────────────────────────────────────── */}
       <div className="max-w-6xl mx-auto px-4 sm:px-6 pt-4 lg:pt-8">
-        <GallerySlider images={project.images} />
+        <GallerySlider key={project.id} images={project.images} />
       </div>
 
       {/* ── Sticky tabs ────────────────────────────────── */}
