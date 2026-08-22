@@ -406,8 +406,8 @@ export default function ProjectDetailClient({ project }: { project: Project }) {
           <div className="relative">
             <button onClick={() => { handleAddToDashboard(); setShowDashboardHint(false); }}
               className={`p-1.5 rounded-full transition-colors ${addedToDashboard
-                  ? 'bg-[var(--primary-light)] text-[var(--primary)]'
-                  : 'text-[var(--text-secondary)]'
+                ? 'bg-[var(--primary-light)] text-[var(--primary)]'
+                : 'text-[var(--text-secondary)]'
                 }`}
               title={addedToDashboard ? 'Remove from Dashboard' : 'Add to Dashboard'}
             >
@@ -555,15 +555,6 @@ export default function ProjectDetailClient({ project }: { project: Project }) {
                   </div>
                 ))}
               </div>
-
-              {/* About */}
-              <h2 className="text-lg font-black text-[var(--text-primary)] mb-4"
-                style={{ fontFamily: 'var(--font-display)' }}>
-                About {project.name}
-              </h2>
-              <p className="text-sm text-[var(--text-secondary)] leading-relaxed whitespace-pre-line">
-                {project.description}
-              </p>
             </div>
 
             {/* ── LOCATION ─────────────────────────────── */}
@@ -675,8 +666,8 @@ export default function ProjectDetailClient({ project }: { project: Project }) {
                           {typeGroups.map(([base]) => (
                             <button key={base} onClick={() => setActivePricingType(base)}
                               className={`flex-shrink-0 px-4 py-2 rounded-full text-xs font-bold border transition-all ${activePricingType === base
-                                  ? 'bg-[var(--primary)] text-white border-[var(--primary)]'
-                                  : 'bg-[var(--surface-raised)] text-[var(--text-secondary)] border-[var(--border)] hover:border-[var(--primary)]'
+                                ? 'bg-[var(--primary)] text-white border-[var(--primary)]'
+                                : 'bg-[var(--surface-raised)] text-[var(--text-secondary)] border-[var(--border)] hover:border-[var(--primary)]'
                                 }`}>
                               {base}
                             </button>
@@ -719,8 +710,8 @@ export default function ProjectDetailClient({ project }: { project: Project }) {
                                         <button
                                           onClick={() => setExpandedEMIRow(isExpanded ? null : unit.id)}
                                           className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-black border transition-all uppercase tracking-wider ${isExpanded
-                                              ? 'bg-[var(--primary)] text-white border-[var(--primary)]'
-                                              : 'bg-[var(--surface-raised)] text-[var(--primary)] border-[var(--primary)]/40 hover:bg-[var(--primary)] hover:text-white'
+                                            ? 'bg-[var(--primary)] text-white border-[var(--primary)]'
+                                            : 'bg-[var(--surface-raised)] text-[var(--primary)] border-[var(--primary)]/40 hover:bg-[var(--primary)] hover:text-white'
                                             }`}
                                         >
                                           EMI <ChevronRight className={`w-2.5 h-2.5 transition-transform ${isExpanded ? 'rotate-90' : ''}`} />
@@ -898,8 +889,8 @@ export default function ProjectDetailClient({ project }: { project: Project }) {
                 blur={true}
               >
                 <div className={`flex items-start gap-4 p-5 rounded-[var(--radius-sm)] border ${!project.litigation
-                    ? 'bg-[var(--success-light)] border-[var(--success)]/20'
-                    : 'bg-[var(--danger-light)] border-[var(--danger)]/20'
+                  ? 'bg-[var(--success-light)] border-[var(--success)]/20'
+                  : 'bg-[var(--danger-light)] border-[var(--danger)]/20'
                   }`}>
                   {!project.litigation
                     ? <CheckCircle2 className="w-6 h-6 text-[var(--success)] flex-shrink-0 mt-0.5" />
