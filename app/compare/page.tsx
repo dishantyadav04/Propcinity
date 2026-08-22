@@ -9,7 +9,7 @@ import { formatINR } from "@/lib/finance-calculations";
 import { getMatchedUnitsForBhk, getRepresentativeUnit } from "@/lib/matched-units";
 import { scoreMatchedUnit } from "@/lib/match-score";
 import { isLocationMatch } from "@/services/fit-analysis";
-import { CheckCircle2, XCircle, ArrowLeft, Plus, Loader2, Minus, Lock, ChevronLeft, ChevronRight } from "lucide-react";
+import { CheckCircle2, XCircle, ArrowLeft, Plus, Loader2, Minus, Lock, ChevronLeft, ChevronRight, X } from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
 import { useGuestMode } from "@/hooks/useGuestMode";
@@ -108,11 +108,16 @@ function CompareContent() {
     scrollRef.current?.scrollBy({ left: amount, behavior: 'smooth' });
   };
 
-  const removeProjectFromCompare = (id: string) => {
-    const updated = projects.filter(p => p.id !== id);
-    setProjects(updated);
-    storage.set(STORAGE_KEYS.COMPARE_ITEMS, updated);
+  const removeProject = (id: string) => {
+    const stored = storage.get<Project[]>(STORAGE_KEYS.COMPARE_ITEMS, []);
+    storage.set(STORAGE_KEYS.COMPARE_ITEMS, stored.filter(p => p.id !== id));
+    setProjects(prev => prev.filter(p => p.id !== id));
     window.dispatchEvent(new Event('compareUpdated'));
+    toast('Removed from compare');
+  };
+
+  const removeProjectFromCompare = (id: string) => {
+    removeProject(id);
   };
 
   const keepDespiteMissingConfig = (id: string) => {
@@ -146,6 +151,25 @@ function CompareContent() {
     return Array.from(s).sort();
   }, [projects]);
 
+  const pageHero = (
+    <div className="sr-only md:not-sr-only border-b border-[var(--border)] bg-[var(--surface)]">
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 pt-6 pb-5">
+        <h1
+          className="text-2xl sm:text-3xl font-extrabold text-[var(--text-primary)] tracking-tight"
+          style={{ fontFamily: 'var(--font-display)' }}
+        >
+          Compare properties side by side
+          <span className="text-[var(--primary)]"> — Match %, price, and RERA status in one view</span>
+        </h1>
+        <p className="mt-2 text-sm sm:text-[15px] text-[var(--text-secondary)] max-w-3xl leading-relaxed">
+          See how your shortlisted Pune properties stack up on Match % score, pricing,
+          RERA verification, construction progress, amenities, and more — all in a
+          single, clean comparison table.
+        </p>
+      </div>
+    </div>
+  );
+
   if (isLoading) return (
     <div className="min-h-screen flex items-center justify-center">
       <Loader2 className="w-8 h-8 animate-spin text-[var(--primary)]" />
@@ -153,16 +177,19 @@ function CompareContent() {
   );
 
   if (projects.length === 0) return (
-    <div className="min-h-screen flex flex-col items-center justify-center gap-5 p-6 text-center">
-      <div className="text-5xl">⚖️</div>
-      <h2 className="text-2xl font-black text-[var(--text-primary)]">Nothing to compare</h2>
-      <p className="text-[var(--text-secondary)] max-w-sm">
-        Add projects to compare using the compare bar at the bottom of any page.
-      </p>
-      <Link href="/explore"
-        className="flex items-center gap-2 px-6 py-3 bg-[var(--primary)] text-white font-bold rounded-[var(--radius)]">
-        <Plus className="w-4 h-4" /> Browse Projects
-      </Link>
+    <div className="min-h-screen bg-[var(--background)]">
+      {pageHero}
+      <div className="flex flex-col items-center justify-center gap-5 p-6 py-20 text-center">
+        <div className="text-5xl">⚖️</div>
+        <h2 className="text-2xl font-black text-[var(--text-primary)]">Nothing to compare</h2>
+        <p className="text-[var(--text-secondary)] max-w-sm">
+          Add projects to compare using the compare bar at the bottom of any page.
+        </p>
+        <Link href="/explore"
+          className="flex items-center gap-2 px-6 py-3 bg-[var(--primary)] text-white font-bold rounded-[var(--radius)]">
+          <Plus className="w-4 h-4" /> Browse Projects
+        </Link>
+      </div>
     </div>
   );
 
@@ -310,18 +337,7 @@ function CompareContent() {
 
   return (
     <div className="min-h-screen bg-[var(--background)] pb-40">
-      {/* Static SEO block — visible to crawlers before JS hydration */}
-      <div className="sr-only md:not-sr-only md:mb-4 px-4 sm:px-6 max-w-5xl mx-auto">
-        <h1 className="text-2xl sm:text-3xl font-black text-[var(--text-primary)] tracking-tight"
-          style={{ fontFamily: 'var(--font-display)' }}>
-          Compare properties side by side — Match %, price, and RERA status in one view
-        </h1>
-        <p className="text-sm text-[var(--text-secondary)] mt-2 max-w-2xl">
-          See how your shortlisted Pune properties stack up on Match % score, pricing,
-          RERA verification, construction progress, amenities, and more — all in a
-          single, clean comparison table.
-        </p>
-      </div>
+      {pageHero}
       {/* Header */}
       <div className="bg-white border-b border-[var(--border)] sticky top-16 z-30">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 h-14 flex items-center gap-4">
@@ -400,7 +416,17 @@ function CompareContent() {
                     Feature
                   </th>
                   {projects.map(p => (
-                    <th key={p.id} className="p-2 sm:p-3 bg-white border border-[var(--border)] min-w-[150px] sm:min-w-[180px]">
+                    <th key={p.id} className="p-2 sm:p-3 bg-white border border-[var(--border)] min-w-[150px] sm:min-w-[180px] relative">
+                      <button
+                        onClick={() => removeProject(p.id)}
+                        aria-label={`Remove ${p.name} from comparison`}
+                        className="absolute top-1.5 right-1.5 z-10 w-5 h-5 rounded-full
+                          bg-[var(--surface-raised)] hover:bg-[var(--danger-light)]
+                          text-[var(--text-muted)] hover:text-[var(--danger)]
+                          flex items-center justify-center transition-colors cursor-pointer"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
                       <div className="space-y-2 text-center">
                         {p.images?.[0] && (
                           <div className="relative w-full h-16 sm:h-24">
