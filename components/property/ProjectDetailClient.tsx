@@ -36,15 +36,15 @@ import TimelineSection from "@/components/property/TimelineSection";
 
 // ── Tab definitions ────────────────────────────────────────
 const TABS = [
-  { id: 'overview',     label: 'Overview' },
-  { id: 'location',     label: 'Location' },
-  { id: 'amenities',    label: 'Amenities' },
-  { id: 'floor-plans',  label: 'Floor Plans' },
-  { id: 'pricing',      label: 'Pricing' },
-  { id: 'pros-cons',    label: 'Pros & Cons' },
-  { id: 'legal',        label: 'Legal' },
-  { id: 'rera',         label: 'RERA' },
-  { id: 'builder',      label: 'Builder' },
+  { id: 'overview', label: 'Overview' },
+  { id: 'location', label: 'Location' },
+  { id: 'amenities', label: 'Amenities' },
+  { id: 'floor-plans', label: 'Floor Plans' },
+  { id: 'pricing', label: 'Pricing' },
+  { id: 'pros-cons', label: 'Pros & Cons' },
+  { id: 'legal', label: 'Legal' },
+  { id: 'rera', label: 'RERA' },
+  { id: 'builder', label: 'Builder' },
 ];
 
 // ── Construction status display ────────────────────────────
@@ -296,8 +296,8 @@ export default function ProjectDetailClient({ project }: { project: Project }) {
                 <div className="p-4 bg-[var(--surface-raised)]">
                   <div className="relative w-full h-[70vh]">
                     <Image
-                    src={images[lightboxIndex]}
-                    alt={labels?.[lightboxIndex] ?? label}
+                      src={images[lightboxIndex]}
+                      alt={labels?.[lightboxIndex] ?? label}
                       fill
                       sizes="(max-width: 768px) 92vw, 896px"
                       className="object-contain rounded-[var(--radius-xs)]"
@@ -399,17 +399,16 @@ export default function ProjectDetailClient({ project }: { project: Project }) {
           {project.name}
         </p>
         <div className="flex gap-2">
-          <button onClick={() => navigator.share?.({ title: project.name, url: window.location.href }).catch(() => {})}
+          <button onClick={() => navigator.share?.({ title: project.name, url: window.location.href }).catch(() => { })}
             className="p-1.5 text-[var(--text-secondary)]">
             <Share2 className="w-5 h-5" />
           </button>
           <div className="relative">
             <button onClick={() => { handleAddToDashboard(); setShowDashboardHint(false); }}
-              className={`p-1.5 rounded-full transition-colors ${
-                addedToDashboard
+              className={`p-1.5 rounded-full transition-colors ${addedToDashboard
                   ? 'bg-[var(--primary-light)] text-[var(--primary)]'
                   : 'text-[var(--text-secondary)]'
-              }`}
+                }`}
               title={addedToDashboard ? 'Remove from Dashboard' : 'Add to Dashboard'}
             >
               {addedToDashboard
@@ -454,11 +453,10 @@ export default function ProjectDetailClient({ project }: { project: Project }) {
                   data-tab={tab.id}
                   onClick={() => handleTabClick(tab.id)}
                   className={`flex-shrink-0 px-4 py-3.5 text-xs font-bold uppercase tracking-wider
-                    border-b-2 transition-colors whitespace-nowrap ${
-                    activeTab === tab.id
+                    border-b-2 transition-colors whitespace-nowrap ${activeTab === tab.id
                       ? 'border-[var(--primary)] text-[var(--primary)]'
                       : 'border-transparent text-[var(--text-muted)] hover:text-[var(--text-primary)]'
-                  } ${isLocked ? 'opacity-60' : ''}`}
+                    } ${isLocked ? 'opacity-60' : ''}`}
                 >
                   {tab.label}
                   {isLocked && <Lock className="w-3 h-3 ml-1 inline-block" />}
@@ -675,11 +673,10 @@ export default function ProjectDetailClient({ project }: { project: Project }) {
                         <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-1">
                           {typeGroups.map(([base]) => (
                             <button key={base} onClick={() => setActivePricingType(base)}
-                              className={`flex-shrink-0 px-4 py-2 rounded-full text-xs font-bold border transition-all ${
-                                activePricingType === base
+                              className={`flex-shrink-0 px-4 py-2 rounded-full text-xs font-bold border transition-all ${activePricingType === base
                                   ? 'bg-[var(--primary)] text-white border-[var(--primary)]'
                                   : 'bg-[var(--surface-raised)] text-[var(--text-secondary)] border-[var(--border)] hover:border-[var(--primary)]'
-                              }`}>
+                                }`}>
                               {base}
                             </button>
                           ))}
@@ -720,11 +717,10 @@ export default function ProjectDetailClient({ project }: { project: Project }) {
                                         <span className="text-[var(--text-secondary)] font-medium">{formatINR(downpayment)}</span>
                                         <button
                                           onClick={() => setExpandedEMIRow(isExpanded ? null : unit.id)}
-                                          className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-black border transition-all uppercase tracking-wider ${
-                                            isExpanded
+                                          className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-black border transition-all uppercase tracking-wider ${isExpanded
                                               ? 'bg-[var(--primary)] text-white border-[var(--primary)]'
                                               : 'bg-[var(--surface-raised)] text-[var(--primary)] border-[var(--primary)]/40 hover:bg-[var(--primary)] hover:text-white'
-                                          }`}
+                                            }`}
                                         >
                                           EMI <ChevronRight className={`w-2.5 h-2.5 transition-transform ${isExpanded ? 'rotate-90' : ''}`} />
                                         </button>
@@ -900,11 +896,10 @@ export default function ProjectDetailClient({ project }: { project: Project }) {
                 label="Sign up to view legal details"
                 blur={true}
               >
-                <div className={`flex items-start gap-4 p-5 rounded-[var(--radius-sm)] border ${
-                  !project.litigation
+                <div className={`flex items-start gap-4 p-5 rounded-[var(--radius-sm)] border ${!project.litigation
                     ? 'bg-[var(--success-light)] border-[var(--success)]/20'
                     : 'bg-[var(--danger-light)] border-[var(--danger)]/20'
-                }`}>
+                  }`}>
                   {!project.litigation
                     ? <CheckCircle2 className="w-6 h-6 text-[var(--success)] flex-shrink-0 mt-0.5" />
                     : <XCircle className="w-6 h-6 text-[var(--danger)] flex-shrink-0 mt-0.5" />
@@ -1056,11 +1051,6 @@ export default function ProjectDetailClient({ project }: { project: Project }) {
                             {project.builderYearsExperience}+ years experience
                           </p>
                         )}
-                        {project.builderCompletedProjects != null && (
-                          <p className="text-xs text-[var(--text-muted)]">
-                            {project.builderCompletedProjects}+ completed projects
-                          </p>
-                        )}
                       </div>
                     </div>
                     {SHOW_BUILDER_SCORE && project.builderScore !== undefined && (
@@ -1196,7 +1186,7 @@ export default function ProjectDetailClient({ project }: { project: Project }) {
               {/* Share + Add to Dashboard */}
               <div className="flex gap-2">
                 <button
-                  onClick={() => navigator.share?.({ title: project.name, url: window.location.href }).catch(() => {})}
+                  onClick={() => navigator.share?.({ title: project.name, url: window.location.href }).catch(() => { })}
                   className="flex-1 flex items-center justify-center gap-2 py-2.5
                     border border-[var(--border)] rounded-[var(--radius-xs)] text-sm
                     font-semibold text-[var(--text-secondary)] hover:bg-[var(--surface-raised)] transition-colors">
@@ -1205,11 +1195,10 @@ export default function ProjectDetailClient({ project }: { project: Project }) {
                 <button
                   onClick={handleAddToDashboard}
                   className={`flex-1 flex items-center justify-center gap-2 py-2.5
-                    border rounded-[var(--radius-xs)] text-sm font-semibold transition-colors ${
-                    addedToDashboard
+                    border rounded-[var(--radius-xs)] text-sm font-semibold transition-colors ${addedToDashboard
                       ? 'bg-[var(--primary-light)] border-[var(--primary)]/30 text-[var(--primary)]'
                       : 'border-[var(--border)] text-[var(--text-secondary)] hover:bg-[var(--primary-light)] hover:border-[var(--primary)] hover:text-[var(--primary)]'
-                  }`}>
+                    }`}>
                   {addedToDashboard
                     ? <Check className="w-4 h-4" />
                     : <Plus className="w-4 h-4" />}
