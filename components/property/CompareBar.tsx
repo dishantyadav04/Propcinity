@@ -68,6 +68,8 @@ export default function CompareBar() {
       <motion.div
         initial={{ y: 100, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
+        transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
+        style={{ transformOrigin: 'bottom center' }}
         className="w-full max-w-3xl"
       >
         {/* Collapsed pill — shown when scrolled down */}
@@ -78,6 +80,7 @@ export default function CompareBar() {
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.9 }}
+              transition={{ duration: 0.18, ease: [0.16, 1, 0.3, 1] }}
               onClick={() => setIsExpanded(true)}
               className="w-full flex items-center justify-center gap-2 py-2.5 px-5
                 bg-[var(--surface-dark)] text-white rounded-full shadow-2xl
@@ -90,9 +93,11 @@ export default function CompareBar() {
           ) : (
             <motion.div
               key="bar"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 8 }}
+              transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
+              style={{ transformOrigin: 'bottom center' }}
               className="bg-white/97 backdrop-blur-xl border border-[var(--border)]
                 shadow-2xl rounded-[var(--radius-lg)] overflow-hidden"
             >
@@ -128,9 +133,10 @@ export default function CompareBar() {
                         ? Math.min(...item.unitConfigs.map(u => u.price)) : 0;
                       return (
                         <motion.div key={item.id} layout
-                          initial={{ opacity: 0, scale: 0.8 }}
+                          initial={{ opacity: 0, scale: 0.92 }}
                           animate={{ opacity: 1, scale: 1 }}
-                          exit={{ opacity: 0, scale: 0.8 }}
+                          exit={{ opacity: 0, scale: 0.92 }}
+                          transition={{ duration: 0.18, ease: [0.16, 1, 0.3, 1] }}
                           className="flex-shrink-0 flex items-center gap-2 bg-[var(--surface-raised)]
                             border border-[var(--border)] rounded-[var(--radius-xs)] px-2.5 py-1.5 pr-7 relative">
                           <div className="w-7 h-7 rounded overflow-hidden bg-[var(--border)] flex-shrink-0 relative">

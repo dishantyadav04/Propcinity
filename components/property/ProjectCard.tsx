@@ -165,7 +165,7 @@ export default function ProjectCard({
       {/* Image section */}
       <Link href={`/projects/${project.slug}`} className="block">
         <div className="relative h-48 overflow-hidden bg-[var(--surface-raised)]">
-          <div className="relative w-full h-48 group-hover:scale-105 transition-transform duration-500">
+          <div className="relative w-full h-48 group-hover:scale-105 transition-transform duration-300">
             <ProjectImage
               src={project.images?.[0] ?? ''}
               alt={project.name}

@@ -4,7 +4,7 @@ import { Building2, Award, History, Info } from "lucide-react";
 interface BuilderProfileProps {
   name: string;
   experience: string;
-  projectsDelivered: number;
+  projectsDelivered: number | undefined;
   builderScore?: number;
   scoreBreakdown?: Record<string, number>;
 }
@@ -63,7 +63,9 @@ export default function BuilderProfile({ name, experience, projectsDelivered, bu
             <Award className="w-4 h-4" />
             <span className="text-[10px] font-bold uppercase">Delivered</span>
           </div>
-          <p className="text-lg font-bold text-[var(--text-primary)]">{projectsDelivered}+ Projects</p>
+          <p className="text-lg font-bold text-[var(--text-primary)]">
+            {projectsDelivered != null ? `${projectsDelivered}+ Projects` : 'N/A'}
+          </p>
         </div>
       </div>
 

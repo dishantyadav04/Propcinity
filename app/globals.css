@@ -201,5 +201,19 @@ html, body { overflow-x: hidden; }
 @media (prefers-reduced-motion: reduce) {
   .animate-slide-up {
     animation: none;
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* Global reduced-motion safety net — zeroes every animation/transition duration
+   so no custom keyframe or Framer Motion animation runs at full length.
+   Component-specific overrides above are kept as an extra safety layer. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 }

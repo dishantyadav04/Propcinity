@@ -118,7 +118,7 @@ export default function BlogListClient({ initialBlogs, initialTotal }: { initial
                     <img
                       src={blog.coverImage}
                       alt={blog.coverImageAlt || blog.title}
-                      className="w-full h-auto block group-hover:scale-[1.02] transition-transform duration-500"
+                      className="w-full h-auto block group-hover:scale-[1.02] transition-transform duration-300"
                     />
                   </div>
                 ) : (
