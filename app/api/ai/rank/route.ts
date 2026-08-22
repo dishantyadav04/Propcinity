@@ -78,9 +78,13 @@ export async function POST(request: NextRequest) {
   }
 
   // Build budget label for prompt
-  const budgetLabel = intent.budget.isOpenMax
-    ? `₹${(intent.budget.min / 100000).toFixed(0)}L+`
-    : `₹${(intent.budget.min / 100000).toFixed(0)}L – ₹${(intent.budget.max / 100000).toFixed(0)}L`
+  const bMin = intent.budget?.min || 0;
+  const bMax = intent.budget?.max || 0;
+  const budgetLabel = intent.budget?.isOpenMax
+    ? `₹${(bMin / 100000).toFixed(0)}L+`
+    : bMax > 0
+    ? `₹${(bMin / 100000).toFixed(0)}L – ₹${(bMax / 100000).toFixed(0)}L`
+    : 'Flexible budget';
 
   const timelineLabel: Record<string, string> = {
     under_1_year: 'needs possession within 12 months',

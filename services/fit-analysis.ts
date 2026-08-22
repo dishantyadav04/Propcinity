@@ -20,12 +20,14 @@ export function generateFitReasons(
 ): FitAnalysis {
   const reasons: FitReason[] = []
 
-  if (matchedUnit) {
-    if (matchedUnit.price <= intent.budget.max * 0.9) {
+  const budgetMax = intent?.budget?.isOpenMax ? Infinity : (intent?.budget?.max || 0);
+
+  if (matchedUnit && budgetMax > 0) {
+    if (matchedUnit.price <= budgetMax * 0.9) {
       reasons.push({ icon: 'IndianRupee', text: 'Comfortably within your budget', strength: 'strong' })
-    } else if (matchedUnit.price <= intent.budget.max) {
+    } else if (matchedUnit.price <= budgetMax) {
       reasons.push({ icon: 'IndianRupee', text: 'Within your stated budget', strength: 'moderate' })
-    } else if (matchedUnit.price <= intent.budget.max * 1.1) {
+    } else if (budgetMax !== Infinity && matchedUnit.price <= budgetMax * 1.1) {
       reasons.push({ icon: 'IndianRupee', text: 'Slightly above budget but strong value', strength: 'weak' })
     }
   }
@@ -36,7 +38,7 @@ export function generateFitReasons(
 
   if (project.constructionStatus === 'ready_to_move') {
     reasons.push({ icon: 'Home', text: 'Ready to move - zero waiting time', strength: 'strong' })
-  } else if (project.constructionPercent > 70) {
+  } else if ((project.constructionPercent || 0) > 70) {
     reasons.push({ icon: 'Building', text: 'Advanced construction stage', strength: 'strong' })
   }
 
@@ -44,7 +46,7 @@ export function generateFitReasons(
     reasons.push({ icon: 'BadgeCheck', text: 'RERA registered - legally protected', strength: 'moderate' })
   }
 
-  if (matchedUnit && intent.propertyType.some(t => matchedUnit.type.includes(t))) {
+  if (matchedUnit && Array.isArray(intent?.propertyType) && intent.propertyType.some(t => matchedUnit.type.includes(t))) {
     reasons.push({ icon: 'Home', text: `Matches your property type preference`, strength: 'strong' })
   }
 

@@ -43,7 +43,11 @@ export default function PersonalizedWelcome() {
             Curated Matches
           </h1>
           <p className="text-sm text-[var(--text-secondary)] leading-relaxed font-medium">
-            Optimized for <span className="text-[var(--text-primary)] font-black">₹{(intent.budget.max / 10000000).toFixed(1)} Cr</span> budget targeting <span className="text-[var(--primary)] font-black uppercase text-[10px] tracking-widest">{intent.purpose.replace('_', ' ')}</span>.
+            Optimized for <span className="text-[var(--text-primary)] font-black">
+              {intent.budget?.isOpenMax ? 'Open' : intent.budget?.max ? `₹${(intent.budget.max / 10000000).toFixed(1)} Cr` : 'Flexible'}
+            </span> budget targeting <span className="text-[var(--primary)] font-black uppercase text-[10px] tracking-widest">
+              {(intent.purpose || 'home').replace('_', ' ')}
+            </span>.
           </p>
         </motion.div>
 
