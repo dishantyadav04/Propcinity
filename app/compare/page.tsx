@@ -3,8 +3,12 @@
 import { useEffect, useState, useMemo, useRef, Suspense } from "react";
 import Image from "next/image";
 import { useSearchParams, useRouter } from "next/navigation";
-import { Project } from "@/types/project";
+import { Project, UnitConfig } from "@/types/project";
+import { UserIntent } from "@/types/user";
 import { formatINR } from "@/lib/finance-calculations";
+import { getMatchedUnitsForBhk, getRepresentativeUnit } from "@/lib/matched-units";
+import { scoreMatchedUnit } from "@/lib/match-score";
+import { isLocationMatch } from "@/services/fit-analysis";
 import { CheckCircle2, XCircle, ArrowLeft, Plus, Loader2, Minus, Lock, ChevronLeft, ChevronRight } from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
@@ -27,6 +31,17 @@ function CompareContent() {
   const [isLoading, setIsLoading] = useState(true);
   const searchParams = useSearchParams();
   const idsParam = searchParams?.get('ids');
+
+  // Saved onboarding intent — null for guests / users who skipped onboarding.
+  // When null, the table falls back to today's generic behavior unchanged.
+  const [intent, setIntent] = useState<UserIntent | null>(null);
+  useEffect(() => {
+    setIntent(storage.get<UserIntent | null>(STORAGE_KEYS.USER_INTENT, null));
+  }, []);
+
+  // Tracks the user's Keep/Remove choice for a project that's missing one of
+  // their selected BHK types — asked once per project per session, per PRD §4.3.
+  const [missingConfigChoice, setMissingConfigChoice] = useState<Record<string, 'keep' | 'pending'>>({});
 
   useEffect(() => {
     const stored = storage.get<Project[]>(STORAGE_KEYS.COMPARE_ITEMS, []);
@@ -93,6 +108,17 @@ function CompareContent() {
     scrollRef.current?.scrollBy({ left: amount, behavior: 'smooth' });
   };
 
+  const removeProjectFromCompare = (id: string) => {
+    const updated = projects.filter(p => p.id !== id);
+    setProjects(updated);
+    storage.set(STORAGE_KEYS.COMPARE_ITEMS, updated);
+    window.dispatchEvent(new Event('compareUpdated'));
+  };
+
+  const keepDespiteMissingConfig = (id: string) => {
+    setMissingConfigChoice(prev => ({ ...prev, [id]: 'keep' }));
+  };
+
   const handleMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
     const el = scrollRef.current;
     if (!el) return;
@@ -140,21 +166,94 @@ function CompareContent() {
     </div>
   );
 
+  const selectedBhks = intent?.bhkType?.length ? intent.bhkType : [];
+  const hasIntent = !!intent;
+
+  // Per-BHK sub-rows, only built when the user has selected BHK preferences.
+  const bhkRows: { label: string; render: (p: Project) => React.ReactNode }[] = selectedBhks.map(bhk => ({
+    label: `${bhk} (matched unit)`,
+    render: (p: Project) => {
+      const unit = getRepresentativeUnit(p, bhk);
+      if (!unit) {
+        const choice = missingConfigChoice[p.id];
+        if (choice === 'keep') {
+          return <span className="text-xs text-[var(--text-muted)]">Not available (kept anyway)</span>;
+        }
+        return (
+          <div className="flex flex-col items-center gap-1.5">
+            <span className="text-[10px] font-bold text-amber-600">Not available in this config</span>
+            <div className="flex gap-1.5">
+              <button onClick={() => keepDespiteMissingConfig(p.id)}
+                className="text-[10px] font-bold px-2 py-0.5 rounded-full border border-[var(--border)] hover:bg-[var(--surface-raised)]">
+                Keep
+              </button>
+              <button onClick={() => removeProjectFromCompare(p.id)}
+                className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[var(--danger)]/10 text-[var(--danger)]">
+                Remove
+              </button>
+            </div>
+          </div>
+        );
+      }
+      const { budgetFit } = intent ? scoreMatchedUnit(p, unit, intent) : { budgetFit: 'within' as const };
+      const budgetLabel = budgetFit === 'under' ? 'Under budget' : budgetFit === 'over' ? 'Above budget' : 'Within budget';
+      const budgetColor = budgetFit === 'over' ? 'text-amber-600' : 'text-[var(--success)]';
+      return (
+        <div className="space-y-0.5">
+          <p className="font-black text-[var(--primary)] text-sm">{formatINR(unit.price)}</p>
+          <p className="text-[10px] text-[var(--text-muted)]">{unit.area} sqft</p>
+          <p className={`text-[10px] font-bold ${budgetColor}`}>{budgetLabel}</p>
+        </div>
+      );
+    },
+  }));
+
   const rows: { label: string; render: (p: Project) => React.ReactNode }[] = [
-    {
-      label: 'Price From', render: p => (
+    ...(hasIntent ? [{
+      label: 'Fit Score',
+      render: (p: Project) => {
+        const unit = selectedBhks.length ? getRepresentativeUnit(p, selectedBhks[0]) : p.unitConfigs?.[0];
+        if (!unit || !intent) return <span className="text-xs text-[var(--text-muted)]">—</span>;
+        const { percent } = scoreMatchedUnit(p, unit, intent);
+        return <span className="font-black text-[var(--primary)]">{percent}%</span>;
+      },
+    }] : []),
+    ...bhkRows,
+    ...(!selectedBhks.length ? [{
+      label: 'Price From', render: (p: Project) => (
         <span className="font-black text-[var(--primary)]">
           {p.unitConfigs?.length ? formatINR(Math.min(...(p.unitConfigs || []).map(u => u.price))) : '—'}
         </span>
       )
-    },
-    {
-      label: 'Config', render: p => (
+    }, {
+      label: 'Config', render: (p: Project) => (
         <span className="text-xs text-[var(--text-secondary)]">
           {Array.from(new Set((p.unitConfigs || []).map(u => u.type || 'Unit'))).join(', ') || '—'}
         </span>
       )
-    },
+    }] : []),
+    ...(hasIntent ? [{
+      label: 'Location Match',
+      render: (p: Project) => intent && isLocationMatch(p, intent)
+        ? <CheckCircle2 className="w-5 h-5 text-[var(--success)]" />
+        : <XCircle className="w-5 h-5 text-[var(--text-muted)]" />,
+    }] : []),
+    ...(hasIntent && intent!.preferences?.length ? [{
+      label: 'Your Preferences',
+      render: (p: Project) => (
+        <div className="flex flex-wrap gap-1 justify-center max-w-[160px]">
+          {intent!.preferences.map(pref => (
+            <span key={pref} className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full ${
+              (p.amenities || []).includes(pref)
+                ? 'bg-[var(--success)]/10 text-[var(--success)]'
+                : 'bg-[var(--surface-raised)] text-[var(--text-muted)]'
+            }`}>
+              {pref}
+            </span>
+          ))}
+        </div>
+      ),
+    }] : []),
     { label: 'Builder', render: p => <span className="text-sm font-semibold">{p.builderName || '—'}</span> },
     {
       label: 'RERA Status', render: p => {

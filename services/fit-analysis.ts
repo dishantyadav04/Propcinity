@@ -30,11 +30,7 @@ export function generateFitReasons(
     }
   }
 
-  const locationMatch = intent.subLocations?.some(
-    (loc: string) => project.location.toLowerCase().includes(loc.toLowerCase()) 
-      || loc.toLowerCase().includes(project.location.toLowerCase())
-  ) ?? false;
-  if (locationMatch) {
+  if (isLocationMatch(project, intent)) {
     reasons.push({ icon: 'MapPin', text: 'Located in your preferred area', strength: 'strong' })
   }
 
@@ -65,4 +61,11 @@ export function generateFitReasons(
     headline: rawHeadline.charAt(0).toUpperCase() + rawHeadline.slice(1),
     reasons,
   }
+}
+
+export function isLocationMatch(project: Project, intent: UserIntent): boolean {
+  return intent.subLocations?.some(
+    (loc: string) => project.location.toLowerCase().includes(loc.toLowerCase())
+      || loc.toLowerCase().includes(project.location.toLowerCase())
+  ) ?? false;
 }

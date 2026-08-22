@@ -1,4 +1,5 @@
-import { Project } from '@/types/project'
+import { Project, UnitConfig } from '@/types/project'
+import { UserIntent } from '@/types/user'
 
 // Score a project against user's intent (pure function, no localStorage)
 export function scoreByIntent(project: Project, intent: any): number {
@@ -80,4 +81,61 @@ export function scoreByIntent(project: Project, intent: any): number {
 export function getMatchPercent(project: Project, intent: any): number {
   const score = scoreByIntent(project, intent)
   return Math.min(100, Math.round((score / 90) * 100))
+}
+
+export interface MatchedUnitScore {
+  percent: number
+  budgetFit: 'under' | 'within' | 'over'
+}
+
+/**
+ * Scores a SPECIFIC matched unit against intent (for compare page use), rather than
+ * scoring the whole project's price range like scoreByIntent() does. Reuses the same
+ * location/RERA weighting as scoreByIntent so the two stay consistent.
+ */
+export function scoreMatchedUnit(project: Project, unit: UnitConfig, intent: UserIntent): MatchedUnitScore {
+  let score = 0
+
+  // Location — same logic as scoreByIntent
+  if (intent.subLocations?.length > 0) {
+    const pLoc = (project.location || '').toLowerCase()
+    const match = intent.subLocations.some((sl: string) => {
+      const s = sl.toLowerCase()
+      return pLoc.includes(s) || s.includes(pLoc)
+    })
+    score += match ? 30 : 5
+  } else {
+    score += 15
+  }
+
+  // Budget — computed against the SPECIFIC unit price, not project min/max
+  let budgetFit: MatchedUnitScore['budgetFit'] = 'within'
+  if (intent.budget?.min > 0 || intent.budget?.max > 0) {
+    const uMin = intent.budget.min || 0
+    const uMax = intent.budget.isOpenMax ? Infinity : (intent.budget.max || Infinity)
+    if (unit.price < uMin) {
+      budgetFit = 'under'
+      score += 20
+    } else if (unit.price <= uMax) {
+      budgetFit = 'within'
+      score += 25
+    } else {
+      budgetFit = 'over'
+      score += unit.price <= uMax * 1.1 ? 10 : 2
+    }
+  } else {
+    score += 15
+  }
+
+  // RERA — same logic as scoreByIntent
+  if (project.reraStatus === 'expired' || project.reraStatus === 'not_registered') {
+    score -= 15
+  } else if (project.reraStatus === 'registered') {
+    score += 10
+  }
+
+  return {
+    percent: Math.max(0, Math.min(100, Math.round((score / 65) * 100))),
+    budgetFit,
+  }
 }
