@@ -557,9 +557,10 @@ export default function ProjectDetailClient({ project }: { project: Project }) {
               </div>
 
               {/* About */}
-              <h3 className="text-base font-black text-[var(--text-primary)] mb-3">
+              <h2 className="text-lg font-black text-[var(--text-primary)] mb-4"
+                style={{ fontFamily: 'var(--font-display)' }}>
                 About {project.name}
-              </h3>
+              </h2>
               <p className="text-sm text-[var(--text-secondary)] leading-relaxed whitespace-pre-line">
                 {project.description}
               </p>

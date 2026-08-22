@@ -70,7 +70,7 @@ export default function ProjectCard({
   const unitTypes = Array.from(new Set(project.unitConfigs.map(u => u.type || 'Unit')));
 
   const shortLabel = (type: string) => {
-    const match = type.match(/(\d+\s*BHK)/i);
+    const match = type.match(/(\d+(?:\.\d+)?\s*BHK)/i);
     return match ? match[1].replace(/\s+/, '') : type.split(' ')[0];
   };
 

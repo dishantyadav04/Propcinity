@@ -312,8 +312,11 @@ function CompareContent() {
     <div className="min-h-screen bg-[var(--background)] pb-40">
       {/* Static SEO block — visible to crawlers before JS hydration */}
       <div className="sr-only md:not-sr-only md:mb-4 px-4 sm:px-6 max-w-5xl mx-auto">
-        <h1>Compare properties side by side — Match %, price, and RERA status in one view</h1>
-        <p>
+        <h1 className="text-2xl sm:text-3xl font-black text-[var(--text-primary)] tracking-tight"
+          style={{ fontFamily: 'var(--font-display)' }}>
+          Compare properties side by side — Match %, price, and RERA status in one view
+        </h1>
+        <p className="text-sm text-[var(--text-secondary)] mt-2 max-w-2xl">
           See how your shortlisted Pune properties stack up on Match % score, pricing,
           RERA verification, construction progress, amenities, and more — all in a
           single, clean comparison table.
