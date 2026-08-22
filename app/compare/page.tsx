@@ -405,18 +405,18 @@ function CompareContent() {
               [&::-webkit-scrollbar-thumb]:rounded-full"
           >
             <table
-              className="border-collapse"
-              style={{ minWidth: `${projects.length * 150 + 112}px` }}
+              className="border-collapse table-fixed"
+              style={{ minWidth: `${projects.length * 240 + 160}px` }}
             >
               <thead>
                 <tr>
-                  <th className="w-28 sm:w-36 p-2 sm:p-3 text-left text-[10px] font-black text-[var(--text-muted)]
+                  <th className="w-32 sm:w-40 min-w-[128px] sm:min-w-[160px] max-w-[128px] sm:max-w-[160px] p-2 sm:p-3 text-left text-[10px] font-black text-[var(--text-muted)]
                     uppercase tracking-wider bg-[var(--surface-raised)] border border-[var(--border)]
                     sticky left-0 z-10">
                     Feature
                   </th>
                   {projects.map(p => (
-                    <th key={p.id} className="p-2 sm:p-3 bg-white border border-[var(--border)] min-w-[150px] sm:min-w-[180px] relative">
+                    <th key={p.id} className="w-[200px] sm:w-[240px] min-w-[200px] sm:min-w-[240px] max-w-[200px] sm:max-w-[240px] p-2 sm:p-3 bg-white border border-[var(--border)] relative align-top">
                       <button
                         onClick={() => removeProject(p.id)}
                         aria-label={`Remove ${p.name} from comparison`}
@@ -429,19 +429,19 @@ function CompareContent() {
                       </button>
                       <div className="space-y-2 text-center">
                         {p.images?.[0] && (
-                          <div className="relative w-full h-16 sm:h-24">
+                          <div className="relative w-full h-24 sm:h-28 overflow-hidden rounded-[var(--radius-xs)] bg-[var(--surface-raised)]">
                             <Image
                               src={p.images[0]}
                               alt={p.name}
                               fill
                               draggable={false}
                               className="object-cover rounded-[var(--radius-xs)] pointer-events-none"
-                              sizes="180px"
+                              sizes="(min-width: 640px) 240px, 200px"
                             />
                           </div>
                         )}
-                        <p className="font-bold text-xs sm:text-sm text-[var(--text-primary)] line-clamp-2">{p.name}</p>
-                        <p className="text-[9px] sm:text-[10px] text-[var(--text-muted)]">{p.location}</p>
+                        <p className="font-bold text-xs sm:text-sm text-[var(--text-primary)] line-clamp-2 min-h-[2.5rem] flex items-center justify-center">{p.name}</p>
+                        <p className="text-[9px] sm:text-[10px] text-[var(--text-muted)] truncate">{p.location}</p>
                         {viewDetailsLink(p)}
                       </div>
                     </th>
@@ -458,7 +458,7 @@ function CompareContent() {
                         {row.label}
                       </td>
                       {projects.map(p => (
-                        <td key={p.id} className="p-2 sm:p-3 text-center border border-[var(--border)]">
+                        <td key={p.id} className="w-[200px] sm:w-[240px] min-w-[200px] sm:min-w-[240px] max-w-[200px] sm:max-w-[240px] p-2 sm:p-3 text-center border border-[var(--border)] align-middle">
                           <div className="flex items-center justify-center">{row.render(p)}</div>
                         </td>
                       ))}
@@ -473,18 +473,18 @@ function CompareContent() {
                         label={`${lockedRows.length} more comparison rows — sign up to unlock`}
                         blur={true}
                       >
-                        <table className="w-full border-collapse pointer-events-none">
+                        <table className="w-full border-collapse table-fixed pointer-events-none">
                           <tbody>
                             {lockedRows.map((row, i) => {
                               const rowBg = i % 2 === 0 ? 'bg-white' : 'bg-[#FAFAF8]';
                               return (
                                 <tr key={row.label} className={rowBg}>
                                   <td className={`p-2 sm:p-3 text-[10px] sm:text-xs font-bold text-[var(--text-muted)] border border-[var(--border)]
-                                    w-28 sm:w-36 uppercase tracking-wider whitespace-nowrap ${rowBg}`}>
+                                    w-32 sm:w-40 min-w-[128px] sm:min-w-[160px] max-w-[128px] sm:max-w-[160px] uppercase tracking-wider whitespace-nowrap ${rowBg}`}>
                                     {row.label}
                                   </td>
                                   {projects.map(p => (
-                                    <td key={p.id} className="p-2 sm:p-3 text-center border border-[var(--border)]">
+                                    <td key={p.id} className="w-[200px] sm:w-[240px] min-w-[200px] sm:min-w-[240px] max-w-[200px] sm:max-w-[240px] p-2 sm:p-3 text-center border border-[var(--border)] align-middle">
                                       <div className="flex items-center justify-center">{row.render(p)}</div>
                                     </td>
                                   ))}

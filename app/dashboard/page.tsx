@@ -423,10 +423,10 @@ export default function DashboardPage() {
   }, [projects, aiRecommended, curatedIds, rejectedIds, storageReady]);
 
   // Server redirect (Task 3) handles this first; these are client-side fallbacks
-  if (isChecking) return null
-  if (isGuest) return null
+  if (isGuest && !isChecking) return null
 
   const showSkeleton =
+    isChecking ||
     isLoading ||
     !storageReady ||
     (curatedIds.length > 0 && projects.length === 0);

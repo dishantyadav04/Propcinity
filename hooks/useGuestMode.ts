@@ -5,7 +5,14 @@ import { storage, STORAGE_KEYS } from '@/lib/storage'
 import { createClient } from '@/lib/supabase'
 
 export function useGuestMode() {
-  const [isGuest, setIsGuest] = useState<boolean | null>(null)
+  const [isGuest, setIsGuest] = useState<boolean | null>(() => {
+    if (typeof window !== 'undefined') {
+      const hasOnboarding = storage.get<boolean | null>(STORAGE_KEYS.ONBOARDING_DONE, null);
+      if (hasOnboarding === true) return false;
+      if (hasOnboarding === false) return true;
+    }
+    return null;
+  });
 
   useEffect(() => {
     let cancelled = false
