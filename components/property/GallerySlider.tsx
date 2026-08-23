@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef } from "react";
+import { useState, useRef, MouseEvent } from "react";
 import ProjectImage from "./ProjectImage";
 import { motion, AnimatePresence, PanInfo } from "framer-motion";
 import { ChevronLeft, ChevronRight, Maximize2, X } from "lucide-react";
@@ -19,9 +19,17 @@ export default function GallerySlider({ images }: GallerySliderProps) {
   const prev = () => setIndex((prev) => (prev - 1 + images.length) % images.length);
 
   // Swipe threshold: distance in px OR flick velocity, whichever comes first
-  const handleDragEnd = (_: unknown, info: PanInfo) => {
+  const handleDragEnd = (event: unknown, info: PanInfo) => {
     const SWIPE_DISTANCE = 45;
     const SWIPE_VELOCITY = 400;
+
+    const target = (event ? (event as MouseEvent).currentTarget : undefined) as HTMLElement | undefined;
+    if (target) {
+      // Kill any residual transform instantly so the exit animation
+      // starts from x:0, not from wherever the finger left it.
+      target.style.transition = "none";
+      target.style.transform = "translateX(0px)";
+    }
 
     if (info.offset.x < -SWIPE_DISTANCE || info.velocity.x < -SWIPE_VELOCITY) {
       next();
@@ -39,15 +47,19 @@ export default function GallerySlider({ images }: GallerySliderProps) {
     isDragging.current = true;
   };
 
+  const prevIndex = (index - 1 + images.length) % images.length;
+  const nextIndex = (index + 1) % images.length;
+
   return (
     <div className="relative aspect-[4/3] w-full overflow-hidden rounded-[var(--radius)] group">
-      <AnimatePresence mode="wait">
+      <AnimatePresence initial={false}>
         <motion.div
           key={index}
           initial={{ opacity: 0, x: 20 }}
           animate={{ opacity: 1, x: 0 }}
           exit={{ opacity: 0, x: -20 }}
           drag={images.length > 1 ? "x" : false}
+          dragMomentum={false}
           dragConstraints={{ left: 0, right: 0 }}
           dragElastic={0.7}
           onDragStart={handleDragStart}
@@ -151,6 +163,7 @@ export default function GallerySlider({ images }: GallerySliderProps) {
               className="relative w-full h-full max-w-4xl max-h-[85vh] m-auto flex items-center justify-center px-4 touch-pan-y"
               onClick={(e) => e.stopPropagation()}
               drag={images.length > 1 ? "x" : false}
+              dragMomentum={false}
               dragConstraints={{ left: 0, right: 0 }}
               dragElastic={0.7}
               onDragStart={handleDragStart}
@@ -185,6 +198,14 @@ export default function GallerySlider({ images }: GallerySliderProps) {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Preload neighbors so swiping doesn't show an unloaded flash */}
+      {images.length > 1 && (
+        <div className="hidden">
+          <ProjectImage src={images[prevIndex]} alt="" sizes="1px" />
+          <ProjectImage src={images[nextIndex]} alt="" sizes="1px" />
+        </div>
+      )}
     </div>
   );
 }
