@@ -1,11 +1,11 @@
 'use client';
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { UserIntent } from "@/types/user";
 import {
   User, Settings, ShieldCheck, ChevronRight,
   LogOut, LayoutDashboard, Sparkles, MapPin, Target, Clock, Edit2,
-  Wallet, Scale
+  Wallet, Scale, Loader2
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -57,8 +57,20 @@ export default function ProfilePage() {
     fetchProfile();
   }, []);
 
+  // Show a stable spinner instead of a blank page while the auth check runs,
+  // and skip the avatar's entrance animation on the very first render after
+  // the check resolves so it doesn't flash invisible.
+  const hasCheckedOnce = useRef(false);
+  useEffect(() => {
+    if (!isChecking) hasCheckedOnce.current = true;
+  }, [isChecking]);
+
   // Server redirect (Task 3) handles this first; these are client-side fallbacks
-  if (isChecking) return null
+  if (isChecking) return (
+    <div className="min-h-screen flex items-center justify-center">
+      <Loader2 className="w-6 h-6 animate-spin text-[var(--text-muted)]" />
+    </div>
+  );
   if (isGuest) return null
 
   const formatBudget = (val: number) => {
@@ -83,8 +95,9 @@ export default function ProfilePage() {
       <div className="bg-white border-b border-[var(--border)] pb-8">
         <SectionContainer className="max-w-3xl text-center flex flex-col items-center">
           <motion.div
-            initial={{ scale: 0.8, opacity: 0 }}
+            initial={hasCheckedOnce.current ? { scale: 0.8, opacity: 0 } : false}
             animate={{ scale: 1, opacity: 1 }}
+            transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
             className="w-24 h-24 bg-[var(--primary-light)] border-2 border-[var(--primary)]
               rounded-full flex items-center justify-center
               shadow-[0_8px_32px_rgba(255,69,0,0.15)] mb-6">

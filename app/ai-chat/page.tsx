@@ -96,6 +96,15 @@ export default function AIChatPage() {
   const [sessionCount, setSessionCount] = useState(0);
   const scrollRef = useRef<HTMLDivElement>(null);
 
+  // Skip the message-bubble entrance animation on the very first render after
+  // the auth check resolves, so the welcome message appears instantly instead
+  // of fading in from opacity 0 (which read as a blank flash). New messages
+  // sent later in the session still animate in.
+  const hasCheckedOnce = useRef(false);
+  useEffect(() => {
+    if (!isChecking) hasCheckedOnce.current = true;
+  }, [isChecking]);
+
   useEffect(() => {
     setSessionCount(getSessionCount());
   }, []);
@@ -253,8 +262,9 @@ export default function AIChatPage() {
             <SectionContainer wide className="space-y-6">
               {messages.map((m, i) => (
                 <motion.div
-                  initial={{ opacity: 0, y: 10 }}
+                  initial={hasCheckedOnce.current ? { opacity: 0, y: 10 } : false}
                   animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
                   key={i}
                   className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}
                 >

@@ -17,6 +17,14 @@ Sentry.init({
   // Add optional integrations for additional features
   integrations: [Sentry.replayIntegration()],
 
+  // Known non-actionable noise from third-party in-app browsers (Facebook/Instagram,
+  // and similar embedded WebViews) whose own JS bridges fail independently of our code.
+  ignoreErrors: [
+    "Error invoking postMessage: Java object is gone",
+    /Java object is gone/i,
+    /JavaScript interface object.*collected/i,
+  ],
+
   // Keep local traces complete while avoiding 100% production tracing on mobile clients.
   tracesSampleRate: process.env.NODE_ENV === "production" ? productionTraceSampleRate : 1,
   // Enable logs to be sent to Sentry

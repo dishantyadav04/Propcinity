@@ -1,5 +1,17 @@
 import { setMaxListeners } from 'node:events'
 
+// Prevent EPIPE crashes when the terminal/IDE disconnects from stdout/stderr
+// mid-session (common on Windows) — without this, an unhandled EPIPE write
+// error takes down the entire dev server.
+function guardAgainstEpipe(stream: NodeJS.WriteStream) {
+  stream.on('error', (err: NodeJS.ErrnoException) => {
+    if (err.code === 'EPIPE') return
+    throw err
+  })
+}
+guardAgainstEpipe(process.stdout)
+guardAgainstEpipe(process.stderr)
+
 // Raise the events listener cap defensively in development to avoid
 // spurious MaxListenersExceededWarning during Fast Refresh cycles.
 if (process.env.NODE_ENV === 'development') {
