@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import SectionContainer from '@/components/layout/SectionContainer';
 import ProjectCard from '@/components/property/ProjectCard';
@@ -422,14 +422,23 @@ export default function DashboardPage() {
       .slice(0, 12);
   }, [projects, aiRecommended, curatedIds, rejectedIds, storageReady]);
 
-  // Server redirect (Task 3) handles this first; these are client-side fallbacks
-  if (isGuest && !isChecking) return null
-
   const showSkeleton =
     isChecking ||
     isLoading ||
     !storageReady ||
     (curatedIds.length > 0 && projects.length === 0);
+
+  // Skip the card entrance animation on the very first successful render so
+  // cards appear instantly after the skeleton instead of fading in from
+  // opacity 0 (which read as a blank flash). Later renders (filter changes,
+  // re-adds) still animate.
+  const hasRenderedOnce = useRef(false);
+  useEffect(() => {
+    if (!showSkeleton) hasRenderedOnce.current = true;
+  });
+
+  // Server redirect (Task 3) handles this first; these are client-side fallbacks
+  if (isGuest && !isChecking) return null
 
   if (showSkeleton) {
     return (
@@ -505,9 +514,10 @@ export default function DashboardPage() {
               <div className="card-grid">
                 {displayResults.map((project, index) => (
                   <motion.div key={project.id} layout
-                    initial={{ opacity: 0, scale: 0.95 }}
+                    initial={hasRenderedOnce.current ? { opacity: 0, scale: 0.95 } : false}
                     animate={{ opacity: 1, scale: 1 }}
                     exit={{ opacity: 0, scale: 0.9 }}
+                    transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
                     className="relative group"
                   >
                     <ProjectCard project={project} index={index} hideRiskBadge={true} hideCuratedButton={true} priority={index === 0} matchScore={userIntent ? getMatchPercent(project, userIntent) : undefined} />

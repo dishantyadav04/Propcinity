@@ -94,6 +94,15 @@ function ExplorePageContent({ initialProjects }: { initialProjects: Project[] })
   const sortButtonRef = useRef<HTMLButtonElement>(null);
   const [sortMenuPos, setSortMenuPos] = useState<{ top: number; right: number } | null>(null);
 
+  // Skip the card entrance animation on the very first render so cards appear
+  // instantly instead of fading in from opacity 0 (which read as a blank flash
+  // after the loading skeleton). Later renders (filter/sort changes, newly
+  // entering cards) still animate.
+  const hasRenderedOnce = useRef(false);
+  useEffect(() => {
+    if (!isLoading) hasRenderedOnce.current = true;
+  });
+
   const handleSortToggle = () => {
     if (!sortOpen && sortButtonRef.current) {
       const rect = sortButtonRef.current.getBoundingClientRect();
@@ -613,9 +622,9 @@ function ExplorePageContent({ initialProjects }: { initialProjects: Project[] })
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 items-start">
             {visibleProjects.map((project, index) => (
               <motion.div key={project.id}
-                initial={{ opacity: 0, y: 16 }}
+                initial={hasRenderedOnce.current ? { opacity: 0, y: 16 } : false}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: Math.min(index * 0.04, 0.3) }}
+                transition={{ delay: Math.min(index * 0.04, 0.3), duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
                 className="relative group"
               >
                 <ProjectCard
@@ -683,9 +692,9 @@ function ExplorePageContent({ initialProjects }: { initialProjects: Project[] })
               const configs = Array.from(new Set((project.unitConfigs || []).map(u => u.type || 'Unit')));
               return (
                 <motion.div key={project.id}
-                  initial={{ opacity: 0, y: 10 }}
+                  initial={hasRenderedOnce.current ? { opacity: 0, y: 10 } : false}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: Math.min(index * 0.03, 0.2) }}
+                  transition={{ delay: Math.min(index * 0.03, 0.2), duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
                   className="relative bg-white border border-[var(--border)] rounded-[var(--radius)]
                     shadow-[var(--shadow-sm)] hover:shadow-[var(--shadow)] transition-shadow"
                 >
