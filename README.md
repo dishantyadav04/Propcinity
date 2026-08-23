@@ -88,4 +88,3 @@ Returns `resolvedIp` — the exact IP the edge middleware sees for your request.
 Compare it to `ADMIN_ALLOWED_IPS` in the Vercel Production environment, add it if missing, then **redeploy**.
 
 Alternatively, clear `ADMIN_ALLOWED_IPS` entirely — password + TOTP still protect the admin login.
-
