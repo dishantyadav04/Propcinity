@@ -3,7 +3,7 @@ import { canonicalUrl } from '@/lib/seo'
 
 export const metadata: Metadata = {
   title: 'Compare Properties Side by Side — Propcinity',
-  description: 'Compare Match %, price, RERA status, amenities, and construction progress across your shortlisted Pune properties in one view.',
+  description: 'Compare shortlisted properties by Match %, price, RERA status, amenities, and construction progress in one view.',
   alternates: {
     canonical: canonicalUrl('/compare'),
   },

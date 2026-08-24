@@ -3,7 +3,7 @@ import { canonicalUrl } from '@/lib/seo'
 
 export const metadata: Metadata = {
   title: 'Explore Properties in Pune — AI-Curated Shortlist',
-  description: "Tell us your budget and preferences. Propcinity's AI narrows thousands of Pune listings to a curated shortlist with Match % scoring and RERA verification.",
+  description: "Share your budget and preferences to get AI-curated Pune properties with Match % scores and RERA verification.",
   alternates: {
     canonical: canonicalUrl('/explore'),
   },
