@@ -158,7 +158,8 @@ export default function GallerySlider({ images }: GallerySliderProps) {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[200] bg-black/95 flex items-center justify-center"
+            transition={{ duration: 0.15, ease: "easeOut" }}
+            className="fixed inset-0 z-[200] bg-black/95 backdrop-blur-sm flex items-center justify-center"
             onClick={() => {
               if (isDragging.current) return;
               setIsPreviewOpen(false);
@@ -176,32 +177,40 @@ export default function GallerySlider({ images }: GallerySliderProps) {
               {index + 1} / {images.length}
             </div>
 
-            <AnimatePresence initial={false} custom={direction} mode="popLayout">
-              <motion.div
-                key={index}
-                custom={direction}
-                variants={slideVariants}
-                initial="enter"
-                animate="center"
-                exit="exit"
-                transition={SLIDE_TRANSITION}
-                className="absolute inset-0 max-w-4xl max-h-[85vh] m-auto flex items-center justify-center px-4 touch-pan-y"
-                onClick={(e) => e.stopPropagation()}
-                drag={images.length > 1 ? "x" : false}
-                dragMomentum={false}
-                dragConstraints={{ left: 0, right: 0 }}
-                dragElastic={0.7}
-                onDragStart={handleDragStart}
-                onDragEnd={handleDragEnd}
-              >
-                <img
-                  src={images[index]}
-                  alt={`Gallery image ${index + 1} full preview`}
-                  className="max-w-full max-h-full object-contain rounded-[var(--radius)] pointer-events-none select-none"
-                  draggable={false}
-                />
-              </motion.div>
-            </AnimatePresence>
+            <motion.div
+              initial={{ opacity: 0, scale: 0.94 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.94 }}
+              transition={{ duration: 0.22, ease: "easeOut", delay: 0.05 }}
+              className="absolute inset-0 flex items-center justify-center"
+            >
+              <AnimatePresence initial={false} custom={direction} mode="popLayout">
+                <motion.div
+                  key={index}
+                  custom={direction}
+                  variants={slideVariants}
+                  initial="enter"
+                  animate="center"
+                  exit="exit"
+                  transition={SLIDE_TRANSITION}
+                  className="absolute max-w-4xl max-h-[85vh] w-full h-full m-auto flex items-center justify-center px-4 touch-pan-y"
+                  onClick={(e) => e.stopPropagation()}
+                  drag={images.length > 1 ? "x" : false}
+                  dragMomentum={false}
+                  dragConstraints={{ left: 0, right: 0 }}
+                  dragElastic={0.7}
+                  onDragStart={handleDragStart}
+                  onDragEnd={handleDragEnd}
+                >
+                  <img
+                    src={images[index]}
+                    alt={`Gallery image ${index + 1} full preview`}
+                    className="max-w-full max-h-full object-contain rounded-[var(--radius)] pointer-events-none select-none"
+                    draggable={false}
+                  />
+                </motion.div>
+              </AnimatePresence>
+            </motion.div>
 
             {images.length > 1 && (
               <>
