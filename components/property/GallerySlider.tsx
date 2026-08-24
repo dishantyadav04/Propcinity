@@ -96,9 +96,13 @@ export default function GallerySlider({ images }: GallerySliderProps) {
 
       {/* Preload neighbors so swiping doesn't reveal an unloaded image mid-slide */}
       {images.length > 1 && (
-        <div className="hidden">
-          <ProjectImage src={images[prevIndex]} alt="" sizes="1px" />
-          <ProjectImage src={images[nextIndex]} alt="" sizes="1px" />
+        <div className="absolute inset-0 -z-10 opacity-0 pointer-events-none" aria-hidden="true">
+          <div className="relative w-full h-full">
+            <ProjectImage src={images[prevIndex]} alt="" priority sizes="(max-width: 768px) 100vw, 70vw" />
+          </div>
+          <div className="relative w-full h-full">
+            <ProjectImage src={images[nextIndex]} alt="" priority sizes="(max-width: 768px) 100vw, 70vw" />
+          </div>
         </div>
       )}
 
@@ -202,15 +206,25 @@ export default function GallerySlider({ images }: GallerySliderProps) {
                   onDragStart={handleDragStart}
                   onDragEnd={handleDragEnd}
                 >
-                  <img
-                    src={images[index]}
-                    alt={`Gallery image ${index + 1} full preview`}
-                    className="max-w-full max-h-full object-contain rounded-[var(--radius)] pointer-events-none select-none"
-                    draggable={false}
-                  />
+                  <div className="relative w-full h-full pointer-events-none select-none">
+                    <ProjectImage
+                      src={images[index]}
+                      alt={`Gallery image ${index + 1} full preview`}
+                      priority
+                      sizes="100vw"
+                      fit="contain"
+                    />
+                  </div>
                 </motion.div>
               </AnimatePresence>
             </motion.div>
+
+            {isPreviewOpen && images.length > 1 && (
+              <div className="absolute inset-0 -z-10 opacity-0 pointer-events-none" aria-hidden="true">
+                <ProjectImage src={images[prevIndex]} alt="" priority sizes="100vw" fit="contain" />
+                <ProjectImage src={images[nextIndex]} alt="" priority sizes="100vw" fit="contain" />
+              </div>
+            )}
 
             {images.length > 1 && (
               <>

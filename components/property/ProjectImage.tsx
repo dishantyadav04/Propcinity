@@ -9,9 +9,10 @@ interface ProjectImageProps {
   alt: string;
   priority?: boolean;
   sizes?: string;
+  fit?: 'cover' | 'contain';
 }
 
-export default function ProjectImage({ src, alt, priority = false, sizes }: ProjectImageProps) {
+export default function ProjectImage({ src, alt, priority = false, sizes, fit = 'cover' }: ProjectImageProps) {
   const [hasError, setHasError] = useState(false);
 
   if (process.env.NODE_ENV === 'development' && src && /^https?:\/\/images\.unsplash\.com/.test(src)) {
@@ -42,7 +43,7 @@ export default function ProjectImage({ src, alt, priority = false, sizes }: Proj
       src={src}
       alt={alt}
       fill
-      className="object-cover"
+      className={fit === 'contain' ? 'object-contain' : 'object-cover'}
       onError={() => setHasError(true)}
       priority={priority}
       loading={priority ? 'eager' : undefined}
