@@ -19,6 +19,8 @@ const slideVariants = {
 
 const SLIDE_TRANSITION = { type: "tween" as const, duration: 0.28, ease: "easeInOut" as const };
 
+const MODAL_TRANSITION = { duration: 0.18, ease: "easeOut" as const };
+
 export default function GallerySlider({ images }: GallerySliderProps) {
   const [index, setIndex] = useState(0);
   const [direction, setDirection] = useState(0);
@@ -57,7 +59,7 @@ export default function GallerySlider({ images }: GallerySliderProps) {
   };
 
   return (
-    <div className="relative aspect-[4/3] w-full overflow-hidden rounded-[var(--radius)] group">
+    <div className="relative aspect-[4/3] w-full overflow-hidden rounded-[var(--radius)] bg-black group">
       <AnimatePresence initial={false} custom={direction} mode="popLayout">
         <motion.div
           key={index}
@@ -105,6 +107,14 @@ export default function GallerySlider({ images }: GallerySliderProps) {
           </div>
         </div>
       )}
+
+      {/* Warm the full-resolution variant the lightbox uses, so opening it never
+          triggers a fresh fetch/decode at a different responsive width bucket */}
+      <div className="absolute w-px h-px overflow-hidden opacity-0 pointer-events-none" aria-hidden="true">
+        <div className="relative w-[100vw] h-[100vh]">
+          <ProjectImage src={images[index]} alt="" priority sizes="100vw" fit="contain" />
+        </div>
+      </div>
 
       <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent pointer-events-none" />
 
@@ -162,8 +172,8 @@ export default function GallerySlider({ images }: GallerySliderProps) {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 0.15, ease: "easeOut" }}
-            className="fixed inset-0 z-[200] bg-black/95 backdrop-blur-sm flex items-center justify-center"
+            transition={MODAL_TRANSITION}
+            className="fixed inset-0 z-[200] bg-black/95 flex items-center justify-center"
             onClick={() => {
               if (isDragging.current) return;
               setIsPreviewOpen(false);
@@ -182,10 +192,10 @@ export default function GallerySlider({ images }: GallerySliderProps) {
             </div>
 
             <motion.div
-              initial={{ opacity: 0, scale: 0.94 }}
+              initial={{ opacity: 0, scale: 0.96 }}
               animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.94 }}
-              transition={{ duration: 0.22, ease: "easeOut", delay: 0.05 }}
+              exit={{ opacity: 0, scale: 0.96 }}
+              transition={MODAL_TRANSITION}
               className="absolute inset-0 flex items-center justify-center"
             >
               <AnimatePresence initial={false} custom={direction} mode="popLayout">
