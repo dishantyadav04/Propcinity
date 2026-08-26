@@ -10,9 +10,9 @@ interface GallerySliderProps {
   images: string[];
 }
 
-const SLIDE_TRANSITION = { type: "tween" as const, duration: 0.28, ease: "easeInOut" as const };
-const SWIPE_DISTANCE = 45;
-const SWIPE_VELOCITY = 400;
+const SLIDE_TRANSITION = { type: "tween" as const, duration: 0.22, ease: [0.25, 0.1, 0.25, 1] as const };
+const SWIPE_DISTANCE = 40;
+const SWIPE_VELOCITY = 300;
 
 export default function GallerySlider({ images }: GallerySliderProps) {
   const [index, setIndex] = useState(0);
@@ -38,21 +38,27 @@ export default function GallerySlider({ images }: GallerySliderProps) {
   const handleDragStart = () => { isDragging.current = true; };
 
   return (
-    <div className="relative aspect-[4/3] w-full overflow-hidden rounded-[var(--radius)] bg-black group">
+    <div
+      className="relative aspect-[4/3] w-full max-w-2xl overflow-hidden rounded-[var(--radius)] bg-black group"
+      style={{ touchAction: 'pan-y', overscrollBehaviorX: 'contain' }}
+    >
       <motion.div
-        className="flex h-full w-full"
+        className="flex h-full w-full select-none"
         style={{ willChange: 'transform' }}
         animate={{ x: `-${index * 100}%` }}
         transition={SLIDE_TRANSITION}
         drag={images.length > 1 ? "x" : false}
         dragMomentum={false}
-        dragConstraints={{ left: 0, right: 0 }}
-        dragElastic={0.7}
+        dragSnapToOrigin
         onDragStart={handleDragStart}
         onDragEnd={handleDragEnd}
       >
         {images.map((src, i) => (
-          <div key={src} className="relative h-full w-full flex-shrink-0">
+          <div
+            key={src}
+            className="relative h-full w-full flex-shrink-0"
+            style={{ contain: 'layout style' }}
+          >
             <ProjectImage
               src={src}
               alt={`Gallery image ${i + 1}`}
