@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import ProjectImage from "./ProjectImage";
-import { motion, AnimatePresence, PanInfo } from "framer-motion";
+import { motion, PanInfo } from "framer-motion";
 import { ChevronLeft, ChevronRight, Maximize2, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -11,7 +11,6 @@ interface GallerySliderProps {
 }
 
 const SLIDE_TRANSITION = { type: "tween" as const, duration: 0.22, ease: [0.25, 0.1, 0.25, 1] as const };
-const OVERLAY_TRANSITION = { duration: 0.25, ease: "easeOut" as const };
 const SWIPE_DISTANCE = 40;
 const SWIPE_VELOCITY = 300;
 
@@ -135,14 +134,11 @@ export default function GallerySlider({ images }: GallerySliderProps) {
         </div>
       </div>
 
-      <AnimatePresence>
-        {previewOpen && (
+      {previewOpen && (
           <motion.div
-            key="gallery-preview"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={OVERLAY_TRANSITION}
+            transition={{ duration: 0.25, ease: "easeOut" }}
             className="fixed inset-0 z-[200] bg-black/95 flex items-center justify-center"
             style={{ willChange: 'opacity', transform: 'translateZ(0)' }}
             onClick={() => setPreviewOpen(false)}
@@ -191,8 +187,7 @@ export default function GallerySlider({ images }: GallerySliderProps) {
               </>
             )}
           </motion.div>
-        )}
-      </AnimatePresence>
+      )}
 
     </div>
   );
