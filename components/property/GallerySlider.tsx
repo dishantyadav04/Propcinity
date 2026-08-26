@@ -1,9 +1,9 @@
 'use client';
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import ProjectImage from "./ProjectImage";
 import { motion, PanInfo } from "framer-motion";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, Maximize2, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface GallerySliderProps {
@@ -16,6 +16,7 @@ const SWIPE_VELOCITY = 300;
 
 export default function GallerySlider({ images }: GallerySliderProps) {
   const [index, setIndex] = useState(0);
+  const [previewOpen, setPreviewOpen] = useState(false);
   const isDragging = useRef(false);
   const isAnimating = useRef(false);
 
@@ -37,9 +38,16 @@ export default function GallerySlider({ images }: GallerySliderProps) {
   };
   const handleDragStart = () => { isDragging.current = true; };
 
+  useEffect(() => {
+    if (!previewOpen) return;
+    const original = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => { document.body.style.overflow = original; };
+  }, [previewOpen]);
+
   return (
     <div
-      className="relative aspect-[4/3] w-full max-w-2xl overflow-hidden rounded-[var(--radius)] bg-black group"
+      className="relative aspect-[4/3] w-full max-w-2xl mx-auto overflow-hidden rounded-[var(--radius)] bg-black group"
       style={{ touchAction: 'pan-y', overscrollBehaviorX: 'contain' }}
     >
       <motion.div
@@ -104,11 +112,73 @@ export default function GallerySlider({ images }: GallerySliderProps) {
         </>
       )}
 
-      <div className="absolute top-4 right-4 z-10">
+      <div className="absolute top-4 right-4 flex items-center gap-2 z-10">
+        <button
+          onClick={() => setPreviewOpen(true)}
+          className="bg-black/65 p-1.5 rounded-lg text-white hover:bg-black/80 transition-colors"
+          aria-label="Open full preview"
+        >
+          <Maximize2 className="w-3.5 h-3.5" />
+        </button>
         <div className="bg-black/65 px-2.5 py-1 rounded-lg text-[10px] font-bold text-white uppercase tracking-wider">
           {index + 1} / {images.length}
         </div>
       </div>
+
+      {previewOpen && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.2 }}
+          style={{ willChange: 'opacity', transform: 'translateZ(0)' }}
+          className="fixed inset-0 z-[200] bg-black/95 flex items-center justify-center"
+          onClick={() => setPreviewOpen(false)}
+        >
+          <button
+            onClick={() => setPreviewOpen(false)}
+            className="absolute top-4 right-4 p-2.5 bg-white/10 hover:bg-white/20 rounded-full text-white z-10"
+            aria-label="Close preview"
+          >
+            <X className="w-5 h-5" />
+          </button>
+
+          <div className="absolute top-4 left-4 bg-black/65 px-3 py-1.5 rounded-lg text-xs font-bold text-white uppercase tracking-wider">
+            {index + 1} / {images.length}
+          </div>
+
+          <div
+            className="w-full h-full max-w-5xl max-h-[90vh] m-auto px-4"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <ProjectImage
+              src={images[index]}
+              alt={`Gallery image ${index + 1} full preview`}
+              priority
+              sizes="100vw"
+              fit="contain"
+            />
+          </div>
+
+          {images.length > 1 && (
+            <>
+              <button
+                onClick={(e) => { e.stopPropagation(); prev(); }}
+                className="absolute left-3 top-1/2 -translate-y-1/2 p-2.5 bg-white/10 hover:bg-white/20 rounded-full text-white"
+                aria-label="Previous image"
+              >
+                <ChevronLeft className="w-6 h-6" />
+              </button>
+              <button
+                onClick={(e) => { e.stopPropagation(); next(); }}
+                className="absolute right-3 top-1/2 -translate-y-1/2 p-2.5 bg-white/10 hover:bg-white/20 rounded-full text-white"
+                aria-label="Next image"
+              >
+                <ChevronRight className="w-6 h-6" />
+              </button>
+            </>
+          )}
+        </motion.div>
+      )}
     </div>
   );
 }
