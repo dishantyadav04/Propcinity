@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import ProjectImage from "./ProjectImage";
-import { motion, PanInfo } from "framer-motion";
+import { motion, AnimatePresence, PanInfo } from "framer-motion";
 import { ChevronLeft, ChevronRight, Maximize2, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -134,13 +134,15 @@ export default function GallerySlider({ images }: GallerySliderProps) {
         </div>
       </div>
 
-      {previewOpen && (
+      <AnimatePresence>
+        {previewOpen && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            transition={{ duration: 0.25, ease: "easeOut" }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.3, ease: "easeOut" }}
             className="fixed inset-0 z-[200] bg-black/95 flex items-center justify-center"
-            style={{ willChange: 'opacity', transform: 'translateZ(0)' }}
+            style={{ willChange: 'opacity' }}
             onClick={() => setPreviewOpen(false)}
           >
             <button
@@ -163,7 +165,7 @@ export default function GallerySlider({ images }: GallerySliderProps) {
                 src={images[index]}
                 alt={`Gallery image ${index + 1} full preview`}
                 priority
-                sizes="100vw"
+                sizes="(max-width: 768px) 100vw, 70vw"
                 fit="contain"
               />
             </div>
@@ -187,7 +189,8 @@ export default function GallerySlider({ images }: GallerySliderProps) {
               </>
             )}
           </motion.div>
-      )}
+        )}
+      </AnimatePresence>
 
     </div>
   );
