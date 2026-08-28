@@ -1,3 +1,4 @@
+```tsx
 "use client";
 
 import { useEffect, useRef, useState } from "react";
@@ -15,10 +16,18 @@ interface GallerySliderProps {
   images: string[];
 }
 
+/**
+ * Optimized for:
+ * - Smooth mobile swiping
+ * - Low-end Android devices
+ * - Minimal GPU usage
+ * - No heavy blur / scale effects
+ * - Fast response
+ */
 const SLIDE_TRANSITION = {
   type: "tween" as const,
-  duration: 0.22,
-  ease: [0.25, 0.1, 0.25, 1] as const,
+  duration: 0.26,
+  ease: [0.22, 1, 0.36, 1] as const,
 };
 
 const SWIPE_DISTANCE = 40;
@@ -31,10 +40,10 @@ export default function GallerySlider({
   const [previewOpen, setPreviewOpen] = useState(false);
 
   const isDragging = useRef(false);
-  const galleryAnimating = useRef(false);
+  const isAnimating = useRef(false);
 
-  /*
-   * Keep the index valid if the images prop changes.
+  /**
+   * Keep index valid when images change.
    */
   useEffect(() => {
     if (images.length === 0) {
@@ -47,8 +56,11 @@ export default function GallerySlider({
     );
   }, [images.length]);
 
-  /*
-   * Preload gallery images.
+  /**
+   * Preload images.
+   *
+   * This helps prevent a blank frame when navigating
+   * between already-known property images.
    */
   useEffect(() => {
     if (!images.length) return;
@@ -59,11 +71,12 @@ export default function GallerySlider({
     });
   }, [images]);
 
-  /*
-   * Lock background scrolling while fullscreen preview is open.
+  /**
+   * Prevent background page scrolling while fullscreen
+   * preview is open.
    *
-   * requestAnimationFrame prevents the body layout change from
-   * happening in the exact same frame as the fullscreen layer mount.
+   * requestAnimationFrame avoids changing body layout
+   * in exactly the same frame as opening the overlay.
    */
   useEffect(() => {
     if (!previewOpen) return;
@@ -80,8 +93,8 @@ export default function GallerySlider({
     };
   }, [previewOpen]);
 
-  /*
-   * Close fullscreen preview with Escape.
+  /**
+   * Keyboard controls for desktop.
    */
   useEffect(() => {
     if (!previewOpen) return;
@@ -89,13 +102,15 @@ export default function GallerySlider({
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
         setPreviewOpen(false);
+        return;
       }
 
-      if (event.key === "ArrowRight" && images.length > 1) {
+      if (event.key === "ArrowRight") {
         goToNext();
+        return;
       }
 
-      if (event.key === "ArrowLeft" && images.length > 1) {
+      if (event.key === "ArrowLeft") {
         goToPrevious();
       }
     };
@@ -105,70 +120,75 @@ export default function GallerySlider({
     return () => {
       window.removeEventListener("keydown", handleKeyDown);
     };
-  }, [previewOpen, images.length]);
+  }, [previewOpen]);
 
-  /*
-   * Main gallery navigation.
-   *
-   * Uses functional state updates so rapid interactions don't
-   * accidentally use a stale index.
+  /**
+   * Move to next image.
    */
   const goToNext = () => {
     if (images.length <= 1) return;
+    if (isAnimating.current) return;
 
-    if (galleryAnimating.current) return;
+    isAnimating.current = true;
 
-    galleryAnimating.current = true;
-
-    setIndex((current) => (current + 1) % images.length);
+    setIndex((current) => {
+      return (current + 1) % images.length;
+    });
 
     window.setTimeout(() => {
-      galleryAnimating.current = false;
+      isAnimating.current = false;
     }, SLIDE_TRANSITION.duration * 1000);
   };
 
+  /**
+   * Move to previous image.
+   */
   const goToPrevious = () => {
     if (images.length <= 1) return;
+    if (isAnimating.current) return;
 
-    if (galleryAnimating.current) return;
+    isAnimating.current = true;
 
-    galleryAnimating.current = true;
-
-    setIndex(
-      (current) =>
-        (current - 1 + images.length) % images.length
-    );
+    setIndex((current) => {
+      return (
+        (current - 1 + images.length) %
+        images.length
+      );
+    });
 
     window.setTimeout(() => {
-      galleryAnimating.current = false;
+      isAnimating.current = false;
     }, SLIDE_TRANSITION.duration * 1000);
   };
 
-  /*
+  /**
    * Direct navigation.
    */
   const goTo = (targetIndex: number) => {
     if (images.length <= 1) return;
     if (targetIndex < 0 || targetIndex >= images.length) return;
     if (targetIndex === index) return;
+    if (isAnimating.current) return;
 
-    if (galleryAnimating.current) return;
+    isAnimating.current = true;
 
-    galleryAnimating.current = true;
     setIndex(targetIndex);
 
     window.setTimeout(() => {
-      galleryAnimating.current = false;
+      isAnimating.current = false;
     }, SLIDE_TRANSITION.duration * 1000);
   };
 
-  /*
-   * Mobile swipe handling.
+  /**
+   * Swipe starts.
    */
   const handleDragStart = () => {
     isDragging.current = true;
   };
 
+  /**
+   * Swipe ends.
+   */
   const handleDragEnd = (
     _event: MouseEvent | TouchEvent | PointerEvent,
     info: PanInfo
@@ -190,8 +210,8 @@ export default function GallerySlider({
     }, 50);
   };
 
-  /*
-   * Don't render anything if there are no images.
+  /**
+   * Don't render empty gallery.
    */
   if (!images.length) {
     return null;
@@ -199,13 +219,17 @@ export default function GallerySlider({
 
   return (
     <div className="pb-6 sm:pb-8">
-      {/* =========================================================
+      {/* =====================================================
           MAIN GALLERY
-      ========================================================== */}
+      ====================================================== */}
+
       <div
         className={cn(
-          "relative aspect-[4/3] w-full max-w-2xl mx-auto",
-          "overflow-hidden rounded-[var(--radius)] bg-black",
+          "relative aspect-[4/3]",
+          "w-full max-w-2xl mx-auto",
+          "overflow-hidden",
+          "rounded-[var(--radius)]",
+          "bg-black",
           "group"
         )}
         style={{
@@ -214,13 +238,22 @@ export default function GallerySlider({
           WebkitTapHighlightColor: "transparent",
         }}
       >
-        {/* IMAGE TRACK */}
+        {/* ===================================================
+            IMAGE TRACK
+        ==================================================== */}
+
         <motion.div
           className="flex h-full w-full select-none"
           style={{
+            /**
+             * GPU compositing.
+             *
+             * translate3d is intentionally used instead of
+             * filters, shadows, scaling, etc.
+             */
+            transform: "translate3d(0, 0, 0)",
+            WebkitTransform: "translate3d(0, 0, 0)",
             willChange: "transform",
-            transform: "translateZ(0)",
-            WebkitTransform: "translateZ(0)",
           }}
           animate={{
             x: `-${index * 100}%`,
@@ -228,8 +261,8 @@ export default function GallerySlider({
           transition={SLIDE_TRANSITION}
           drag={images.length > 1 ? "x" : false}
           dragMomentum={false}
+          dragElastic={0.08}
           dragSnapToOrigin
-          dragElastic={0.12}
           onDragStart={handleDragStart}
           onDragEnd={handleDragEnd}
         >
@@ -251,25 +284,47 @@ export default function GallerySlider({
           ))}
         </motion.div>
 
-        {/* BOTTOM GRADIENT */}
+        {/* ===================================================
+            BOTTOM GRADIENT
+        ==================================================== */}
+
         <div
-          className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent pointer-events-none"
+          className="
+            absolute inset-0
+            bg-gradient-to-t
+            from-black/60
+            via-transparent
+            to-transparent
+            pointer-events-none
+          "
           aria-hidden="true"
         />
 
-        {/* =======================================================
+        {/* ===================================================
             DOT INDICATORS
-        ======================================================== */}
+        ==================================================== */}
+
         {images.length > 1 && (
           <div
-            className="absolute bottom-4 left-0 right-0 flex justify-center gap-1.5 px-4 pointer-events-none"
+            className="
+              absolute
+              bottom-4
+              left-0
+              right-0
+              flex
+              justify-center
+              gap-1.5
+              px-4
+              pointer-events-none
+            "
             aria-hidden="true"
           >
             {images.map((_, i) => (
               <div
                 key={i}
                 className={cn(
-                  "h-1 rounded-full transition-all duration-300",
+                  "h-1 rounded-full",
+                  "transition-all duration-300",
                   index === i
                     ? "bg-white w-6"
                     : "bg-white/40 w-1.5"
@@ -279,25 +334,34 @@ export default function GallerySlider({
           </div>
         )}
 
-        {/* =======================================================
-            PREVIOUS / NEXT
-        ======================================================== */}
+        {/* ===================================================
+            PREVIOUS / NEXT BUTTONS
+        ==================================================== */}
+
         {images.length > 1 && (
           <>
             <button
               type="button"
               onClick={goToPrevious}
               className={cn(
-                "absolute left-2 top-1/2 -translate-y-1/2",
-                "p-2 rounded-full",
-                "bg-black/55 text-white",
+                "absolute",
+                "left-2",
+                "top-1/2",
+                "-translate-y-1/2",
+                "p-2",
+                "rounded-full",
+                "bg-black/55",
+                "text-white",
                 "z-10",
-                "opacity-100 lg:opacity-0",
+                "opacity-100",
+                "lg:opacity-0",
                 "lg:group-hover:opacity-100",
                 "transition-opacity duration-200",
                 "hover:bg-black/75",
                 "active:scale-95",
-                "focus:outline-none focus-visible:ring-2 focus-visible:ring-white/80"
+                "focus:outline-none",
+                "focus-visible:ring-2",
+                "focus-visible:ring-white/80"
               )}
               aria-label="Previous image"
             >
@@ -308,16 +372,24 @@ export default function GallerySlider({
               type="button"
               onClick={goToNext}
               className={cn(
-                "absolute right-2 top-1/2 -translate-y-1/2",
-                "p-2 rounded-full",
-                "bg-black/55 text-white",
+                "absolute",
+                "right-2",
+                "top-1/2",
+                "-translate-y-1/2",
+                "p-2",
+                "rounded-full",
+                "bg-black/55",
+                "text-white",
                 "z-10",
-                "opacity-100 lg:opacity-0",
+                "opacity-100",
+                "lg:opacity-0",
                 "lg:group-hover:opacity-100",
                 "transition-opacity duration-200",
                 "hover:bg-black/75",
                 "active:scale-95",
-                "focus:outline-none focus-visible:ring-2 focus-visible:ring-white/80"
+                "focus:outline-none",
+                "focus-visible:ring-2",
+                "focus-visible:ring-white/80"
               )}
               aria-label="Next image"
             >
@@ -326,19 +398,25 @@ export default function GallerySlider({
           </>
         )}
 
-        {/* =======================================================
+        {/* ===================================================
             TOP CONTROLS
-        ======================================================== */}
+        ==================================================== */}
+
         <div className="absolute top-4 right-4 flex items-center gap-2 z-10">
           <button
             type="button"
             onClick={() => setPreviewOpen(true)}
             className={cn(
-              "bg-black/65 p-1.5 rounded-lg text-white",
+              "bg-black/65",
+              "p-1.5",
+              "rounded-lg",
+              "text-white",
               "hover:bg-black/80",
               "active:scale-95",
               "transition-all duration-150",
-              "focus:outline-none focus-visible:ring-2 focus-visible:ring-white/80"
+              "focus:outline-none",
+              "focus-visible:ring-2",
+              "focus-visible:ring-white/80"
             )}
             aria-label="Open full preview"
           >
@@ -346,40 +424,52 @@ export default function GallerySlider({
           </button>
 
           <div
-            className={cn(
-              "bg-black/65 px-2.5 py-1 rounded-lg",
-              "text-[10px] font-bold text-white",
-              "uppercase tracking-wider"
-            )}
-            aria-label={`Image ${index + 1} of ${images.length}`}
+            className="
+              bg-black/65
+              px-2.5
+              py-1
+              rounded-lg
+              text-[10px]
+              font-bold
+              text-white
+              uppercase
+              tracking-wider
+            "
           >
             {index + 1} / {images.length}
           </div>
         </div>
       </div>
 
-      {/* =========================================================
+      {/* =====================================================
           FULLSCREEN PREVIEW
 
-          Intentionally NOT animated.
+          IMPORTANT:
+          No AnimatePresence.
+          No opacity animation.
+          No scale animation.
 
-          Mobile browsers can flicker when a fixed fullscreen
-          element is simultaneously fading while body overflow
-          changes. Instant mounting/unmounting is much more stable.
-      ========================================================== */}
+          This avoids the mobile flicker caused by combining
+          fixed positioning, viewport changes and animation.
+      ====================================================== */}
+
       {previewOpen && (
         <div
           role="dialog"
           aria-modal="true"
           aria-label="Property image preview"
-          className={cn(
-            "fixed inset-0 z-[200]",
-            "bg-black/95",
-            "flex items-center justify-center"
-          )}
+          className="
+            fixed
+            inset-0
+            z-[200]
+            bg-black/95
+            flex
+            items-center
+            justify-center
+          "
           style={{
-            transform: "translateZ(0)",
-            WebkitTransform: "translateZ(0)",
+            transform: "translate3d(0, 0, 0)",
+            WebkitTransform: "translate3d(0, 0, 0)",
             backfaceVisibility: "hidden",
             WebkitBackfaceVisibility: "hidden",
             willChange: "transform",
@@ -388,9 +478,10 @@ export default function GallerySlider({
           }}
           onClick={() => setPreviewOpen(false)}
         >
-          {/* =====================================================
+          {/* =================================================
               CLOSE BUTTON
-          ====================================================== */}
+          ================================================== */}
+
           <button
             type="button"
             onClick={(event) => {
@@ -398,47 +489,68 @@ export default function GallerySlider({
               setPreviewOpen(false);
             }}
             className={cn(
-              "absolute top-4 right-4",
-              "p-2.5 rounded-full",
-              "bg-white/10 text-white",
+              "absolute",
+              "top-4",
+              "right-4",
+              "p-2.5",
+              "rounded-full",
+              "bg-white/10",
+              "text-white",
               "hover:bg-white/20",
               "active:scale-95",
               "transition-all duration-150",
               "z-20",
-              "focus:outline-none focus-visible:ring-2 focus-visible:ring-white/80"
+              "focus:outline-none",
+              "focus-visible:ring-2",
+              "focus-visible:ring-white/80"
             )}
             aria-label="Close preview"
           >
             <X className="w-5 h-5" />
           </button>
 
-          {/* =====================================================
-              IMAGE COUNTER
-          ====================================================== */}
+          {/* =================================================
+              COUNTER
+          ================================================== */}
+
           <div
-            className={cn(
-              "absolute top-4 left-4",
-              "bg-black/65 px-3 py-1.5 rounded-lg",
-              "text-xs font-bold text-white",
-              "uppercase tracking-wider",
-              "z-20"
-            )}
+            className="
+              absolute
+              top-4
+              left-4
+              bg-black/65
+              px-3
+              py-1.5
+              rounded-lg
+              text-xs
+              font-bold
+              text-white
+              uppercase
+              tracking-wider
+              z-20
+            "
           >
             {index + 1} / {images.length}
           </div>
 
-          {/* =====================================================
+          {/* =================================================
               FULLSCREEN IMAGE
-          ====================================================== */}
+          ================================================== */}
+
           <div
-            className={cn(
-              "relative",
-              "w-full h-full",
-              "max-w-5xl max-h-[90vh]",
-              "m-auto px-4",
-              "flex items-center justify-center",
-              "z-10"
-            )}
+            className="
+              relative
+              w-full
+              h-full
+              max-w-5xl
+              max-h-[90vh]
+              m-auto
+              px-4
+              flex
+              items-center
+              justify-center
+              z-10
+            "
             onClick={(event) => {
               event.stopPropagation();
             }}
@@ -446,8 +558,8 @@ export default function GallerySlider({
             <div
               className="relative w-full h-full"
               style={{
-                transform: "translateZ(0)",
-                WebkitTransform: "translateZ(0)",
+                transform: "translate3d(0, 0, 0)",
+                WebkitTransform: "translate3d(0, 0, 0)",
                 backfaceVisibility: "hidden",
                 WebkitBackfaceVisibility: "hidden",
               }}
@@ -462,9 +574,10 @@ export default function GallerySlider({
             </div>
           </div>
 
-          {/* =====================================================
-              FULLSCREEN PREVIOUS / NEXT
-          ====================================================== */}
+          {/* =================================================
+              FULLSCREEN NAVIGATION
+          ================================================== */}
+
           {images.length > 1 && (
             <>
               <button
@@ -474,14 +587,21 @@ export default function GallerySlider({
                   goToPrevious();
                 }}
                 className={cn(
-                  "absolute left-3 top-1/2 -translate-y-1/2",
-                  "p-2.5 rounded-full",
-                  "bg-white/10 text-white",
+                  "absolute",
+                  "left-3",
+                  "top-1/2",
+                  "-translate-y-1/2",
+                  "p-2.5",
+                  "rounded-full",
+                  "bg-white/10",
+                  "text-white",
                   "hover:bg-white/20",
                   "active:scale-95",
                   "transition-all duration-150",
                   "z-20",
-                  "focus:outline-none focus-visible:ring-2 focus-visible:ring-white/80"
+                  "focus:outline-none",
+                  "focus-visible:ring-2",
+                  "focus-visible:ring-white/80"
                 )}
                 aria-label="Previous image"
               >
@@ -495,14 +615,21 @@ export default function GallerySlider({
                   goToNext();
                 }}
                 className={cn(
-                  "absolute right-3 top-1/2 -translate-y-1/2",
-                  "p-2.5 rounded-full",
-                  "bg-white/10 text-white",
+                  "absolute",
+                  "right-3",
+                  "top-1/2",
+                  "-translate-y-1/2",
+                  "p-2.5",
+                  "rounded-full",
+                  "bg-white/10",
+                  "text-white",
                   "hover:bg-white/20",
                   "active:scale-95",
                   "transition-all duration-150",
                   "z-20",
-                  "focus:outline-none focus-visible:ring-2 focus-visible:ring-white/80"
+                  "focus:outline-none",
+                  "focus-visible:ring-2",
+                  "focus-visible:ring-white/80"
                 )}
                 aria-label="Next image"
               >
@@ -515,3 +642,4 @@ export default function GallerySlider({
     </div>
   );
 }
+```
