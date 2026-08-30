@@ -16,6 +16,7 @@ export const aiAskLimiter    = createLimiter(20, '1 h')  // 20 AI questions/hour
 export const aiEmbedLimiter  = createLimiter(20, '1 h')  // 20 embedding requests/hour/IP
 export const aiRankLimiter   = createLimiter(5, '1 h')   // 5 re-ranks/hour/IP (cached, so rarely hit)
 export const leadsLimiter    = createLimiter(10, '1 h')  // 10 lead submissions/hour/IP
+export const leadsColdLimiter = createLimiter(10, '1 h') // 10 cold-lead upserts/hour/IP
 export const nearbyLimiter   = createLimiter(60, '1 h')  // 60 map lookups/hour/IP
 export const adminLoginLimiter = createLimiter(5, '15 m') // 5 login attempts/15min/IP
 

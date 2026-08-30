@@ -3,6 +3,7 @@
 // Used exclusively by proxy.ts (middleware). API routes use lib/admin-auth.ts.
 
 import type { NextRequest } from 'next/server'
+import { getRedis } from '@/lib/redis'
 
 export const ADMIN_COOKIE_NAME = 'admin_session'
 
@@ -89,10 +90,13 @@ async function verifyTokenSignature(token: string): Promise<boolean> {
 export async function isAdminAuthenticatedEdge(request: NextRequest): Promise<boolean> {
   const cookie = request.cookies.get(ADMIN_COOKIE_NAME)
   if (!cookie?.value) return false
-  return verifyTokenSignature(cookie.value)
-}
+  const validSignature = await verifyTokenSignature(cookie.value)
+  if (!validSignature) return false
 
-// Note: Redis revocation check is intentionally skipped at the edge.
-// The HMAC signature is the primary security control.
-// Revoked tokens expire naturally via cookie maxAge (7 days).
-// For immediate revocation needs, clear the cookie from the admin logout route.
+  const redis = getRedis()
+  if (!redis) return process.env.NODE_ENV !== 'production'
+
+  const tokenId = cookie.value.split('.')[0]
+  const exists = await redis.get(`admin_session:${tokenId}`)
+  return exists !== null
+}

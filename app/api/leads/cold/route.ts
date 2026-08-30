@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { createAdminSupabaseClient, createServerSupabaseClient } from '@/lib/supabase-server'
 import { generateBookingRef } from '@/lib/booking-ref'
+import { leadsColdLimiter, getClientIp, checkRateLimit } from '@/lib/rate-limit'
 
 const TIMELINE_MAP: Record<string, string> = {
   under_1_year: 'within_3_months',
@@ -33,6 +34,12 @@ const schema = z.object({
 })
 
 export async function POST(request: NextRequest) {
+  const ip = getClientIp(request)
+  const coldResult = await checkRateLimit(leadsColdLimiter, ip)
+  if (coldResult.limited) {
+    return NextResponse.json({ error: 'Too many requests.' }, { status: 429 })
+  }
+
   // 1. Auth check — only for signed-in users
   const serverClient = await createServerSupabaseClient()
   if (!serverClient) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
