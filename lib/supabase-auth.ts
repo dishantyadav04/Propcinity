@@ -52,13 +52,16 @@ export async function updateUserPhone(phone: string) {
 
 // ─── Resend Confirmation Email ────────────────────────────────────────────────
 
-export async function resendConfirmationEmail(email: string) {
+export async function resendConfirmationEmail(email: string, redirectNext?: string) {
   const supabase = createClient()
+  const confirmUrl = redirectNext
+    ? `${window.location.origin}/auth/confirm?next=${encodeURIComponent(redirectNext)}`
+    : `${window.location.origin}/auth/confirm`
   const { error } = await supabase.auth.resend({
     type: 'signup',
     email,
     options: {
-      emailRedirectTo: `${window.location.origin}/auth/confirm`,
+      emailRedirectTo: confirmUrl,
     },
   })
   if (error) throw new Error(error.message)
@@ -73,9 +76,13 @@ export async function resendConfirmationEmail(email: string) {
 export async function signUpWithEmail(
   email: string,
   password: string,
-  metadata: { name: string; phone: string }
+  metadata: { name: string; phone: string },
+  redirectNext?: string
 ) {
   const supabase = createClient()
+  const confirmUrl = redirectNext
+    ? `${window.location.origin}/auth/confirm?next=${encodeURIComponent(redirectNext)}`
+    : `${window.location.origin}/auth/confirm`
   const { data, error } = await supabase.auth.signUp({
     email,
     password,

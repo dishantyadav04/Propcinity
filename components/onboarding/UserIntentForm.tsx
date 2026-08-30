@@ -44,7 +44,7 @@ const TIMELINE_OPTIONS_LIST = [
   { id: '5_plus',        label: '5+ Years' },
 ]
 
-const TOTAL_STEPS = 6;
+const TOTAL_STEPS = 7;
 
 export default function UserIntentForm() {
   const router = useRouter();
@@ -153,7 +153,8 @@ export default function UserIntentForm() {
     if (step === 3) return form.propertyType.length > 0;
     if (step === 4) return form.bhkType.length > 0;
     if (step === 5) return true;
-    if (step === 6) return !!form.timeline && consentGiven;
+    if (step === 6) return !!form.timeline;
+    if (step === 7) return consentGiven;
     return true;
   };
 
@@ -695,7 +696,7 @@ export default function UserIntentForm() {
               </div>
             )}
 
-            {/* ── STEP 6: Timeline + Optional prefs ────────── */}
+            {/* ── STEP 6: Timeline ────────────────────────── */}
             {step === 6 && (
               <div className="space-y-6">
                 <div>
@@ -729,6 +730,21 @@ export default function UserIntentForm() {
                       </button>
                     )
                   })}
+                </div>
+              </div>
+            )}
+
+            {/* ── STEP 7: Optional prefs + consent + submit ────────── */}
+            {step === 7 && (
+              <div className="space-y-6">
+                <div>
+                  <h2 className="text-2xl font-black text-[var(--text-primary)]"
+                    style={{ fontFamily: 'var(--font-display)' }}>
+                    Almost there
+                  </h2>
+                  <p className="text-sm text-[var(--text-secondary)] mt-1">
+                    A few nice-to-haves, then we'll build your matches.
+                  </p>
                 </div>
 
                 {/* Optional preferences */}
@@ -812,7 +828,7 @@ export default function UserIntentForm() {
 
         {/* Navigation buttons */}
         <div className="mt-8 space-y-3">
-          {step === 6 ? (
+          {step === 7 ? (
             <button
               onClick={handleFinish}
               disabled={!canNext() || isLoading}

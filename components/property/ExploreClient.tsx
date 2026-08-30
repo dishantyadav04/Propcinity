@@ -438,12 +438,12 @@ function ExplorePageContent({ initialProjects }: { initialProjects: Project[] })
                       </div>
                       <div className="p-1.5 space-y-0.5">
                         {SORT_OPTIONS.map(opt => {
-                          const locked = isGuest && opt.value !== 'relevance';
+                          const locked = isGuest && !GUEST_LIMITS.explore.sortAllowed && opt.value !== 'relevance';
                           return (
                             <button key={opt.value}
                               onClick={() => {
                                 if (locked) {
-                                  toast('Sign up to sort by price or date', {
+                                  toast('Sign up to sort by date', {
                                     action: { label: 'Get Started', onClick: () => router.push('/onboarding') }
                                   });
                                   return;

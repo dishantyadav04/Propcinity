@@ -25,7 +25,8 @@ export default function VerifyEmailPage() {
     if (!email) { toast.error('Email not found. Please sign up again.'); return }
     setSending(true)
     try {
-      await resendConfirmationEmail(email)
+      const next = sessionStorage.getItem('signup_next') || undefined
+      await resendConfirmationEmail(email, next)
       toast.success('Confirmation email resent!')
       setCooldown(60)
     } catch (err: unknown) {

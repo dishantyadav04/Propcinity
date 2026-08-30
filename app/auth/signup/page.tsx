@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { User, Phone, Mail, Lock, Eye, EyeOff, Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
@@ -9,6 +9,8 @@ import { signUpWithEmail, signInWithGoogle } from '@/lib/supabase-auth'
 
 export default function SignUpPage() {
   const router = useRouter()
+  const params = useSearchParams()
+  const next = params.get('next') ?? '/onboarding'
   const [form, setForm] = useState({ name: '', phone: '', email: '', password: '' })
   const [showPassword, setShowPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
@@ -28,9 +30,12 @@ export default function SignUpPage() {
       await signUpWithEmail(form.email, form.password, {
         name: form.name,
         phone: form.phone,
-      })
+      }, next !== '/onboarding' ? next : undefined)
       if (typeof window !== 'undefined') {
         sessionStorage.setItem('signup_email', form.email)
+        if (next !== '/onboarding') {
+          sessionStorage.setItem('signup_next', next)
+        }
       }
       router.push('/auth/verify-email')
     } catch (err: unknown) {
@@ -43,7 +48,7 @@ export default function SignUpPage() {
   const handleGoogle = async () => {
     setOauthLoading('google')
     try {
-      await signInWithGoogle('/onboarding')
+      await signInWithGoogle(next)
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : 'Google sign-in failed.')
       setOauthLoading(null)
