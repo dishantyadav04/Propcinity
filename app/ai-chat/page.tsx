@@ -5,7 +5,7 @@ import SectionContainer from "@/components/layout/SectionContainer";
 import { Send, Bot, User, Sparkles, Loader2, MessageSquare, Lock } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
-import { storage, STORAGE_KEYS } from "@/lib/storage";
+import { storage } from "@/lib/storage";
 import { useGuestMode } from "@/hooks/useGuestMode";
 
 interface Message {
@@ -90,10 +90,8 @@ export default function AIChatPage() {
       "Hi! I'm your Propcinity Advisor. I have data on verified projects in Pune. Ask me anything — which areas suit your budget, which builders have the best track record, or what to look for in your shortlist.",
   };
 
-  const [messages, setMessages] = useState<Message[]>(() => {
-    const saved = storage.get<Message[]>(STORAGE_KEYS.CHAT_HISTORY, []);
-    return saved.length > 0 ? saved : [WELCOME_MESSAGE];
-  });
+  const [messages, setMessages] = useState<Message[]>([WELCOME_MESSAGE]);
+  const [isHistoryLoading, setIsHistoryLoading] = useState(true);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [sessionCount, setSessionCount] = useState(0);
@@ -112,16 +110,33 @@ export default function AIChatPage() {
     setSessionCount(getSessionCount());
   }, []);
 
+  // Load this user's chat history from the server. Runs once the guest
+  // check resolves; guests skip straight past (they never see the chat UI).
+  useEffect(() => {
+    if (isChecking || isGuest) return;
+    let cancelled = false;
+
+    (async () => {
+      try {
+        const res = await fetch('/api/ai/ask');
+        const data = await res.json();
+        if (!cancelled && Array.isArray(data.messages) && data.messages.length > 0) {
+          setMessages(data.messages.map((m: any) => ({ role: m.role, content: m.content })));
+        }
+      } catch {
+        // Network hiccup — fall back to the welcome message already in state.
+      } finally {
+        if (!cancelled) setIsHistoryLoading(false);
+      }
+    })();
+
+    return () => { cancelled = true };
+  }, [isChecking, isGuest]);
+
   useEffect(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
-  }, [messages]);
-
-  // Persist so history survives refreshes, backgrounded-tab reloads on
-  // mobile, and any accidental remount — not just held in memory.
-  useEffect(() => {
-    storage.set(STORAGE_KEYS.CHAT_HISTORY, messages);
   }, [messages]);
 
   const remaining = MAX_MESSAGES - sessionCount;
@@ -202,14 +217,18 @@ export default function AIChatPage() {
     "Explain the risk level for under-construction properties.",
   ];
 
-  const handleClearChat = () => {
-    storage.remove(STORAGE_KEYS.CHAT_HISTORY);
+  const handleClearChat = async () => {
     setMessages([WELCOME_MESSAGE]);
+    try {
+      await fetch('/api/ai/ask', { method: 'DELETE' });
+    } catch {
+      // Non-critical — worst case the old history reappears on next load.
+    }
   };
 
   // ── Common SEO shell that always renders for crawlers ─────────────────────
   return (
-    <div className="flex flex-col h-[100dvh]">
+    <div className="flex flex-col h-[calc(100dvh-8rem-env(safe-area-inset-bottom))] md:h-[calc(100dvh-4rem)]">
       {isChecking ? (
         <div className="flex items-center justify-center flex-1">
           <Loader2 className="w-6 h-6 animate-spin text-[var(--text-muted)]" />
@@ -238,6 +257,10 @@ export default function AIChatPage() {
           </div>
           <GuestLockScreen />
         </>
+      ) : isHistoryLoading ? (
+        <div className="flex items-center justify-center flex-1">
+          <Loader2 className="w-6 h-6 animate-spin text-[var(--text-muted)]" />
+        </div>
       ) : (
         <div className="flex flex-col flex-1 overflow-hidden">
           {/* Header — full marketing header before the first message, then
@@ -400,10 +423,10 @@ export default function AIChatPage() {
                   }}
                   disabled={isLoading || isLimitReached}
                   placeholder={
-                    isLimitReached ? "Daily limit reached. Come back tomorrow!" : "Ask anything about Pune real estate..."
+                    isLimitReached ? "Come back tomorrow!" : "Ask anything about Pune real estate..."
                   }
                   rows={1}
-                  className="flex-1 resize-none px-4 py-3 text-base bg-[var(--surface-raised)] border border-[var(--border-strong)] rounded-[var(--radius)] text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none focus:border-[var(--primary)] disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="flex-1 resize-none overflow-hidden px-4 py-3 text-base bg-[var(--surface-raised)] border border-[var(--border-strong)] rounded-[var(--radius)] text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none focus:border-[var(--primary)] disabled:opacity-50 disabled:cursor-not-allowed"
                   style={{ maxHeight: '120px' }}
                 />
                 <button

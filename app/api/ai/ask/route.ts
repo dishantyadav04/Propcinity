@@ -114,6 +114,15 @@ export async function POST(request: NextRequest) {
   // Cache the response for future identical questions
   await setChatCache(cacheKey, answer, provider)
 
+  // Persist to chat history — best-effort, never blocks the response.
+  const { error: historyError } = await supabase.from('ai_chat_messages').insert([
+    { user_id: user.id, role: 'user', content: question },
+    { user_id: user.id, role: 'assistant', content: answer },
+  ])
+  if (historyError) {
+    console.error('[ai_chat_messages] insert failed:', historyError)
+  }
+
   return NextResponse.json({ answer, provider })
 }
 
@@ -203,4 +212,46 @@ Return JSON with recommended project IDs and a brief reason for each.`
     console.error('Recommendation failed:', err)
     return NextResponse.json({ error: 'Recommendation failed' }, { status: 500 })
   }
+}
+
+export async function GET(request: NextRequest) {
+  const supabase = await createServerSupabaseClient()
+  if (!supabase) {
+    return NextResponse.json({ error: 'Service unavailable' }, { status: 503 })
+  }
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) {
+    return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
+  }
+
+  const { data, error } = await supabase
+    .from('ai_chat_messages')
+    .select('role, content, created_at')
+    .eq('user_id', user.id)
+    .order('created_at', { ascending: true })
+    .limit(100)
+
+  if (error) {
+    return NextResponse.json({ error: 'Failed to load chat history' }, { status: 500 })
+  }
+
+  return NextResponse.json({ messages: data ?? [] })
+}
+
+export async function DELETE(request: NextRequest) {
+  const supabase = await createServerSupabaseClient()
+  if (!supabase) {
+    return NextResponse.json({ error: 'Service unavailable' }, { status: 503 })
+  }
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) {
+    return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
+  }
+
+  const { error } = await supabase.from('ai_chat_messages').delete().eq('user_id', user.id)
+  if (error) {
+    return NextResponse.json({ error: 'Failed to clear chat history' }, { status: 500 })
+  }
+
+  return NextResponse.json({ success: true })
 }

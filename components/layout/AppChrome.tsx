@@ -5,18 +5,23 @@ import TopHeader from '@/components/layout/TopHeader'
 import BottomNav from '@/components/layout/BottomNav'
 import Footer from '@/components/layout/Footer'
 
-// Routes that render their own full-height, chrome-free experience.
-const CHROME_HIDDEN_PREFIXES = ['/auth', '/ai-chat']
+// Routes that render their own full-height, chrome-free experience —
+// no header, no bottom nav, no footer at all.
+const CHROME_HIDDEN_PREFIXES = ['/auth']
 
-function isChromeHidden(pathname: string) {
-  return CHROME_HIDDEN_PREFIXES.some(
-    (p) => pathname === p || pathname.startsWith(`${p}/`)
-  )
+// Routes that keep the header + bottom nav for navigation, but skip the
+// full marketing footer because it doesn't fit a full-height, fixed-input
+// layout like the AI chat screen.
+const FOOTER_HIDDEN_PREFIXES = ['/auth', '/ai-chat']
+
+function matchesPrefix(pathname: string, prefixes: string[]) {
+  return prefixes.some((p) => pathname === p || pathname.startsWith(`${p}/`))
 }
 
 export default function AppChrome({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
-  const hideChrome = isChromeHidden(pathname)
+  const hideChrome = matchesPrefix(pathname, CHROME_HIDDEN_PREFIXES)
+  const hideFooter = hideChrome || matchesPrefix(pathname, FOOTER_HIDDEN_PREFIXES)
 
   return (
     <>
@@ -25,7 +30,7 @@ export default function AppChrome({ children }: { children: React.ReactNode }) {
         {children}
       </main>
       {!hideChrome && <BottomNav />}
-      {!hideChrome && <Footer />}
+      {!hideFooter && <Footer />}
     </>
   )
 }
