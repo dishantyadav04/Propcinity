@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { Search, Users, MapPin, Target, Clock, Wallet } from 'lucide-react';
 import { createResourceCache } from '@/lib/client-cache';
+import { formatIndianPrice } from '@/lib/utils';
 
 // 20s TTL — short enough that admin data still feels fresh, long enough to
 // skip a full refetch when just switching tabs and coming back.
@@ -48,7 +49,7 @@ export default function AdminUsersPage() {
 
   const formatBudget = (budget: any) => {
     if (!budget?.min && !budget?.max) return 'Not set';
-    const fmt = (v: number) => v >= 10000000 ? `₹${(v/10000000).toFixed(1)}Cr` : `₹${(v/100000).toFixed(0)}L`;
+    const fmt = (v: number) => formatIndianPrice(v, 1).replace(' ', '');
     return `${fmt(budget.min)} – ${fmt(budget.max)}`;
   };
 

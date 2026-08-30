@@ -2,24 +2,7 @@
 // Tiered recommendation engine — called ONLY on onboarding finish and profile save
 // Never called on every page load
 
-import { Project } from '@/types/project';
 import { UserIntent } from '@/types/user';
-
-// Convert a project to a rich text description for embedding
-export function projectToEmbeddingText(project: Project): string {
-  const price = (project.unitConfigs || [])
-    .map((u: any) => `${u.type} at ₹${((u.price || 0) / 100000).toFixed(0)}L`)
-    .join(', ');
-
-  return [
-    `${project.name} by ${project.builderName || ''} in ${project.location || ''}, ${project.city || 'Pune'}.`,
-    project.description || '',
-    `Configurations: ${price || 'various'}.`,
-    `Status: ${(project.constructionStatus || '').replace(/_/g, ' ')}, RERA: ${project.reraStatus || 'unknown'}.`,
-    `Amenities: ${(project.amenities || []).join(', ')}.`,
-    `Pros: ${(project.pros || []).join(', ')}.`,
-  ].filter(Boolean).join(' ').trim();
-}
 
 // Convert user intent to a search query text for embedding
 export function intentToEmbeddingText(intent: UserIntent): string {
@@ -60,17 +43,4 @@ export async function generateEmbedding(text: string): Promise<number[] | null> 
   } catch {
     return null;
   }
-}
-
-// Simple cosine similarity between two vectors
-export function cosineSimilarity(a: number[], b: number[]): number {
-  if (a.length !== b.length) return 0;
-  let dot = 0, normA = 0, normB = 0;
-  for (let i = 0; i < a.length; i++) {
-    dot += a[i] * b[i];
-    normA += a[i] * a[i];
-    normB += b[i] * b[i];
-  }
-  const denom = Math.sqrt(normA) * Math.sqrt(normB);
-  return denom === 0 ? 0 : dot / denom;
 }

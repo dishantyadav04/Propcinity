@@ -19,5 +19,3 @@ export const builderSchema = z.object({
   created_at: z.string().optional(),
   updated_at: z.string().optional(),
 })
-
-export type BuilderPayload = z.infer<typeof builderSchema>

@@ -16,9 +16,9 @@ export function slugify(text: string): string {
     .trim()
 }
 
-export function formatIndianPrice(amount: number): string {
-  if (amount >= 10000000) return `₹${(amount / 10000000).toFixed(2)} Cr`
-  if (amount >= 100000) return `₹${(amount / 100000).toFixed(2)} L`
+export function formatIndianPrice(amount: number, decimals: 0 | 1 | 2 = 1): string {
+  if (amount >= 10000000) return `₹${(amount / 10000000).toFixed(decimals)} Cr`
+  if (amount >= 100000) return `₹${(amount / 100000).toFixed(decimals)} L`
   return `₹${amount.toLocaleString('en-IN')}`
 }
 
@@ -32,7 +32,7 @@ export function getPriceLabel(project: {
   const min = Math.min(...allMins)
   const max = Math.max(...allMaxs)
 
-  return `${formatIndianPrice(min)}-${formatIndianPrice(max)}`
+  return `${formatIndianPrice(min, 0)}-${formatIndianPrice(max, 0)}`
 }
 
 export function addToCompare(project: any): boolean {

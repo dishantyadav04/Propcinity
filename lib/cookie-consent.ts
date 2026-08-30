@@ -38,15 +38,3 @@ export function setConsent(prefs: Omit<CookieConsent, 'essential' | 'version' | 
     // localStorage may be unavailable
   }
 }
-
-export function hasConsented(): boolean {
-  return getConsent() !== null
-}
-
-export function isAnalyticsAllowed(): boolean {
-  return getConsent()?.analytics ?? true
-}
-
-export function isFunctionalAllowed(): boolean {
-  return getConsent()?.functional ?? true
-}

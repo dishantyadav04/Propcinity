@@ -77,9 +77,6 @@ export const projectSchema = z.object({
   unitConfigs: z.array(unitConfigSchema).optional(),
 })
 
-export type ProjectPayload = z.infer<typeof projectSchema>
-export type UnitConfigPayload = z.infer<typeof unitConfigSchema>
-
 export function flattenZodError(error: z.ZodError) {
   const fieldErrors: Record<string, string[]> = {}
   const formErrors: string[] = []

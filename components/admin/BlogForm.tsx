@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { BlogInput } from '@/lib/blog-schema';
+import { slugify } from '@/lib/utils';
 import type { Blog } from '@/types/blog';
 import RichTextEditor from '@/components/admin/RichTextEditor';
 import {
@@ -13,13 +14,6 @@ import {
 
 interface BlogFormProps {
   blogId?: string;
-}
-
-function slugify(text: string): string {
-  return text
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '');
 }
 
 function ImageUploadField({ value, onChange, label, placeholder = 'https://...', onUpload }: {

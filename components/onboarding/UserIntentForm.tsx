@@ -8,7 +8,7 @@ import {
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { storage, STORAGE_KEYS } from "@/lib/storage";
-import { cn } from "@/lib/utils";
+import { cn, formatIndianPrice } from "@/lib/utils";
 import type { City, Locality } from "@/types/location";
 
 const OPTIONAL_PREFS = [
@@ -302,10 +302,7 @@ export default function UserIntentForm() {
     router.push('/dashboard');
   };
 
-  const formatBudget = (val: number) => {
-    if (val >= 10000000) return `₹${(val / 10000000).toFixed(1)} Cr`;
-    return `₹${(val / 100000).toFixed(0)} L`;
-  };
+  const formatBudget = (val: number) => formatIndianPrice(val, 1);
 
   return (
     <div className="min-h-screen bg-[var(--background)] flex flex-col">

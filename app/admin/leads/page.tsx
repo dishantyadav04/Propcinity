@@ -7,6 +7,7 @@ import {
   Building2, Star, AlertCircle, CheckCircle2
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { formatIndianPrice } from '@/lib/utils';
 
 const INTENT_CONFIG = {
   hot:  { icon: Flame,         bg: 'bg-red-50',    text: 'text-red-600',    border: 'border-red-200',    label: 'HOT',  note: '⚡ Call now' },
@@ -88,9 +89,7 @@ export default function AdminLeadsPage() {
   const formatBudget = (min: number, max: number, isOpen = false) => {
     const fmt = (v: number) => {
       if (!v || v <= 0) return null
-      return v >= 10000000
-        ? `₹${(v / 10000000).toFixed(1)}Cr`
-        : `₹${(v / 100000).toFixed(0)}L`
+      return formatIndianPrice(v, 1).replace(' ', '')
     }
     const fMin = fmt(min)
     const fMax = fmt(max)

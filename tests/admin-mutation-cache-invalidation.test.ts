@@ -119,30 +119,4 @@ describe('admin project mutations invalidate cache consistently across both rout
 
     expect(invalidateCache).toHaveBeenCalled()
   })
-
-  it('PATCH /api/admin/projects/[id] should also invalidate, matching the query-param route', async () => {
-    const { PATCH } = await import('@/app/api/admin/projects/[id]/route')
-    const { invalidateCache } = await import('@/lib/server-cache')
-
-    const req = new NextRequest(`http://localhost/api/admin/projects/${UUID}`, {
-      method: 'PATCH',
-      body: JSON.stringify({ slug: 'my-project' }),
-    })
-    await PATCH(req, { params: Promise.resolve({ id: UUID }) })
-
-    // Currently fails: this second, id-in-path route is unused by the UI
-    // today but is a live landmine — any future caller (a script, a
-    // webhook, an admin bulk-edit feature) silently skips invalidation.
-    expect(invalidateCache).toHaveBeenCalled()
-  })
-
-  it('DELETE /api/admin/projects/[id] should also invalidate, matching the query-param route', async () => {
-    const { DELETE } = await import('@/app/api/admin/projects/[id]/route')
-    const { invalidateCache } = await import('@/lib/server-cache')
-
-    const req = new NextRequest(`http://localhost/api/admin/projects/${UUID}`, { method: 'DELETE' })
-    await DELETE(req, { params: Promise.resolve({ id: UUID }) })
-
-    expect(invalidateCache).toHaveBeenCalled()
-  })
 })

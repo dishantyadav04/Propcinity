@@ -40,13 +40,6 @@ export interface ManualNearbyLocation {
   distance: string   // e.g. "700m", "1.2 km"
 }
 
-export interface AmenityLibraryItem {
-  id: string
-  name: string
-  icon: string       // emoji
-  category: 'internal' | 'external' | 'both'
-}
-
 export interface ReraRegistration {
   id: string
   reraId: string          // e.g. "P52100047931"

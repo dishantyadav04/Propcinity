@@ -13,6 +13,7 @@ import SectionContainer from "@/components/layout/SectionContainer";
 import { motion } from "framer-motion";
 
 import { storage, STORAGE_KEYS } from "@/lib/storage";
+import { formatIndianPrice } from "@/lib/utils";
 import { useGuestMode } from "@/hooks/useGuestMode";
 import { signOut } from "@/lib/supabase-auth";
 import { createClient } from "@/lib/supabase";
@@ -73,10 +74,7 @@ export default function ProfilePage() {
   );
   if (isGuest) return null
 
-  const formatBudget = (val: number) => {
-    if (val >= 10000000) return `₹${(val / 10000000).toFixed(1)} Cr`;
-    return `₹${(val / 100000).toFixed(0)} L`;
-  };
+  const formatBudget = (val: number) => formatIndianPrice(val, 1);
 
   const handleLogOut = async () => {
     await signOut();
