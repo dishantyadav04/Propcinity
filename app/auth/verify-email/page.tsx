@@ -36,7 +36,7 @@ export default function VerifyEmailPage() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center px-6 text-center gap-6">
+    <div className="h-[100dvh] flex flex-col items-center justify-center px-6 text-center gap-6 overflow-y-auto">
       <div className="w-16 h-16 bg-[var(--primary-light)] rounded-full flex items-center justify-center">
         <Mail className="w-8 h-8 text-[var(--primary)]" />
       </div>

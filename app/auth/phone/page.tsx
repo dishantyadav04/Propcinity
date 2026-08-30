@@ -35,7 +35,7 @@ function PhoneContent() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center px-4 py-12">
+    <div className="h-[100dvh] flex flex-col items-center justify-center px-4 py-6 overflow-y-auto">
       <div className="w-full max-w-sm space-y-6">
 
         <div className="text-center space-y-2">

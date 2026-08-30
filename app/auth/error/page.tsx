@@ -20,7 +20,7 @@ function ErrorContent() {
   const message = ERROR_MESSAGES[rawMessage] ?? decodeURIComponent(rawMessage)
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center px-6 text-center gap-6">
+    <div className="h-[100dvh] flex flex-col items-center justify-center px-6 text-center gap-6 overflow-y-auto">
       <div className="w-14 h-14 bg-[var(--danger-light)] rounded-full flex items-center justify-center">
         <AlertTriangle className="w-7 h-7 text-[var(--danger)]" />
       </div>

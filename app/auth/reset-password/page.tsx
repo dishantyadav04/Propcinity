@@ -41,14 +41,14 @@ function ResetPasswordContent() {
 
   if (!ready) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="h-[100dvh] flex items-center justify-center overflow-y-auto">
         <p className="text-sm text-[var(--text-muted)]">Verifying your reset link...</p>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center px-4 py-12">
+    <div className="h-[100dvh] flex flex-col items-center justify-center px-4 py-6 overflow-y-auto">
       <div className="w-full max-w-sm space-y-6">
         <div className="text-center space-y-1">
           <h1 className="text-3xl font-black text-[var(--text-primary)]"

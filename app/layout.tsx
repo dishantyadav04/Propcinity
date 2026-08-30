@@ -3,16 +3,13 @@ import { Syne, Plus_Jakarta_Sans } from 'next/font/google'
 import { Suspense } from 'react'
 import { Toaster } from 'sonner'
 import './globals.css'
-import TopHeader from '@/components/layout/TopHeader'
-import BottomNav from '@/components/layout/BottomNav'
-import Footer from '@/components/layout/Footer'
+import AppChrome from '@/components/layout/AppChrome'
 import PageTransition from '@/components/ui/PageTransition'
 import ClientLayoutExtras from '@/components/layout/ClientLayoutExtras'
 import CookieConsentProvider from '@/components/consent/CookieConsentProvider'
 import PostHogProvider from '@/components/analytics/PostHogProvider'
 import PostHogPageView from '@/components/analytics/PostHogPageView'
 import { canonicalUrl } from '@/lib/seo'
-// ✅ TASK 1 DONE
 
 const syne = Syne({
   subsets: ['latin'],
@@ -110,14 +107,11 @@ export default function RootLayout({
             <Suspense fallback={null}>
               <PostHogPageView />
             </Suspense>
-            <TopHeader />
-            <main className="min-h-screen pt-0">
+            <AppChrome>
               <PageTransition>
                 {children}
               </PageTransition>
-            </main>
-            <BottomNav />
-            <Footer />
+            </AppChrome>
             <ClientLayoutExtras />
             <Toaster
               position="bottom-center"

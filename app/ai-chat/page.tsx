@@ -194,7 +194,7 @@ export default function AIChatPage() {
 
   // ── Common SEO shell that always renders for crawlers ─────────────────────
   return (
-    <div className="flex flex-col h-[calc(100vh-64px)]">
+    <div className="flex flex-col h-[100dvh]">
       {isChecking ? (
         <div className="flex items-center justify-center flex-1">
           <Loader2 className="w-6 h-6 animate-spin text-[var(--text-muted)]" />
