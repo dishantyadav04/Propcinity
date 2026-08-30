@@ -14,35 +14,7 @@ interface Message {
 }
 
 // ─── Constants ────────────────────────────────────────────────────────────────
-const SESSION_KEY = 'ai_chat_session';
-const MAX_MESSAGES = 5;           // 5 daily chats for logged-in users
-const SESSION_TTL = 24 * 60 * 60 * 1000;
-
-// ─── Session helpers (logged-in users only) ───────────────────────────────────
-function getSessionCount(): number {
-  try {
-    const raw = localStorage.getItem(SESSION_KEY);
-    if (!raw) return 0;
-    const parsed = JSON.parse(raw);
-    if (Date.now() - parsed.ts > SESSION_TTL) {
-      localStorage.removeItem(SESSION_KEY);
-      return 0;
-    }
-    return parsed.count || 0;
-  } catch {
-    return 0;
-  }
-}
-
-function incrementSessionCount(): number {
-  try {
-    const count = getSessionCount() + 1;
-    localStorage.setItem(SESSION_KEY, JSON.stringify({ count, ts: Date.now() }));
-    return count;
-  } catch {
-    return 0;
-  }
-}
+const MAX_MESSAGES = 5; // 5 daily chats for logged-in users
 
 // ─── Guest Gate UI ────────────────────────────────────────────────────────────
 function GuestLockScreen() {
@@ -94,8 +66,10 @@ export default function AIChatPage() {
   const [isHistoryLoading, setIsHistoryLoading] = useState(true);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [sessionCount, setSessionCount] = useState(0);
+  const [remaining, setRemaining] = useState(MAX_MESSAGES);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const isFirstScroll = useRef(true);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   // Skip the message-bubble entrance animation on the very first render after
   // the auth check resolves, so the welcome message appears instantly instead
@@ -105,10 +79,6 @@ export default function AIChatPage() {
   useEffect(() => {
     if (!isChecking) hasCheckedOnce.current = true;
   }, [isChecking]);
-
-  useEffect(() => {
-    setSessionCount(getSessionCount());
-  }, []);
 
   // Load this user's chat history from the server. Runs once the guest
   // check resolves; guests skip straight past (they never see the chat UI).
@@ -123,6 +93,9 @@ export default function AIChatPage() {
         if (!cancelled && Array.isArray(data.messages) && data.messages.length > 0) {
           setMessages(data.messages.map((m: any) => ({ role: m.role, content: m.content })));
         }
+        if (!cancelled && typeof data.remainingToday === 'number') {
+          setRemaining(data.remainingToday);
+        }
       } catch {
         // Network hiccup — fall back to the welcome message already in state.
       } finally {
@@ -134,12 +107,28 @@ export default function AIChatPage() {
   }, [isChecking, isGuest]);
 
   useEffect(() => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    if (!scrollRef.current) return;
+
+    if (isFirstScroll.current) {
+      scrollRef.current.scrollTop = 0;
+      isFirstScroll.current = false;
+      return;
+    }
+
+    const el = scrollRef.current;
+    const distanceFromBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
+    if (distanceFromBottom < 150) {
+      el.scrollTop = el.scrollHeight;
     }
   }, [messages]);
 
-  const remaining = MAX_MESSAGES - sessionCount;
+  useEffect(() => {
+    const el = textareaRef.current;
+    if (!el) return;
+    el.style.height = 'auto';
+    el.style.height = `${Math.min(el.scrollHeight, 120)}px`;
+  }, [input]);
+
   const isLimitReached = remaining <= 0;
   const hasStartedChat = messages.length > 1;
 
@@ -150,9 +139,6 @@ export default function AIChatPage() {
     setInput("");
     setMessages(prev => [...prev, { role: 'user', content: userMsg }]);
     setIsLoading(true);
-
-    const newCount = incrementSessionCount();
-    setSessionCount(newCount);
 
     try {
       const userIntent = storage.get<any>('userIntent', null);
@@ -200,6 +186,10 @@ export default function AIChatPage() {
             "I don't have enough information to answer that. Try asking about specific projects, locations, or budgets.",
         },
       ]);
+
+      if (typeof data.remainingToday === 'number') {
+        setRemaining(data.remainingToday);
+      }
     } catch {
       setMessages(prev => [
         ...prev,
@@ -228,7 +218,7 @@ export default function AIChatPage() {
 
   // ── Common SEO shell that always renders for crawlers ─────────────────────
   return (
-    <div className="flex flex-col h-[calc(100dvh-8rem-env(safe-area-inset-bottom))] md:h-[calc(100dvh-4rem)]">
+    <div className="flex flex-col h-[calc(100dvh-8rem)] md:h-[calc(100dvh-4rem)]">
       {isChecking ? (
         <div className="flex items-center justify-center flex-1">
           <Loader2 className="w-6 h-6 animate-spin text-[var(--text-muted)]" />
@@ -266,8 +256,8 @@ export default function AIChatPage() {
           {/* Header — full marketing header before the first message, then
               collapses to a slim bar so scrollback isn't squeezed on mobile */}
           <div
-            className={`flex-shrink-0 bg-white border-b border-[var(--border)] transition-[padding] duration-200 ${
-              hasStartedChat ? 'py-2.5' : 'pb-8 pt-6'
+            className={`flex-shrink-0 bg-white border-b border-[var(--border)] transition-[padding] duration-200 py-2.5 ${
+              hasStartedChat ? '' : 'md:pb-8 md:pt-6'
             }`}
           >
             <SectionContainer wide>
@@ -297,15 +287,15 @@ export default function AIChatPage() {
               ) : (
                 <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
                   <div className="space-y-2">
-                    <div className="flex items-center gap-2 text-[var(--primary)] text-xs font-bold uppercase tracking-wider">
+                    <div className="flex items-center gap-1.5 text-[var(--primary)] text-xs font-bold uppercase tracking-wider">
                       <Sparkles className="w-3.5 h-3.5" />
                       <span>AI Advisor</span>
                     </div>
-                    <h1 className="text-2xl sm:text-3xl font-black text-[var(--text-primary)]"
+                    <h1 className="hidden md:block text-2xl sm:text-3xl font-black text-[var(--text-primary)]"
                       style={{ fontFamily: 'var(--font-display)' }}>
                       Ask Propcinity&apos;s AI anything about a property
                     </h1>
-                    <p className="text-sm text-[var(--text-secondary)] flex items-center gap-1.5">
+                    <p className="hidden md:flex text-sm text-[var(--text-secondary)] items-center gap-1.5">
                       <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-[var(--primary-light)] text-[var(--primary)]">
                         <Sparkles className="w-2.5 h-2.5" /> AI
                       </span>
@@ -409,10 +399,11 @@ export default function AIChatPage() {
           )}
 
           {/* Input */}
-          <div className="flex-shrink-0 bg-white border-t border-[var(--border)] py-4">
+          <div className="flex-shrink-0 bg-white border-t border-[var(--border)] py-4 pb-[calc(1rem+env(safe-area-inset-bottom))] md:pb-4">
             <SectionContainer wide>
               <div className="flex gap-3 items-end">
                 <textarea
+                  ref={textareaRef}
                   value={input}
                   onChange={e => setInput(e.target.value)}
                   onKeyDown={e => {
@@ -426,7 +417,7 @@ export default function AIChatPage() {
                     isLimitReached ? "Come back tomorrow!" : "Ask anything about Pune real estate..."
                   }
                   rows={1}
-                  className="flex-1 resize-none overflow-hidden px-4 py-3 text-base bg-[var(--surface-raised)] border border-[var(--border-strong)] rounded-[var(--radius)] text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none focus:border-[var(--primary)] disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="flex-1 resize-none overflow-y-auto px-4 py-3 text-base bg-[var(--surface-raised)] border border-[var(--border-strong)] rounded-[var(--radius)] text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none focus:border-[var(--primary)] disabled:opacity-50 disabled:cursor-not-allowed"
                   style={{ maxHeight: '120px' }}
                 />
                 <button

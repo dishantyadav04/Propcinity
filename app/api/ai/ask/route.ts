@@ -123,7 +123,7 @@ export async function POST(request: NextRequest) {
     console.error('[ai_chat_messages] insert failed:', historyError)
   }
 
-  return NextResponse.json({ answer, provider })
+  return NextResponse.json({ answer, provider, remainingToday: DAILY_LIMIT - newCount })
 }
 
 export async function PUT(request: NextRequest) {
@@ -235,7 +235,19 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'Failed to load chat history' }, { status: 500 })
   }
 
-  return NextResponse.json({ messages: data ?? [] })
+  const startOfDay = new Date()
+  startOfDay.setHours(0, 0, 0, 0)
+
+  const { count: userMsgCount } = await supabase
+    .from('ai_chat_messages')
+    .select('id', { count: 'exact', head: true })
+    .eq('user_id', user.id)
+    .eq('role', 'user')
+    .gte('created_at', startOfDay.toISOString())
+
+  const remainingToday = Math.max(0, DAILY_LIMIT - (userMsgCount ?? 0))
+
+  return NextResponse.json({ messages: data ?? [], remainingToday })
 }
 
 export async function DELETE(request: NextRequest) {
