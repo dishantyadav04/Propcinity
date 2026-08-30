@@ -44,7 +44,7 @@ const TIMELINE_OPTIONS_LIST = [
   { id: '5_plus',        label: '5+ Years' },
 ]
 
-const TOTAL_STEPS = 6;
+const TOTAL_STEPS = 7;
 
 export default function UserIntentForm() {
   const router = useRouter();
@@ -153,7 +153,8 @@ export default function UserIntentForm() {
     if (step === 3) return form.propertyType.length > 0;
     if (step === 4) return form.bhkType.length > 0;
     if (step === 5) return true;
-    if (step === 6) return !!form.timeline && consentGiven;
+    if (step === 6) return !!form.timeline;
+    if (step === 7) return consentGiven;
     return true;
   };
 
@@ -695,12 +696,14 @@ export default function UserIntentForm() {
               </div>
             )}
 
-            {/* ── STEP 6: Timeline + Optional prefs ────────── */}
+            {/* ── STEP 6: Timeline ────────────────────────── */}
             {step === 6 && (
               <div className="space-y-6">
                 <div>
-                  <h2 className="text-2xl font-black text-[var(--text-primary)]"
-                    style={{ fontFamily: 'var(--font-display)' }}>
+                  <h2
+                    className="text-2xl font-black text-[var(--text-primary)]"
+                    style={{ fontFamily: 'var(--font-display)' }}
+                  >
                     When do you plan to buy?
                   </h2>
                   <p className="text-sm text-[var(--text-secondary)] mt-1">
@@ -708,27 +711,44 @@ export default function UserIntentForm() {
                   </p>
                 </div>
                 <div className="space-y-2">
-                  {TIMELINE_OPTIONS_LIST.map(opt => {
-                    return (
-                      <button key={opt.id}
-                        onClick={() => set('timeline', opt.id)}
-                        className={cn(
-                          "w-full flex items-center gap-4 p-4 rounded-[var(--radius)] border text-left transition-all",
-                          form.timeline === opt.id
-                            ? "bg-[var(--primary-light)] border-[var(--primary)]"
-                            : "bg-[var(--surface-raised)] border-[var(--border)]"
-                        )}>
-                        <div className="flex-1">
-                          <p className="font-bold text-[var(--text-primary)]">{opt.label}</p>
+                  {TIMELINE_OPTIONS_LIST.map(opt => (
+                    <button
+                      key={opt.id}
+                      onClick={() => set('timeline', opt.id)}
+                      className={cn(
+                        "w-full flex items-center gap-4 p-4 rounded-[var(--radius)] border text-left transition-all",
+                        form.timeline === opt.id
+                          ? "bg-[var(--primary-light)] border-[var(--primary)]"
+                          : "bg-[var(--surface-raised)] border-[var(--border)]"
+                      )}
+                    >
+                      <div className="flex-1">
+                        <p className="font-bold text-[var(--text-primary)]">{opt.label}</p>
+                      </div>
+                      {form.timeline === opt.id && (
+                        <div className="w-5 h-5 bg-[var(--primary)] rounded-full flex items-center justify-center flex-shrink-0">
+                          <Check className="w-3 h-3 text-white" />
                         </div>
-                        {form.timeline === opt.id && (
-                          <div className="w-5 h-5 bg-[var(--primary)] rounded-full flex items-center justify-center flex-shrink-0">
-                            <Check className="w-3 h-3 text-white" />
-                          </div>
-                        )}
-                      </button>
-                    )
-                  })}
+                      )}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* ── STEP 7: Optional preferences + consent + submit ────────── */}
+            {step === 7 && (
+              <div className="space-y-6">
+                <div>
+                  <h2
+                    className="text-2xl font-black text-[var(--text-primary)]"
+                    style={{ fontFamily: 'var(--font-display)' }}
+                  >
+                    Almost there
+                  </h2>
+                  <p className="text-sm text-[var(--text-secondary)] mt-1">
+                    A few nice-to-haves, then we'll build your matches.
+                  </p>
                 </div>
 
                 {/* Optional preferences */}
@@ -742,14 +762,16 @@ export default function UserIntentForm() {
                   </div>
                   <div className="flex flex-wrap gap-2">
                     {OPTIONAL_PREFS.map(pref => (
-                      <button key={pref}
+                      <button
+                        key={pref}
                         onClick={() => toggleArr('preferences', pref)}
                         className={cn(
                           "px-3 py-1.5 rounded-full text-xs font-semibold border transition-all",
                           form.preferences.includes(pref)
                             ? "bg-[var(--primary)] text-white border-[var(--primary)]"
                             : "bg-[var(--surface-raised)] border-[var(--border)] text-[var(--text-secondary)]"
-                        )}>
+                        )}
+                      >
                         {pref}
                       </button>
                     ))}
@@ -812,7 +834,7 @@ export default function UserIntentForm() {
 
         {/* Navigation buttons */}
         <div className="mt-8 space-y-3">
-          {step === 6 ? (
+          {step === 7 ? (
             <button
               onClick={handleFinish}
               disabled={!canNext() || isLoading}

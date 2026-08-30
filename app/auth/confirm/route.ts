@@ -16,8 +16,11 @@ export async function GET(request: NextRequest) {
   const code      = searchParams.get('code')
   const tokenHash = searchParams.get('token_hash')
   const type      = searchParams.get('type') as 'signup' | 'email' | null
-  const next      = searchParams.get('next') ?? '/onboarding'
-  const safeNext  = next.startsWith('/') ? next : '/onboarding'
+
+  // ?next= takes priority; fall back to the signup_next cookie set during registration
+  const cookieNext = request.cookies.get('signup_next')?.value
+  const next       = searchParams.get('next') ?? cookieNext ?? '/onboarding'
+  const safeNext   = next.startsWith('/') ? next : '/onboarding'
 
   const supabase = await createServerSupabaseClient()
   if (!supabase) {
