@@ -1,5 +1,5 @@
 import { Metadata } from 'next'
-import { getProjectBySlug } from '@/services/projects'
+import { getProjectBySlugCached } from '@/services/projects'
 
 export async function generateMetadata({
   params,
@@ -7,7 +7,7 @@ export async function generateMetadata({
   params: Promise<{ slug: string }>
 }): Promise<Metadata> {
   const { slug } = await params
-  const project = await getProjectBySlug(slug)
+  const project = await getProjectBySlugCached(slug)
 
   if (!project) return {}
 

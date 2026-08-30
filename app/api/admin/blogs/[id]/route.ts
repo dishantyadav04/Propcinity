@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
 import * as Sentry from '@sentry/nextjs'
 import { isAdminAuthenticated } from '@/lib/admin-auth'
@@ -9,6 +10,8 @@ import {
   adminDeleteBlog,
   adminToggleBlogStatus,
 } from '@/services/blogs'
+import { invalidateCache } from '@/lib/server-cache'
+import { blogCacheKeys } from '@/lib/cache-keys'
 import { Blog } from '@/types/blog'
 
 const unauth = () => NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -16,6 +19,12 @@ const unauth = () => NextResponse.json({ error: 'Unauthorized' }, { status: 401 
 const statusSchema = z.object({
   status: z.enum(['draft', 'published', 'scheduled']),
 })
+
+async function invalidateBlog(slug?: string) {
+  await Promise.all(blogCacheKeys(slug ?? '').map(invalidateCache))
+  if (slug) revalidatePath(`/blogs/${slug}`)
+  revalidatePath('/blogs')
+}
 
 export async function GET(
   request: NextRequest,
@@ -54,6 +63,7 @@ export async function PUT(
 
   try {
     await adminUpdateBlog(id, parsed.data)
+    await invalidateBlog(parsed.data.slug)
     return NextResponse.json({ success: true })
   } catch (err) {
     console.error('[admin/blogs] Update error:', err)
@@ -73,7 +83,9 @@ export async function DELETE(
     return NextResponse.json({ error: 'Invalid id' }, { status: 400 })
   }
 
+  const existing = await adminGetBlogById(id)
   await adminDeleteBlog(id)
+  await invalidateBlog(existing?.slug)
   return NextResponse.json({ success: true })
 }
 
@@ -95,7 +107,9 @@ export async function PATCH(
   }
 
   try {
+    const existing = await adminGetBlogById(id)
     await adminToggleBlogStatus(id, parsed.data.status as Blog['status'])
+    await invalidateBlog(existing?.slug)
     return NextResponse.json({ success: true, status: parsed.data.status })
   } catch (err) {
     console.error('[admin/blogs] Toggle status error:', err)

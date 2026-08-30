@@ -2,7 +2,7 @@ import { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import Script from 'next/script'
 import Link from 'next/link'
-import { getBlogBySlug, getRelatedBlogs, getAllPublishedBlogSlugs } from '@/services/blogs'
+import { getBlogBySlugCached, getRelatedBlogs, getAllPublishedBlogSlugs } from '@/services/blogs'
 import { ArrowLeft, Calendar, Clock, User, Tag } from 'lucide-react'
 import ShareButtons from '@/components/blogs/ShareButtons'
 
@@ -17,7 +17,7 @@ export async function generateMetadata({
   params: Promise<{ slug: string }>
 }): Promise<Metadata> {
   const { slug } = await params
-  const blog = await getBlogBySlug(slug)
+  const blog = await getBlogBySlugCached(slug)
   if (!blog) return {}
 
   const title = blog.metaTitle || blog.title
@@ -54,7 +54,7 @@ export default async function BlogDetailPage({
   params: Promise<{ slug: string }>
 }) {
   const { slug } = await params
-  const blog = await getBlogBySlug(slug)
+  const blog = await getBlogBySlugCached(slug)
   if (!blog) notFound()
 
   const related = await getRelatedBlogs(blog.id, blog.category, 3)

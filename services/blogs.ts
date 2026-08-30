@@ -1,4 +1,6 @@
+import { cache } from 'react'
 import { createAdminSupabaseClient, createServerSupabaseClient, createStaticSupabaseClient } from '@/lib/supabase-server'
+import { cached } from '@/lib/server-cache'
 import { Blog, BlogFaqItem } from '@/types/blog'
 import { BlogInput } from '@/lib/blog-schema'
 import { cleanupRemovedR2Files, deleteFromR2 } from '@/lib/r2'
@@ -372,3 +374,24 @@ export async function getAllPublishedBlogSlugs(): Promise<string[]> {
 
   return (data || []).map((row: { slug: string }) => row.slug)
 }
+
+export const getBlogBySlugCached = cache(async (slug: string) => {
+  return cached(
+    `blogs:detail:${slug}`,
+    5 * 60 * 1000,
+    () => getBlogBySlug(slug),
+    { staleWhileRevalidateMs: 10 * 60 * 1000 }
+  )
+})
+
+export const getPublishedBlogsCached = cache(
+  async (page: number = 1, limit: number = 12, filters?: { category?: string; tag?: string }) => {
+    const cacheKey = `blogs:list:${page}:${limit}:${filters?.category ?? ''}:${filters?.tag ?? ''}`
+    return cached(
+      cacheKey,
+      2 * 60 * 1000,
+      () => getPublishedBlogs(page, limit, filters),
+      { staleWhileRevalidateMs: 5 * 60 * 1000 }
+    )
+  }
+)

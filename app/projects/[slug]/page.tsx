@@ -1,5 +1,5 @@
 import { notFound } from 'next/navigation'
-import { getProjectBySlug, getPublishedProjectSlugs } from '@/services/projects'
+import { getProjectBySlugCached, getPublishedProjectSlugs } from '@/services/projects'
 import ProjectDetailClient from '@/components/property/ProjectDetailClient'
 
 export async function generateStaticParams() {
@@ -13,7 +13,7 @@ export default async function ProjectDetailPage({
   params: Promise<{ slug: string }>
 }) {
   const { slug } = await params
-  const project = await getProjectBySlug(slug)
+  const project = await getProjectBySlugCached(slug)
   if (!project) notFound()
   return <ProjectDetailClient project={project} />
 }

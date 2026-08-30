@@ -1,11 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
 import { isAdminAuthenticated } from '@/lib/admin-auth'
 import { createAdminSupabaseClient } from '@/lib/supabase-server'
-import { adminUpdateProject, adminDeleteProject } from '@/services/projects'
+import { adminUpdateProject, adminDeleteProject, getProjectSlugById } from '@/services/projects'
 import { projectSchema, flattenZodError } from '@/lib/project-schema'
+import { invalidateCache } from '@/lib/server-cache'
+import { projectCacheKeys } from '@/lib/cache-keys'
 
 const unauth = () => NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+async function invalidateProject(slug?: string) {
+  await Promise.all(projectCacheKeys(slug).map(invalidateCache))
+  if (slug) revalidatePath(`/projects/${slug}`)
+  revalidatePath('/explore')
+  revalidatePath('/sitemap.xml')
+}
 
 export async function GET(
   request: NextRequest,
@@ -61,6 +71,7 @@ export async function PATCH(
 
   try {
     await adminUpdateProject(id, parsed.data)
+    await invalidateProject(parsed.data.slug)
     return NextResponse.json({ success: true })
   } catch (err: any) {
     return NextResponse.json({ error: err.message || 'Update failed' }, { status: 500 })
@@ -78,6 +89,8 @@ export async function DELETE(
     return NextResponse.json({ error: 'Invalid id' }, { status: 400 })
   }
 
+  const slug = await getProjectSlugById(id)
   await adminDeleteProject(id)
+  await invalidateProject(slug ?? undefined)
   return NextResponse.json({ success: true })
 }

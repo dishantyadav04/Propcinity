@@ -1,4 +1,6 @@
+import { cache } from 'react'
 import { createAdminSupabaseClient, createServerSupabaseClient, createStaticSupabaseClient } from '@/lib/supabase-server'
+import { cached } from '@/lib/server-cache'
 import { Project, UnitConfig, BuilderProject } from '@/types/project'
 import { MOCK_PROJECTS } from '@/lib/mock-data'
 import { deleteFromR2, cleanupRemovedR2Files } from '@/lib/r2'
@@ -672,3 +674,28 @@ export async function adminTogglePublished(id: string, isPublished: boolean): Pr
     .update({ is_published: isPublished })
     .eq('id', id)
 }
+
+// React.cache() de-dupes repeated calls with the same args within a single
+// request (metadata + page body no longer double-hit Supabase). The Redis
+// cached() wrapper then de-dupes ACROSS requests/instances, same TTLs
+// already used by app/api/projects/[slug]/route.ts.
+export const getProjectBySlugCached = cache(async (slug: string) => {
+  return cached(
+    `projects:detail:${slug}`,
+    5 * 60 * 1000,
+    () => getProjectBySlug(slug),
+    { staleWhileRevalidateMs: 10 * 60 * 1000 }
+  )
+})
+
+export const getPublishedProjectsCached = cache(
+  async (filters?: Parameters<typeof getPublishedProjects>[0]) => {
+    const cacheKey = `projects:list:${JSON.stringify(filters ?? {})}`
+    return cached(
+      cacheKey,
+      2 * 60 * 1000,
+      () => getPublishedProjects(filters),
+      { staleWhileRevalidateMs: 5 * 60 * 1000 }
+    )
+  }
+)
