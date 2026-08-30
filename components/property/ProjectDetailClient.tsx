@@ -838,7 +838,12 @@ export default function ProjectDetailClient({ project }: { project: Project }) {
                 >
                   Pros & Cons
                 </h2>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                <GuestGate
+                  isGuest={isGuest}
+                  label="Sign up to see honest pros & cons for this project"
+                  blur={true}
+                >
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                     {/* Pros */}
                     {project.pros && project.pros.length > 0 && (
                       <div className="bg-[var(--success-light)] border border-[var(--success)]/20 rounded-[var(--radius)] p-5">
@@ -882,6 +887,7 @@ export default function ProjectDetailClient({ project }: { project: Project }) {
                       </div>
                     )}
                   </div>
+                </GuestGate>
               </div>
             )}
 
@@ -891,6 +897,11 @@ export default function ProjectDetailClient({ project }: { project: Project }) {
                 style={{ fontFamily: 'var(--font-display)' }}>
                 Legal
               </h2>
+              <GuestGate
+                isGuest={isGuest}
+                label="Sign up to view legal details"
+                blur={true}
+              >
                 <div className={`flex items-start gap-4 p-5 rounded-[var(--radius-sm)] border ${!project.litigation
                   ? 'bg-[var(--success-light)] border-[var(--success)]/20'
                   : 'bg-[var(--danger-light)] border-[var(--danger)]/20'
@@ -912,6 +923,7 @@ export default function ProjectDetailClient({ project }: { project: Project }) {
                     </p>
                   </div>
                 </div>
+              </GuestGate>
             </div>
 
             {/* ── RERA ─────────────────────────────────── */}
@@ -920,6 +932,11 @@ export default function ProjectDetailClient({ project }: { project: Project }) {
                 style={{ fontFamily: 'var(--font-display)' }}>
                 RERA Registration
               </h2>
+              <GuestGate
+                isGuest={isGuest}
+                label="Sign up to view RERA registration details"
+                blur={true}
+              >
                 {(() => {
                   const regs = project.reraRegistrations?.length
                     ? project.reraRegistrations
@@ -975,6 +992,7 @@ export default function ProjectDetailClient({ project }: { project: Project }) {
                     </div>
                   );
                 })()}
+              </GuestGate>
             </div>
 
             {/* ── BANK APPROVALS ───────────────────────── */}
