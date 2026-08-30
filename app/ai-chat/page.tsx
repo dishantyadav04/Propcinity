@@ -5,7 +5,7 @@ import SectionContainer from "@/components/layout/SectionContainer";
 import { Send, Bot, User, Sparkles, Loader2, MessageSquare, Lock } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
-import { storage } from "@/lib/storage";
+import { storage, STORAGE_KEYS } from "@/lib/storage";
 import { useGuestMode } from "@/hooks/useGuestMode";
 
 interface Message {
@@ -84,13 +84,16 @@ function GuestLockScreen() {
 export default function AIChatPage() {
   const { isGuest, isChecking } = useGuestMode();
 
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      role: 'assistant',
-      content:
-        "Hi! I'm your Propcinity Advisor. I have data on verified projects in Pune. Ask me anything — which areas suit your budget, which builders have the best track record, or what to look for in your shortlist.",
-    },
-  ]);
+  const WELCOME_MESSAGE: Message = {
+    role: 'assistant',
+    content:
+      "Hi! I'm your Propcinity Advisor. I have data on verified projects in Pune. Ask me anything — which areas suit your budget, which builders have the best track record, or what to look for in your shortlist.",
+  };
+
+  const [messages, setMessages] = useState<Message[]>(() => {
+    const saved = storage.get<Message[]>(STORAGE_KEYS.CHAT_HISTORY, []);
+    return saved.length > 0 ? saved : [WELCOME_MESSAGE];
+  });
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [sessionCount, setSessionCount] = useState(0);
@@ -115,8 +118,15 @@ export default function AIChatPage() {
     }
   }, [messages]);
 
+  // Persist so history survives refreshes, backgrounded-tab reloads on
+  // mobile, and any accidental remount — not just held in memory.
+  useEffect(() => {
+    storage.set(STORAGE_KEYS.CHAT_HISTORY, messages);
+  }, [messages]);
+
   const remaining = MAX_MESSAGES - sessionCount;
   const isLimitReached = remaining <= 0;
+  const hasStartedChat = messages.length > 1;
 
   const handleSend = async () => {
     if (!input.trim() || isLoading || isLimitReached || isGuest) return;
@@ -192,6 +202,11 @@ export default function AIChatPage() {
     "Explain the risk level for under-construction properties.",
   ];
 
+  const handleClearChat = () => {
+    storage.remove(STORAGE_KEYS.CHAT_HISTORY);
+    setMessages([WELCOME_MESSAGE]);
+  };
+
   // ── Common SEO shell that always renders for crawlers ─────────────────────
   return (
     <div className="flex flex-col h-[100dvh]">
@@ -225,35 +240,65 @@ export default function AIChatPage() {
         </>
       ) : (
         <div className="flex flex-col flex-1 overflow-hidden">
-          {/* Header */}
-          <div className="flex-shrink-0 bg-white border-b border-[var(--border)] pb-8 pt-6">
+          {/* Header — full marketing header before the first message, then
+              collapses to a slim bar so scrollback isn't squeezed on mobile */}
+          <div
+            className={`flex-shrink-0 bg-white border-b border-[var(--border)] transition-[padding] duration-200 ${
+              hasStartedChat ? 'py-2.5' : 'pb-8 pt-6'
+            }`}
+          >
             <SectionContainer wide>
-              <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2 text-[var(--primary)] text-xs font-bold uppercase tracking-wider">
+              {hasStartedChat ? (
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-1.5 text-[var(--primary)] text-xs font-bold uppercase tracking-wider">
                     <Sparkles className="w-3.5 h-3.5" />
                     <span>AI Advisor</span>
                   </div>
-                  <h1 className="text-2xl sm:text-3xl font-black text-[var(--text-primary)]"
-                    style={{ fontFamily: 'var(--font-display)' }}>
-                    Ask Propcinity&apos;s AI anything about a property
-                  </h1>
-                  <p className="text-sm text-[var(--text-secondary)] flex items-center gap-1.5">
-                    <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-[var(--primary-light)] text-[var(--primary)]">
-                      <Sparkles className="w-2.5 h-2.5" /> AI
-                    </span>
-                    Get honest, data-backed answers about Pune properties using RERA data and AI
-                  </p>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={handleClearChat}
+                      className="text-xs font-semibold text-[var(--text-muted)] hover:text-[var(--primary)] transition-colors"
+                    >
+                      New chat
+                    </button>
+                    <div
+                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold ${
+                        remaining <= 1 ? 'bg-red-50 text-red-600' : 'bg-[var(--surface-raised)] text-[var(--text-muted)]'
+                      }`}
+                    >
+                      <MessageSquare className="w-3.5 h-3.5" />
+                      {isLimitReached ? 'Limit reached' : `${remaining} left today`}
+                    </div>
+                  </div>
                 </div>
-                <div
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold ${
-                    remaining <= 1 ? 'bg-red-50 text-red-600' : 'bg-[var(--surface-raised)] text-[var(--text-muted)]'
-                  }`}
-                >
-                  <MessageSquare className="w-3.5 h-3.5" />
-                  {isLimitReached ? 'Limit reached' : `${remaining} left today`}
+              ) : (
+                <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2 text-[var(--primary)] text-xs font-bold uppercase tracking-wider">
+                      <Sparkles className="w-3.5 h-3.5" />
+                      <span>AI Advisor</span>
+                    </div>
+                    <h1 className="text-2xl sm:text-3xl font-black text-[var(--text-primary)]"
+                      style={{ fontFamily: 'var(--font-display)' }}>
+                      Ask Propcinity&apos;s AI anything about a property
+                    </h1>
+                    <p className="text-sm text-[var(--text-secondary)] flex items-center gap-1.5">
+                      <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-[var(--primary-light)] text-[var(--primary)]">
+                        <Sparkles className="w-2.5 h-2.5" /> AI
+                      </span>
+                      Get honest, data-backed answers about Pune properties using RERA data and AI
+                    </p>
+                  </div>
+                  <div
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold ${
+                      remaining <= 1 ? 'bg-red-50 text-red-600' : 'bg-[var(--surface-raised)] text-[var(--text-muted)]'
+                    }`}
+                  >
+                    <MessageSquare className="w-3.5 h-3.5" />
+                    {isLimitReached ? 'Limit reached' : `${remaining} left today`}
+                  </div>
                 </div>
-              </div>
+              )}
             </SectionContainer>
           </div>
 

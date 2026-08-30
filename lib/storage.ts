@@ -37,4 +37,5 @@ export const STORAGE_KEYS = {
   ONBOARDING_DONE:   'onboarding_complete',
   AI_RANK_HASH:      'propcinity_ai_rank_hash',
   RECO_CACHE:        'propcinity_reco_cache',
+  CHAT_HISTORY:      'propcinity_ai_chat_history',
 } as const
