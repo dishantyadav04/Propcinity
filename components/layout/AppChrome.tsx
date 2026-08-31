@@ -22,13 +22,20 @@ export default function AppChrome({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
   const hideChrome = matchesPrefix(pathname, CHROME_HIDDEN_PREFIXES)
   const hideFooter = hideChrome || matchesPrefix(pathname, FOOTER_HIDDEN_PREFIXES)
+  const isAIChat = matchesPrefix(pathname, ['/ai-chat'])
 
   return (
     <>
       {!hideChrome && <TopHeader />}
-      <main className={hideChrome ? 'min-h-screen' : 'min-h-screen pt-0'}>
-        {children}
-      </main>
+      {isAIChat ? (
+        <main className="h-[calc(100dvh-8rem)] md:h-[calc(100dvh-4rem)] min-h-0 overflow-hidden">
+          {children}
+        </main>
+      ) : (
+        <main className={hideChrome ? 'min-h-screen' : 'min-h-screen pt-0'}>
+          {children}
+        </main>
+      )}
       {!hideChrome && <BottomNav />}
       {!hideFooter && <Footer />}
     </>

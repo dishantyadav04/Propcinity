@@ -95,7 +95,12 @@ export async function POST(request: NextRequest) {
   const cacheKey = makeCacheKey(question, projectId, user.id)
   const cached = await getChatCache(cacheKey)
   if (cached) {
-    return NextResponse.json({ answer: cached.answer, provider: cached.provider, cached: true })
+    return NextResponse.json({
+      answer: cached.answer,
+      provider: cached.provider,
+      cached: true,
+      remainingToday: DAILY_LIMIT - newCount,
+    })
   }
 
   const project = await getProjectsByIds([projectId]).then((result) => result[0] || null)
@@ -235,17 +240,9 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'Failed to load chat history' }, { status: 500 })
   }
 
-  const startOfDay = new Date()
-  startOfDay.setHours(0, 0, 0, 0)
-
-  const { count: userMsgCount } = await supabase
-    .from('ai_chat_messages')
-    .select('id', { count: 'exact', head: true })
-    .eq('user_id', user.id)
-    .eq('role', 'user')
-    .gte('created_at', startOfDay.toISOString())
-
-  const remainingToday = Math.max(0, DAILY_LIMIT - (userMsgCount ?? 0))
+  // Use Redis daily counter — same source as POST for consistency
+  const userChatCount = await getUserChatCount(user.id)
+  const remainingToday = Math.max(0, DAILY_LIMIT - userChatCount)
 
   return NextResponse.json({ messages: data ?? [], remainingToday })
 }
