@@ -28,7 +28,7 @@ export default function AppChrome({ children }: { children: React.ReactNode }) {
     <>
       {!hideChrome && <TopHeader />}
       {isAIChat ? (
-        <main className="h-[calc(100dvh-8rem)] md:h-[calc(100dvh-4rem)] min-h-0 overflow-hidden">
+        <main className="h-[calc(100dvh-8rem-env(safe-area-inset-bottom,0px))] md:h-[calc(100dvh-4rem)] min-h-0 overflow-hidden flex flex-col">
           {children}
         </main>
       ) : (

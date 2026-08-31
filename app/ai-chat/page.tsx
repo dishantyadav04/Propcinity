@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback } from "react";
 import SectionContainer from "@/components/layout/SectionContainer";
-import { Send, Bot, User, Sparkles, Loader2, MessageSquare, Lock, X } from "lucide-react";
+import { Send, Bot, User, Sparkles, Loader2, MessageSquare, Lock, X, RotateCcw, Building2, MapPin, ShieldCheck } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
 import { storage } from "@/lib/storage";
@@ -16,34 +16,41 @@ interface Message {
 // ─── Constants ────────────────────────────────────────────────────────────────
 const MAX_MESSAGES = 5;
 
-// ─── Guest Gate UI ────────────────────────────────────────────────────────────
+const PRESET_QUESTIONS = [
+  { icon: MapPin, text: "Which areas in Pune have best value for 2BHK under 80L?" },
+  { icon: Building2, text: "Which builders have the best delivery track record in Pune?" },
+  { icon: ShieldCheck, text: "What should I check before booking an under-construction property?" },
+  { icon: Sparkles, text: "Compare Hinjewadi vs Kharadi for long-term appreciation" },
+];
+
+// ─── Guest Lock Screen UI ──────────────────────────────────────────────────────
 function GuestLockScreen() {
   return (
-    <div className="flex flex-col items-center justify-center flex-1 px-6 py-16 text-center gap-5">
-      <div className="w-16 h-16 rounded-full bg-[var(--surface-raised)] border border-[var(--border)] flex items-center justify-center">
+    <div className="flex flex-col items-center justify-center flex-1 px-6 py-12 text-center gap-5 my-auto">
+      <div className="w-16 h-16 rounded-2xl bg-[var(--primary-light)] border border-[var(--primary)]/20 flex items-center justify-center shadow-sm">
         <Lock className="w-7 h-7 text-[var(--primary)]" />
       </div>
-      <div className="space-y-2 max-w-xs">
+      <div className="space-y-2 max-w-sm">
         <h2
-          className="text-xl font-bold text-[var(--text-primary)]"
+          className="text-2xl font-black text-[var(--text-primary)]"
           style={{ fontFamily: 'var(--font-display)' }}
         >
           AI Advisor is for members
         </h2>
-        <p className="text-sm text-[var(--text-muted)] leading-relaxed">
-          Create a free account to unlock your daily AI consultations — personalised Pune real estate advice, zero brokerage.
+        <p className="text-sm text-[var(--text-secondary)] leading-relaxed">
+          Create a free account to unlock your daily AI consultations — personalized Pune real estate advice backed by RERA data, zero brokerage.
         </p>
       </div>
-      <div className="flex flex-col sm:flex-row gap-3 w-full max-w-xs">
+      <div className="flex flex-col sm:flex-row gap-3 w-full max-w-xs pt-2">
         <Link
           href="/auth/signup"
-          className="flex-1 py-3 bg-[var(--primary)] text-white text-sm font-bold rounded-[var(--radius-xs)] hover:opacity-90 transition-opacity shadow-[var(--shadow-primary)] text-center"
+          className="flex-1 py-3 bg-[var(--primary)] text-white text-sm font-bold rounded-xl hover:opacity-90 transition-opacity shadow-[var(--shadow-primary)] text-center"
         >
           Get Started — Free
         </Link>
         <Link
           href="/auth/signin"
-          className="flex-1 py-3 bg-[var(--surface-raised)] border border-[var(--border)] text-[var(--text-secondary)] text-sm font-bold rounded-[var(--radius-xs)] hover:border-[var(--primary)] transition-colors text-center"
+          className="flex-1 py-3 bg-[var(--surface-raised)] border border-[var(--border)] text-[var(--text-secondary)] text-sm font-bold rounded-xl hover:border-[var(--primary)] transition-colors text-center"
         >
           Sign In
         </Link>
@@ -59,7 +66,7 @@ export default function AIChatPage() {
   const WELCOME_MESSAGE: Message = {
     role: 'assistant',
     content:
-      "Hi! I'm your Propcinity Advisor. I have data on verified projects in Pune. Ask me anything — which areas suit your budget, which builders have the best track record, or what to look for in your shortlist.",
+      "Hi! I'm your Propcinity Advisor. I have verified RERA data on top residential projects across Pune. Ask me anything — which areas suit your budget, builder track records, or what to inspect before booking.",
   };
 
   const [messages, setMessages] = useState<Message[]>([WELCOME_MESSAGE]);
@@ -89,12 +96,15 @@ export default function AIChatPage() {
         const data = await res.json();
         if (!cancelled && Array.isArray(data.messages) && data.messages.length > 0) {
           setMessages(data.messages.map((m: any) => ({ role: m.role, content: m.content })));
+          if (data.messages.length > 1) {
+            setHasStartedChat(true);
+          }
         }
         if (!cancelled && typeof data.remainingToday === 'number') {
           setRemaining(data.remainingToday);
         }
       } catch {
-        // Network hiccup — fall back to the welcome message already in state.
+        // Network hiccup — fall back to welcome message
       } finally {
         if (!cancelled) setIsHistoryLoading(false);
       }
@@ -109,7 +119,7 @@ export default function AIChatPage() {
     if (!el) return;
 
     if (shouldAutoScroll.current) {
-      el.scrollTop = el.scrollHeight;
+      el.scrollTo({ top: el.scrollHeight, behavior: 'smooth' });
     }
   }, [messages, isLoading]);
 
@@ -130,10 +140,10 @@ export default function AIChatPage() {
 
   const isLimitReached = remaining <= 0;
 
-  const handleSend = async () => {
-    if (!input.trim() || isLoading || isLimitReached || isGuest) return;
+  const sendQuestion = async (questionText: string) => {
+    if (!questionText.trim() || isLoading || isLimitReached || isGuest) return;
 
-    const userMsg = input.trim();
+    const userMsg = questionText.trim();
     setInput("");
     setHasStartedChat(true);
     setMessages(prev => [...prev, { role: 'user', content: userMsg }]);
@@ -200,12 +210,9 @@ export default function AIChatPage() {
     }
   };
 
-  const presets = [
-    "Which areas in Pune have the best value for 2BHK under 80L?",
-    "What should I check before booking a property?",
-    "Which builders have the best delivery track record in Pune?",
-    "Explain the risk level for under-construction properties.",
-  ];
+  const handleSend = () => {
+    sendQuestion(input);
+  };
 
   const handleClearChat = async () => {
     setMessages([WELCOME_MESSAGE]);
@@ -220,175 +227,156 @@ export default function AIChatPage() {
 
   // ── Main render ─────────────────────────────────────────────────────────
   return (
-    <div className="flex flex-col h-full min-h-0 overflow-hidden">
+    <div className="flex flex-col flex-1 h-full min-h-0 overflow-hidden bg-[var(--background)]">
       {isChecking ? (
         <div className="flex items-center justify-center flex-1">
           <Loader2 className="w-6 h-6 animate-spin text-[var(--text-muted)]" />
         </div>
       ) : isGuest ? (
-        <>
-          <div className="flex-shrink-0 bg-white border-b border-[var(--border)] pb-8 pt-6">
+        <div className="flex flex-col flex-1 min-h-0 overflow-y-auto">
+          <div className="flex-shrink-0 bg-white border-b border-[var(--border)] py-5">
             <SectionContainer wide>
-              <div className="space-y-2">
+              <div className="space-y-1">
                 <div className="flex items-center gap-2 text-[var(--primary)] text-xs font-bold uppercase tracking-wider">
                   <Sparkles className="w-3.5 h-3.5" />
                   <span>AI Advisor</span>
                 </div>
-                <h1 className="text-2xl sm:text-3xl font-black text-[var(--text-primary)]"
+                <h1 className="text-xl sm:text-2xl font-black text-[var(--text-primary)]"
                   style={{ fontFamily: 'var(--font-display)' }}>
-                  Ask Propcinity&apos;s AI anything about a property
+                  Ask Propcinity&apos;s AI about Pune properties
                 </h1>
-                <p className="text-sm text-[var(--text-secondary)] flex items-center gap-1.5">
-                  <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-[var(--primary-light)] text-[var(--primary)]">
-                    <Sparkles className="w-2.5 h-2.5" /> AI
-                  </span>
-                  Get honest, data-backed answers about Pune properties using RERA data and AI
+                <p className="text-xs sm:text-sm text-[var(--text-secondary)]">
+                  Get honest, data-backed answers using RERA records — zero sales pitch.
                 </p>
               </div>
             </SectionContainer>
           </div>
           <GuestLockScreen />
-        </>
+        </div>
       ) : isHistoryLoading ? (
         <div className="flex items-center justify-center flex-1">
           <Loader2 className="w-6 h-6 animate-spin text-[var(--text-muted)]" />
         </div>
       ) : (
         <div className="flex flex-col flex-1 min-h-0 overflow-hidden">
-          {/* AI Header — compact on mobile, expanded on desktop before first message */}
-          <div
-            className={`flex-shrink-0 bg-white border-b border-[var(--border)] transition-[padding] duration-200 ${
-              hasStartedChat ? 'py-2.5' : 'py-3 md:py-6'
-            }`}
-          >
-            <SectionContainer wide>
-              {hasStartedChat ? (
-                <div className="flex items-center justify-between gap-3">
-                  <div className="flex items-center gap-1.5 text-[var(--primary)] text-xs font-bold uppercase tracking-wider">
-                    <Sparkles className="w-3.5 h-3.5" />
-                    <span>AI Advisor</span>
+          {/* Header Bar */}
+          <div className="flex-shrink-0 bg-white/95 backdrop-blur-md border-b border-[var(--border)] px-4 py-3 sm:px-6 z-10">
+            <SectionContainer wide className="p-0">
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <div className="w-8 h-8 rounded-lg bg-[var(--primary-light)] border border-[var(--primary)]/20 flex items-center justify-center text-[var(--primary)] flex-shrink-0">
+                    <Sparkles className="w-4 h-4" />
                   </div>
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={() => setShowClearConfirm(true)}
-                      className="text-xs font-semibold text-[var(--text-muted)] hover:text-[var(--primary)] transition-colors"
-                      aria-label="Start a new chat"
-                    >
-                      New chat
-                    </button>
-                    <div
-                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold ${
-                        remaining <= 1 ? 'bg-red-50 text-red-600' : 'bg-[var(--surface-raised)] text-[var(--text-muted)]'
-                      }`}
-                      role="status"
-                      aria-live="polite"
-                    >
-                      <MessageSquare className="w-3.5 h-3.5" />
-                      {isLimitReached ? 'Limit reached' : `${remaining} left today`}
-                    </div>
-                  </div>
-                </div>
-              ) : (
-                <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 md:gap-6">
-                  <div className="space-y-1.5 md:space-y-2">
-                    <div className="flex items-center gap-1.5 text-[var(--primary)] text-xs font-bold uppercase tracking-wider">
-                      <Sparkles className="w-3.5 h-3.5" />
-                      <span>AI Advisor</span>
-                    </div>
-                    <h1
-                      className="text-[24px] leading-[1.05] md:text-3xl font-black text-[var(--text-primary)]"
-                      style={{ fontFamily: 'var(--font-display)' }}
-                    >
-                      <span className="md:hidden">Ask Propcinity&apos;s AI<br />about a property</span>
-                      <span className="hidden md:block">Ask Propcinity&apos;s AI anything about a property</span>
+                  <div className="min-w-0">
+                    <h1 className="text-sm sm:text-base font-bold text-[var(--text-primary)] truncate leading-tight" style={{ fontFamily: 'var(--font-display)' }}>
+                      Propcinity AI Advisor
                     </h1>
-                    <p className="text-sm text-[var(--text-secondary)] flex items-center gap-1.5">
-                      <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-[var(--primary-light)] text-[var(--primary)]">
-                        <Sparkles className="w-2.5 h-2.5" /> AI
-                      </span>
-                      Get honest, data-backed answers about Pune properties
+                    <p className="text-[11px] text-[var(--text-muted)] truncate hidden sm:block">
+                      Pune Real Estate Intelligence • RERA Verified
                     </p>
                   </div>
+                </div>
+
+                <div className="flex items-center gap-2 flex-shrink-0">
+                  {hasStartedChat && (
+                    <button
+                      onClick={() => setShowClearConfirm(true)}
+                      className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-semibold text-[var(--text-secondary)] hover:text-[var(--primary)] hover:bg-[var(--surface-raised)] rounded-lg transition-colors"
+                      title="Clear chat history"
+                    >
+                      <RotateCcw className="w-3.5 h-3.5" />
+                      <span className="hidden xs:inline">New chat</span>
+                    </button>
+                  )}
+
                   <div
-                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold self-start md:self-auto ${
-                      remaining <= 1 ? 'bg-red-50 text-red-600' : 'bg-[var(--surface-raised)] text-[var(--text-muted)]'
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold ${
+                      remaining <= 1 ? 'bg-red-50 text-red-600 border border-red-200' : 'bg-[var(--surface-raised)] text-[var(--text-secondary)] border border-[var(--border)]'
                     }`}
                     role="status"
                     aria-live="polite"
                   >
                     <MessageSquare className="w-3.5 h-3.5" />
-                    {isLimitReached ? 'Limit reached' : `${remaining} left today`}
+                    <span>{isLimitReached ? 'Limit reached' : `${remaining} left today`}</span>
                   </div>
                 </div>
-              )}
+              </div>
             </SectionContainer>
           </div>
 
           {/* Chat Workspace */}
-          <div className="flex flex-col flex-1 min-h-0 overflow-hidden">
+          <div className="flex flex-col flex-1 min-h-0 overflow-hidden relative">
             {/* Scrollable Messages */}
             <div
               ref={scrollRef}
               onScroll={handleScroll}
-              className="flex-1 min-h-0 overflow-y-auto overscroll-contain bg-[var(--background)]"
+              className="flex-1 min-h-0 overflow-y-auto overscroll-contain bg-[var(--background)] px-4 py-5 sm:px-6"
             >
-              <SectionContainer wide className="space-y-6 pt-6 pb-6">
+              <SectionContainer wide className="p-0 max-w-4xl mx-auto space-y-5 pb-6">
                 {messages.map((m, i) => (
                   <motion.div
-                    initial={hasCheckedOnce.current ? { opacity: 0, y: 10 } : false}
+                    initial={hasCheckedOnce.current ? { opacity: 0, y: 8 } : false}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
                     key={i}
                     className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}
                   >
-                    <div className={`max-w-[85%] md:max-w-[70%] flex gap-3 ${m.role === 'user' ? 'flex-row-reverse' : ''}`}>
+                    <div className={`max-w-[88%] sm:max-w-[78%] flex gap-2.5 ${m.role === 'user' ? 'flex-row-reverse' : ''}`}>
                       <div
-                        className={`w-8 h-8 rounded-full flex-shrink-0 flex items-center justify-center ${
+                        className={`w-7 h-7 sm:w-8 sm:h-8 rounded-full flex-shrink-0 flex items-center justify-center text-xs shadow-xs ${
                           m.role === 'user'
                             ? 'bg-[var(--primary)] text-white'
-                            : 'bg-white border border-[var(--border)] text-[var(--text-secondary)]'
+                            : 'bg-gradient-to-br from-slate-900 via-slate-800 to-slate-950 text-amber-400 border border-slate-700/40'
                         }`}
                       >
                         {m.role === 'user' ? <User className="w-4 h-4" /> : <Bot className="w-4 h-4" />}
                       </div>
+
                       <div
-                        className={`p-4 rounded-2xl text-sm leading-relaxed shadow-sm ${
+                        className={`px-4 py-3 text-sm leading-relaxed ${
                           m.role === 'user'
-                            ? 'bg-[var(--primary)] text-white rounded-tr-none'
-                            : 'bg-white border border-[var(--border)] text-[var(--text-primary)] rounded-tl-none'
+                            ? 'bg-[var(--primary)] text-white shadow-sm rounded-2xl rounded-tr-sm font-medium'
+                            : 'bg-white border border-[var(--border)] text-[var(--text-primary)] shadow-xs rounded-2xl rounded-tl-sm'
                         }`}
                       >
-                        {m.content}
+                        <div className="whitespace-pre-wrap">{m.content}</div>
                       </div>
                     </div>
                   </motion.div>
                 ))}
 
+                {/* Loading / Typing indicator */}
                 {isLoading && (
-                  <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex justify-start">
-                    <div className="flex gap-3 max-w-[85%]">
-                      <div className="w-8 h-8 rounded-full flex-shrink-0 flex items-center justify-center bg-white border border-[var(--border)]">
-                        <Bot className="w-4 h-4 text-[var(--text-secondary)]" />
+                  <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="flex justify-start">
+                    <div className="flex gap-2.5 max-w-[88%] sm:max-w-[78%]">
+                      <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full flex-shrink-0 flex items-center justify-center bg-gradient-to-br from-slate-900 via-slate-800 to-slate-950 text-amber-400 border border-slate-700/40">
+                        <Bot className="w-4 h-4" />
                       </div>
-                      <div className="p-4 rounded-2xl bg-white border border-[var(--border)] rounded-tl-none">
-                        <Loader2 className="w-4 h-4 animate-spin text-[var(--text-muted)]" />
+                      <div className="px-4 py-3.5 rounded-2xl rounded-tl-sm bg-white border border-[var(--border)] shadow-xs flex items-center gap-2">
+                        <div className="flex items-center gap-1">
+                          <span className="w-2 h-2 rounded-full bg-[var(--primary)] animate-pulse" />
+                          <span className="w-2 h-2 rounded-full bg-[var(--primary)] animate-pulse [animation-delay:150ms]" />
+                          <span className="w-2 h-2 rounded-full bg-[var(--primary)] animate-pulse [animation-delay:300ms]" />
+                        </div>
+                        <span className="text-xs text-[var(--text-muted)] font-semibold ml-1">Analyzing Pune property data...</span>
                       </div>
                     </div>
                   </motion.div>
                 )}
 
+                {/* Limit reached banner */}
                 {isLimitReached && (
-                  <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex justify-center px-4 py-4">
-                    <div className="w-full max-w-md bg-orange-50 border border-orange-200 rounded-[var(--radius)] p-4 text-center">
-                      <p className="text-sm font-bold text-orange-800">Daily limit reached</p>
-                      <p className="text-xs text-orange-600 mt-1">
-                        You&apos;ve used today&apos;s {MAX_MESSAGES} AI questions. Your limit resets tomorrow.
+                  <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex justify-center px-2 py-4">
+                    <div className="w-full max-w-md bg-orange-50/80 border border-orange-200 rounded-2xl p-4 text-center shadow-xs">
+                      <p className="text-sm font-bold text-orange-900">Daily limit reached</p>
+                      <p className="text-xs text-orange-700 mt-1">
+                        You&apos;ve used today&apos;s {MAX_MESSAGES} AI questions. Limit resets tomorrow!
                       </p>
                       <a
                         href="tel:+919999999999"
-                        className="mt-3 inline-flex items-center gap-2 px-4 py-2 bg-[var(--primary)] text-white text-xs font-bold rounded-full"
+                        className="mt-3 inline-flex items-center gap-2 px-4 py-2 bg-[var(--primary)] text-white text-xs font-bold rounded-xl shadow-sm hover:opacity-90 transition-opacity"
                       >
-                        Talk to an Expert
+                        Talk to a Pune Expert
                       </a>
                     </div>
                   </motion.div>
@@ -396,27 +384,38 @@ export default function AIChatPage() {
               </SectionContainer>
             </div>
 
-            {/* Preset chips — only for genuinely new chat */}
+            {/* Quick Prompt Cards — visible when chat is fresh */}
             {!hasStartedChat && messages.length <= 1 && !isLimitReached && (
-              <div className="flex-shrink-0 px-4 pb-2">
-                <div className="max-w-6xl mx-auto flex gap-2 overflow-x-auto scrollbar-hide py-2">
-                  {presets.map((p, i) => (
-                    <button
-                      key={i}
-                      onClick={() => setInput(p)}
-                      className="flex-shrink-0 px-3 py-2 text-xs font-semibold bg-white border border-[var(--border)] text-[var(--text-secondary)] rounded-full hover:border-[var(--primary)] hover:text-[var(--primary)] transition-colors whitespace-nowrap"
-                    >
-                      {p}
-                    </button>
-                  ))}
-                </div>
+              <div className="flex-shrink-0 bg-[var(--background)] px-4 pb-3 sm:px-6">
+                <SectionContainer wide className="p-0 max-w-4xl mx-auto">
+                  <div className="text-xs font-bold text-[var(--text-muted)] mb-2 flex items-center gap-1.5 uppercase tracking-wider">
+                    <Sparkles className="w-3 h-3 text-[var(--primary)]" />
+                    <span>Suggested Questions</span>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    {PRESET_QUESTIONS.map((p, i) => (
+                      <button
+                        key={i}
+                        onClick={() => sendQuestion(p.text)}
+                        className="flex items-start gap-2.5 p-3 text-left bg-white border border-[var(--border)] hover:border-[var(--primary)] hover:shadow-sm rounded-xl transition-all group"
+                      >
+                        <div className="p-1.5 rounded-lg bg-[var(--surface-raised)] group-hover:bg-[var(--primary-light)] text-[var(--text-secondary)] group-hover:text-[var(--primary)] transition-colors flex-shrink-0 mt-0.5">
+                          <p.icon className="w-3.5 h-3.5" />
+                        </div>
+                        <span className="text-xs font-semibold text-[var(--text-secondary)] group-hover:text-[var(--text-primary)] leading-snug">
+                          {p.text}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                </SectionContainer>
               </div>
             )}
 
-            {/* Composer */}
-            <div className="flex-shrink-0 bg-white border-t border-[var(--border)] px-4 py-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] md:px-0 md:py-4 md:pb-4">
-              <SectionContainer wide>
-                <div className="flex gap-3 items-end">
+            {/* Composer Input Bar */}
+            <div className="flex-shrink-0 bg-white/95 backdrop-blur-md border-t border-[var(--border)] px-4 py-3 sm:px-6">
+              <SectionContainer wide className="p-0 max-w-4xl mx-auto">
+                <div className="flex gap-2.5 items-end">
                   <textarea
                     ref={textareaRef}
                     value={input}
@@ -429,18 +428,18 @@ export default function AIChatPage() {
                     }}
                     disabled={isLoading || isLimitReached}
                     placeholder={
-                      isLimitReached ? "Come back tomorrow!" : "Ask anything about Pune real estate..."
+                      isLimitReached ? "Daily limit reached. Come back tomorrow!" : "Ask anything about Pune real estate..."
                     }
                     rows={1}
                     aria-label="Ask Propcinity AI a question"
-                    className="flex-1 min-w-0 resize-none overflow-y-auto px-4 py-3 text-base bg-[var(--surface-raised)] border border-[var(--border-strong)] rounded-[var(--radius)] text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none focus:border-[var(--primary)] disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="flex-1 min-w-0 resize-none overflow-y-auto px-4 py-3 text-base sm:text-sm bg-[var(--surface-raised)] border border-[var(--border-strong)] rounded-xl text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none focus:border-[var(--primary)] focus:bg-white disabled:opacity-50 disabled:cursor-not-allowed transition-all"
                     style={{ maxHeight: '120px' }}
                   />
                   <button
                     onClick={handleSend}
                     disabled={!input.trim() || isLoading || isLimitReached}
                     aria-label="Send question"
-                    className="flex-shrink-0 w-11 h-11 bg-[var(--primary)] text-white rounded-[var(--radius)] flex items-center justify-center shadow-[var(--shadow-primary)] hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed transition-opacity"
+                    className="flex-shrink-0 w-11 h-11 bg-[var(--primary)] text-white rounded-xl flex items-center justify-center shadow-[var(--shadow-primary)] hover:opacity-95 active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed disabled:active:scale-100 transition-all"
                   >
                     {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
                   </button>
@@ -451,33 +450,33 @@ export default function AIChatPage() {
         </div>
       )}
 
-      {/* Clear history confirmation dialog */}
+      {/* Clear history confirmation modal */}
       <AnimatePresence>
         {showClearConfirm && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4"
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4 backdrop-blur-xs"
             onClick={() => setShowClearConfirm(false)}
           >
             <motion.div
               initial={{ scale: 0.95, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.95, opacity: 0 }}
-              className="bg-white rounded-[var(--radius)] p-6 max-w-sm w-full shadow-lg"
+              className="bg-white rounded-2xl p-6 max-w-sm w-full shadow-lg border border-[var(--border)]"
               onClick={e => e.stopPropagation()}
             >
-              <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center justify-between mb-3">
                 <h3 className="text-base font-bold text-[var(--text-primary)]" style={{ fontFamily: 'var(--font-display)' }}>
                   Start a new chat?
                 </h3>
-                <button onClick={() => setShowClearConfirm(false)} className="p-1 text-[var(--text-muted)] hover:text-[var(--text-primary)]">
+                <button onClick={() => setShowClearConfirm(false)} className="p-1 text-[var(--text-muted)] hover:text-[var(--text-primary)] rounded-lg transition-colors">
                   <X className="w-4 h-4" />
                 </button>
               </div>
-              <p className="text-sm text-[var(--text-secondary)] mb-6">
-                This will clear your current AI chat history.
+              <p className="text-sm text-[var(--text-secondary)] mb-6 leading-relaxed">
+                This will clear your current AI chat conversation.
               </p>
               <div className="flex gap-3 justify-end">
                 <button
@@ -488,7 +487,7 @@ export default function AIChatPage() {
                 </button>
                 <button
                   onClick={handleClearChat}
-                  className="px-4 py-2 text-sm font-bold bg-[var(--primary)] text-white rounded-[var(--radius-xs)] hover:opacity-90 transition-opacity"
+                  className="px-4 py-2 text-sm font-bold bg-[var(--primary)] text-white rounded-xl hover:opacity-90 transition-opacity shadow-xs"
                 >
                   Clear history
                 </button>
