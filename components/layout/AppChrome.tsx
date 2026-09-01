@@ -7,7 +7,7 @@ import Footer from '@/components/layout/Footer'
 
 // Routes that render their own full-height, chrome-free experience —
 // no header, no bottom nav, no footer at all.
-const CHROME_HIDDEN_PREFIXES = ['/auth']
+const CHROME_HIDDEN_PREFIXES = ['/auth', '/admin']
 
 // Routes that keep the header + bottom nav for navigation, but skip the
 // full marketing footer because it doesn't fit a full-height, fixed-input
