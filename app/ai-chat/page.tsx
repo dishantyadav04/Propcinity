@@ -258,7 +258,7 @@ export default function AIChatPage() {
           <Loader2 className="w-6 h-6 animate-spin text-[var(--text-muted)]" />
         </div>
       ) : (
-        <div className="flex flex-col flex-1 min-h-0 overflow-hidden">
+        <div className="flex flex-col flex-1 h-full min-h-0 overflow-hidden">
           {/* Sub-Header Bar (Fixed at top of chat container) */}
           <div className="flex-shrink-0 bg-white border-b border-[var(--border)] px-4 py-2.5 sm:px-6 z-10">
             <SectionContainer wide className="p-0">

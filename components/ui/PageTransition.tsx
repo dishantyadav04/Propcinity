@@ -10,5 +10,5 @@ export default function PageTransition({ children }: { children: React.ReactNode
     window.scrollTo(0, 0);
   }, [pathname]);
 
-  return <div className="w-full">{children}</div>;
+  return <div className="w-full h-full flex flex-col min-h-0 flex-1">{children}</div>;
 }
