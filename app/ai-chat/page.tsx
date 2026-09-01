@@ -7,14 +7,24 @@ import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
 import { storage } from "@/lib/storage";
 import { useGuestMode } from "@/hooks/useGuestMode";
+import { createResourceCache } from "@/lib/client-cache";
 
 interface Message {
   role: 'user' | 'assistant';
   content: string;
 }
 
-// ─── Constants ────────────────────────────────────────────────────────────────
+interface AIChatCacheData {
+  messages: Message[];
+  remaining: number;
+  hasStartedChat: boolean;
+}
+
+// ─── Constants & Caching ────────────────────────────────────────────────────────
 const MAX_MESSAGES = 5;
+const CHAT_STORAGE_KEY = 'propcinity_ai_chat_cache';
+
+const aiChatResourceCache = createResourceCache<AIChatCacheData>('ai-chat:data', 10 * 60 * 1000);
 
 const PRESET_QUESTIONS = [
   { icon: MapPin, text: "Which areas in Pune have best value for 2BHK under 80L?" },
@@ -22,6 +32,23 @@ const PRESET_QUESTIONS = [
   { icon: ShieldCheck, text: "What should I check before booking an under-construction property?" },
   { icon: Sparkles, text: "Compare Hinjewadi vs Kharadi for long-term appreciation" },
 ];
+
+function getInitialChatData(welcomeMsg: Message): AIChatCacheData {
+  const cached = aiChatResourceCache.get();
+  if (cached && Array.isArray(cached.messages) && cached.messages.length > 0) {
+    return cached;
+  }
+  const stored = storage.get<AIChatCacheData | null>(CHAT_STORAGE_KEY, null);
+  if (stored && Array.isArray(stored.messages) && stored.messages.length > 0) {
+    aiChatResourceCache.set(stored);
+    return stored;
+  }
+  return {
+    messages: [welcomeMsg],
+    remaining: MAX_MESSAGES,
+    hasStartedChat: false,
+  };
+}
 
 // ─── Guest Lock Screen UI ──────────────────────────────────────────────────────
 function GuestLockScreen() {
@@ -69,12 +96,16 @@ export default function AIChatPage() {
       "Hi! I'm your Propcinity Advisor. I have verified RERA data on top residential projects across Pune. Ask me anything — which areas suit your budget, builder track records, or what to inspect before booking.",
   };
 
-  const [messages, setMessages] = useState<Message[]>([WELCOME_MESSAGE]);
-  const [isHistoryLoading, setIsHistoryLoading] = useState(true);
+  const initialDataRef = useRef<AIChatCacheData | null>(null);
+  if (!initialDataRef.current) {
+    initialDataRef.current = getInitialChatData(WELCOME_MESSAGE);
+  }
+
+  const [messages, setMessages] = useState<Message[]>(initialDataRef.current.messages);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [remaining, setRemaining] = useState(MAX_MESSAGES);
-  const [hasStartedChat, setHasStartedChat] = useState(false);
+  const [remaining, setRemaining] = useState(initialDataRef.current.remaining);
+  const [hasStartedChat, setHasStartedChat] = useState(initialDataRef.current.hasStartedChat);
   const [showClearConfirm, setShowClearConfirm] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -85,7 +116,17 @@ export default function AIChatPage() {
     if (!isChecking) hasCheckedOnce.current = true;
   }, [isChecking]);
 
-  // Load chat history
+  const updateCache = useCallback((msgs: Message[], rem: number) => {
+    const hasStarted = msgs.length > 1;
+    setMessages(msgs);
+    setRemaining(rem);
+    setHasStartedChat(hasStarted);
+    const cacheData: AIChatCacheData = { messages: msgs, remaining: rem, hasStartedChat: hasStarted };
+    aiChatResourceCache.set(cacheData);
+    storage.set(CHAT_STORAGE_KEY, cacheData);
+  }, []);
+
+  // Background fetch for logged-in users to sync latest messages and limits
   useEffect(() => {
     if (isChecking || isGuest) return;
     let cancelled = false;
@@ -94,24 +135,26 @@ export default function AIChatPage() {
       try {
         const res = await fetch('/api/ai/ask');
         const data = await res.json();
-        if (!cancelled && Array.isArray(data.messages) && data.messages.length > 0) {
-          setMessages(data.messages.map((m: any) => ({ role: m.role, content: m.content })));
-          if (data.messages.length > 1) {
-            setHasStartedChat(true);
-          }
+        if (cancelled) return;
+
+        let serverMsgs = initialDataRef.current?.messages || [WELCOME_MESSAGE];
+        let serverRem = initialDataRef.current?.remaining ?? MAX_MESSAGES;
+
+        if (Array.isArray(data.messages) && data.messages.length > 0) {
+          serverMsgs = data.messages.map((m: any) => ({ role: m.role, content: m.content }));
         }
-        if (!cancelled && typeof data.remainingToday === 'number') {
-          setRemaining(data.remainingToday);
+        if (typeof data.remainingToday === 'number') {
+          serverRem = data.remainingToday;
         }
+
+        updateCache(serverMsgs, serverRem);
       } catch {
-        // Network hiccup — fall back to welcome message
-      } finally {
-        if (!cancelled) setIsHistoryLoading(false);
+        // Network hiccup — cached state remains visible smoothly
       }
     })();
 
     return () => { cancelled = true };
-  }, [isChecking, isGuest]);
+  }, [isChecking, isGuest, updateCache]);
 
   // Smart scroll: only auto-scroll message container if user is near bottom
   useEffect(() => {
@@ -145,8 +188,8 @@ export default function AIChatPage() {
 
     const userMsg = questionText.trim();
     setInput("");
-    setHasStartedChat(true);
-    setMessages(prev => [...prev, { role: 'user', content: userMsg }]);
+    const updatedUserMsgs = [...messages, { role: 'user' as const, content: userMsg }];
+    updateCache(updatedUserMsgs, remaining);
     setIsLoading(true);
     shouldAutoScroll.current = true;
 
@@ -170,41 +213,37 @@ export default function AIChatPage() {
       });
 
       if (res.status === 429) {
-        setMessages(prev => [
-          ...prev,
-          { role: 'assistant', content: "You've sent too many messages. Please wait a moment before asking again." },
-        ]);
+        const rateLimitMsgs = [
+          ...updatedUserMsgs,
+          { role: 'assistant' as const, content: "You've sent too many messages. Please wait a moment before asking again." },
+        ];
+        updateCache(rateLimitMsgs, remaining);
         return;
       }
 
       const data = await res.json();
 
       if (data.error && data.error !== 'Project not found') {
-        setMessages(prev => [
-          ...prev,
-          { role: 'assistant', content: "I'm having trouble connecting right now. Please try again in a moment." },
-        ]);
+        const errorMsgs = [
+          ...updatedUserMsgs,
+          { role: 'assistant' as const, content: "I'm having trouble connecting right now. Please try again in a moment." },
+        ];
+        updateCache(errorMsgs, remaining);
         return;
       }
 
-      setMessages(prev => [
-        ...prev,
-        {
-          role: 'assistant',
-          content:
-            data.answer ||
-            "I don't have enough information to answer that. Try asking about specific projects, locations, or budgets.",
-        },
-      ]);
-
-      if (typeof data.remainingToday === 'number') {
-        setRemaining(data.remainingToday);
-      }
+      const assistantContent =
+        data.answer ||
+        "I don't have enough information to answer that. Try asking about specific projects, locations, or budgets.";
+      const finalMsgs = [...updatedUserMsgs, { role: 'assistant' as const, content: assistantContent }];
+      const newRem = typeof data.remainingToday === 'number' ? data.remainingToday : remaining;
+      updateCache(finalMsgs, newRem);
     } catch {
-      setMessages(prev => [
-        ...prev,
-        { role: 'assistant', content: "I'm having trouble connecting right now. Please try again in a moment." },
-      ]);
+      const connErrorMsgs = [
+        ...updatedUserMsgs,
+        { role: 'assistant' as const, content: "I'm having trouble connecting right now. Please try again in a moment." },
+      ];
+      updateCache(connErrorMsgs, remaining);
     } finally {
       setIsLoading(false);
     }
@@ -215,8 +254,8 @@ export default function AIChatPage() {
   };
 
   const handleClearChat = async () => {
-    setMessages([WELCOME_MESSAGE]);
-    setHasStartedChat(false);
+    const resetMsgs = [WELCOME_MESSAGE];
+    updateCache(resetMsgs, remaining);
     setShowClearConfirm(false);
     try {
       await fetch('/api/ai/ask', { method: 'DELETE' });
@@ -252,10 +291,6 @@ export default function AIChatPage() {
             </SectionContainer>
           </div>
           <GuestLockScreen />
-        </div>
-      ) : isHistoryLoading ? (
-        <div className="flex items-center justify-center flex-1">
-          <Loader2 className="w-6 h-6 animate-spin text-[var(--text-muted)]" />
         </div>
       ) : (
         <div className="flex flex-col flex-1 h-full min-h-0 overflow-hidden">
