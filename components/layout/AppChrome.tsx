@@ -32,7 +32,7 @@ export default function AppChrome({ children }: { children: React.ReactNode }) {
           {children}
         </main>
       ) : (
-        <main className={hideChrome ? 'min-h-screen' : 'min-h-screen pt-0'}>
+        <main className={hideChrome ? 'min-h-screen' : 'min-h-screen pt-16'}>
           {children}
         </main>
       )}

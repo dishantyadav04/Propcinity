@@ -404,7 +404,7 @@ export default function ProjectDetailClient({ project }: { project: Project }) {
 
       {/* ── Mobile top bar ─────────────────────────────── */}
       <div className="lg:hidden px-4 py-3 flex justify-between items-center
-        border-b border-[var(--border)] bg-white sticky top-0 z-40">
+        border-b border-[var(--border)] bg-white sticky top-16 z-40">
         <button onClick={() => router.back()}
           className="p-1.5 text-[var(--text-secondary)]">
           <ArrowLeft className="w-5 h-5" />
@@ -455,7 +455,7 @@ export default function ProjectDetailClient({ project }: { project: Project }) {
       </div>
 
       {/* ── Sticky tabs ────────────────────────────────── */}
-      <div className="sticky top-0 lg:top-16 z-30 bg-white border-b border-[var(--border)] shadow-sm">
+      <div className="sticky top-16 z-30 bg-white border-b border-[var(--border)] shadow-sm">
         <div className="max-w-6xl mx-auto px-4 sm:px-6">
           <div ref={tabsRef}
             className="flex gap-0 overflow-x-auto scrollbar-hide">

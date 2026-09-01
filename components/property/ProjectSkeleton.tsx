@@ -21,7 +21,7 @@ export default function ProjectSkeleton() {
       </div>
 
       {/* Mobile Top Header Bar Skeleton */}
-      <div className="lg:hidden px-4 py-3 flex justify-between items-center border-b border-[var(--border)] bg-[var(--surface)] sticky top-0 z-40">
+      <div className="lg:hidden px-4 py-3 flex justify-between items-center border-b border-[var(--border)] bg-[var(--surface)] sticky top-16 z-40">
         <div className="w-8 h-8 rounded-full bg-[var(--surface-raised)] shimmer" />
         <Skeleton className="h-5 w-40" />
         <div className="flex gap-2">
