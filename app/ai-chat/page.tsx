@@ -295,31 +295,28 @@ export default function AIChatPage() {
       ) : (
         <div className="flex flex-col flex-1 h-full min-h-0 overflow-hidden">
           {/* Sub-Header Bar (Fixed at top of chat container) */}
-          <div className="flex-shrink-0 bg-white/95 backdrop-blur-md border-b border-[var(--border)] px-4 py-2.5 sm:px-6 z-10 shadow-xs">
+          <div className="flex-shrink-0 bg-white border-b border-[var(--border)] px-4 py-2.5 sm:px-6 z-10">
             <SectionContainer wide className="p-0">
               <div className="flex items-center justify-between gap-3">
-                {/* AI Identity */}
-                <div className="flex items-center gap-3 min-w-0">
-                  <div className="w-9 h-9 rounded-xl bg-[var(--primary-light)] border border-[var(--primary)]/25 flex items-center justify-center text-[var(--primary)] flex-shrink-0 shadow-xs">
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <div className="w-8 h-8 rounded-lg bg-[var(--primary-light)] border border-[var(--primary)]/20 flex items-center justify-center text-[var(--primary)] flex-shrink-0">
                     <Sparkles className="w-4 h-4" />
                   </div>
                   <div className="min-w-0">
-                    <h1 className="text-sm sm:text-base font-extrabold text-[var(--text-primary)] truncate leading-tight tracking-tight" style={{ fontFamily: 'var(--font-display)' }}>
+                    <h1 className="text-sm sm:text-base font-bold text-[var(--text-primary)] truncate leading-tight" style={{ fontFamily: 'var(--font-display)' }}>
                       Propcinity AI Advisor
                     </h1>
-                    <p className="text-[11px] text-[var(--text-muted)] truncate font-semibold flex items-center gap-1.5 mt-0.5">
-                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                      <span>RERA Verified Intelligence</span>
+                    <p className="text-[11px] text-[var(--text-muted)] truncate hidden sm:block">
+                      Pune Real Estate Intelligence • RERA Verified
                     </p>
                   </div>
                 </div>
 
-                {/* Actions & Quota Pill */}
                 <div className="flex items-center gap-2 flex-shrink-0">
                   {hasStartedChat && (
                     <button
                       onClick={() => setShowClearConfirm(true)}
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-[var(--text-secondary)] hover:text-[var(--primary)] bg-[var(--surface-raised)] hover:bg-[var(--primary-light)] border border-[var(--border)] hover:border-[var(--primary)]/30 rounded-full transition-all"
+                      className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-semibold text-[var(--text-secondary)] hover:text-[var(--primary)] hover:bg-[var(--surface-raised)] rounded-lg transition-colors"
                       title="Clear chat history"
                     >
                       <RotateCcw className="w-3.5 h-3.5" />
@@ -328,12 +325,8 @@ export default function AIChatPage() {
                   )}
 
                   <div
-                    className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold transition-all ${
-                      isLimitReached
-                        ? 'bg-red-50 text-red-600 border border-red-200'
-                        : remaining === 1
-                        ? 'bg-amber-50 text-amber-700 border border-amber-200'
-                        : 'bg-[var(--primary-light)] text-[var(--primary)] border border-[var(--primary)]/20 shadow-2xs'
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold ${
+                      remaining <= 1 ? 'bg-red-50 text-red-600 border border-red-200' : 'bg-[var(--surface-raised)] text-[var(--text-secondary)] border border-[var(--border)]'
                     }`}
                     role="status"
                     aria-live="polite"
