@@ -343,9 +343,9 @@ export default function AIChatPage() {
           <div
             ref={scrollRef}
             onScroll={handleScroll}
-            className="flex-1 min-h-0 overflow-y-auto overscroll-contain bg-[var(--background)] px-4 py-3 sm:px-6 flex flex-col"
+            className="flex-1 min-h-0 overflow-y-auto overscroll-contain bg-[var(--background)] px-4 py-3 sm:px-6 flex flex-col justify-end"
           >
-            <SectionContainer wide className="p-0 max-w-4xl mx-auto space-y-3.5 w-full pb-1">
+            <SectionContainer wide className="p-0 max-w-4xl mx-auto space-y-3.5 w-full mt-auto">
               {messages.map((m, i) => (
                 <motion.div
                   initial={hasCheckedOnce.current ? { opacity: 0, y: 8 } : false}
