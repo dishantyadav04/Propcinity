@@ -343,9 +343,9 @@ export default function AIChatPage() {
           <div
             ref={scrollRef}
             onScroll={handleScroll}
-            className="flex-1 min-h-0 overflow-y-auto overscroll-contain bg-[var(--background)] px-4 py-4 sm:px-6"
+            className="flex-1 min-h-0 overflow-y-auto overscroll-contain bg-[var(--background)] px-4 py-3 sm:px-6 flex flex-col"
           >
-            <SectionContainer wide className="p-0 max-w-4xl mx-auto space-y-4 pb-4">
+            <SectionContainer wide className="p-0 max-w-4xl mx-auto space-y-3.5 w-full pb-1">
               {messages.map((m, i) => (
                 <motion.div
                   initial={hasCheckedOnce.current ? { opacity: 0, y: 8 } : false}
@@ -399,7 +399,7 @@ export default function AIChatPage() {
 
               {/* Limit reached banner */}
               {isLimitReached && (
-                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex justify-center px-2 py-4">
+                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex justify-center px-2 py-3">
                   <div className="w-full max-w-md bg-orange-50/80 border border-orange-200 rounded-2xl p-4 text-center shadow-xs">
                     <p className="text-sm font-bold text-orange-900">Daily limit reached</p>
                     <p className="text-xs text-orange-700 mt-1">
@@ -417,7 +417,7 @@ export default function AIChatPage() {
 
               {/* Quick Prompt Cards — visible when chat is fresh */}
               {!hasStartedChat && messages.length <= 1 && !isLimitReached && (
-                <div className="pt-2">
+                <div className="pt-1">
                   <div className="text-xs font-bold text-[var(--text-muted)] mb-2 flex items-center gap-1.5 uppercase tracking-wider">
                     <Sparkles className="w-3 h-3 text-[var(--primary)]" />
                     <span>Suggested Questions</span>
@@ -463,7 +463,7 @@ export default function AIChatPage() {
                   }
                   rows={1}
                   aria-label="Ask Propcinity AI a question"
-                  className="flex-1 min-w-0 resize-none overflow-y-auto px-4 py-3 text-base sm:text-sm bg-[var(--surface-raised)] border border-[var(--border-strong)] rounded-xl text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none focus:border-[var(--primary)] focus:bg-white disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                  className="flex-1 min-w-0 resize-none overflow-y-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden px-4 py-3 text-base sm:text-sm bg-[var(--surface-raised)] border border-[var(--border-strong)] rounded-xl text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none focus:border-[var(--primary)] focus:bg-white disabled:opacity-50 disabled:cursor-not-allowed transition-all"
                   style={{ maxHeight: '120px' }}
                 />
                 <button
