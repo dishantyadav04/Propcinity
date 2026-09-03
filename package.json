@@ -8,6 +8,7 @@
     "build": "next build",
     "start": "next start",
     "typecheck": "tsc --noEmit",
+    "generate-pwa-icons": "node scripts/generate-pwa-icons.js",
     "test": "vitest run",
     "test:watch": "vitest"
   },
@@ -21,6 +22,7 @@
     "@aws-sdk/client-s3": "^3.785.0",
     "@aws-sdk/lib-storage": "^3.785.0",
     "@sentry/nextjs": "^10.58.0",
+    "@serwist/next": "^9.5.12",
     "@supabase/ssr": "^0.10.3",
     "@supabase/supabase-js": "^2.106.2",
     "@tiptap/extension-character-count": "^3.27.0",
@@ -58,6 +60,7 @@
     "react-leaflet": "^5.0.0",
     "resend": "^4.5.2",
     "sanitize-html": "^2.17.5",
+    "serwist": "^9.5.12",
     "sonner": "^2.0.7",
     "tailwind-merge": "^3.3.0",
     "tailwindcss": "^3.4.17",

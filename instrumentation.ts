@@ -12,14 +12,13 @@ function guardAgainstEpipe(stream: NodeJS.WriteStream) {
 guardAgainstEpipe(process.stdout)
 guardAgainstEpipe(process.stderr)
 
-// Raise the events listener cap defensively in development to avoid
-// spurious MaxListenersExceededWarning during Fast Refresh cycles.
-if (process.env.NODE_ENV === 'development') {
-  try {
-    setMaxListeners(20)
-  } catch (e) {
-    // swallow — defensive only
-  }
+// Raise the events listener cap defensively to avoid
+// spurious MaxListenersExceededWarning (Serwist + Sentry add
+// close listeners to ServerResponse objects).
+try {
+  setMaxListeners(20)
+} catch (e) {
+  // swallow — defensive only
 }
 
 export async function register() {

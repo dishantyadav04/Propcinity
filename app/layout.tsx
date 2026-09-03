@@ -33,6 +33,7 @@ export const viewport: Viewport = {
   maximumScale: 5,
   userScalable: true,
   interactiveWidget: 'resizes-content',
+  themeColor: '#FF4500',
 }
 
 export const metadata: Metadata = {
@@ -45,6 +46,12 @@ export const metadata: Metadata = {
   authors: [{ name: 'Propcinity' }],
   creator: 'Propcinity',
   metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || 'https://propcinity.in'),
+  manifest: '/manifest.webmanifest',
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'default',
+    title: 'Propcinity',
+  },
   alternates: {
     canonical: canonicalUrl('/'),
   },

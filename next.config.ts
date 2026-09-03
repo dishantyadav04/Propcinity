@@ -1,6 +1,13 @@
 import type { NextConfig } from 'next'
 import { buildApiHeaderRules } from './lib/http-headers-config'
 import { withSentryConfig } from '@sentry/nextjs'
+import withSerwistInit from '@serwist/next'
+
+const withSerwist = withSerwistInit({
+  swSrc: 'app/sw.ts',
+  swDest: 'public/sw.js',
+  disable: process.env.NODE_ENV === 'development',
+})
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
@@ -107,7 +114,7 @@ const nextConfig: NextConfig = {
   },
 }
 
-export default withSentryConfig(nextConfig, {
+export default withSentryConfig(withSerwist(nextConfig), {
   org: "propcinity",
   project: "propcinity",
   authToken: process.env.SENTRY_AUTH_TOKEN,
