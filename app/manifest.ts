@@ -2,6 +2,7 @@ import type { MetadataRoute } from 'next'
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
+    id: '/',
     name: 'Propcinity — Find the Right Property in Pune',
     short_name: 'Propcinity',
     description:

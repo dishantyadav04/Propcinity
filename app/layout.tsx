@@ -7,6 +7,7 @@ import AppChrome from '@/components/layout/AppChrome'
 import PageTransition from '@/components/ui/PageTransition'
 import ClientLayoutExtras from '@/components/layout/ClientLayoutExtras'
 import CookieConsentProvider from '@/components/consent/CookieConsentProvider'
+import InstallPromptProvider from '@/components/pwa/InstallPromptProvider'
 import PostHogProvider from '@/components/analytics/PostHogProvider'
 import PostHogPageView from '@/components/analytics/PostHogPageView'
 import { canonicalUrl } from '@/lib/seo'
@@ -110,6 +111,7 @@ export default function RootLayout({
           dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationSchema) }}
         />
         <CookieConsentProvider>
+          <InstallPromptProvider>
           <PostHogProvider>
             <Suspense fallback={null}>
               <PostHogPageView />
@@ -137,6 +139,7 @@ export default function RootLayout({
               }}
             />
           </PostHogProvider>
+          </InstallPromptProvider>
         </CookieConsentProvider>
       </body>
     </html>
