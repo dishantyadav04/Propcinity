@@ -33,6 +33,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 import { storage, STORAGE_KEYS } from "@/lib/storage";
 import TimelineSection from "@/components/property/TimelineSection";
+import ProjectSectionNav from "@/components/property/ProjectSectionNav";
 
 // ── Tab definitions ────────────────────────────────────────
 const TABS = [
@@ -489,6 +490,7 @@ export default function ProjectDetailClient({ project }: { project: Project }) {
           <div className="lg:col-span-2 space-y-0">
 
             {/* ── OVERVIEW ─────────────────────────────── */}
+            <ProjectSectionNav />
             <div id="section-overview" className="scroll-mt-36 pb-10 border-b border-[var(--border)]">
               {/* Breadcrumb */}
               <div className="flex items-center gap-1.5 text-xs text-[var(--text-muted)] mb-4">
