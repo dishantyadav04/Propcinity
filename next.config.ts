@@ -26,6 +26,14 @@ const nextConfig: NextConfig = {
       { protocol: 'https', hostname: '*.supabase.in' },
       { protocol: 'https', hostname: 'api.qrserver.com' },
     ],
+    // Property images are uploaded once via the admin and rarely change
+    // post-publish — 7 days keeps the optimized-image cache warm far longer
+    // than Next's default, cutting repeat re-optimization work at the edge.
+    minimumCacheTTL: 60 * 60 * 24 * 7,
+    // Explicit rather than relying on implicit content negotiation — makes
+    // the intent visible in config, and gives a single place to drop AVIF
+    // from if it ever causes decode-time issues on older devices.
+    formats: ['image/avif', 'image/webp'],
   },
 
   compress: true,
