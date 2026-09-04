@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { adminFetch } from '@/lib/admin-fetch';
+import type { DashboardStats } from '@/types/dashboard';
 import {
   Building2, HardHat, MessageSquare, Users,
   Flame, ThermometerSun, Snowflake,
@@ -9,45 +10,18 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 
-interface Stats {
-  projects: number;
-  builders: number;
-  leads: { total: number; hot: number; warm: number; cold: number; new7d: number };
-  users: number;
-  recentLeads: any[];
-}
-
 export default function AdminOverviewPage() {
-  const [stats, setStats] = useState<Stats | null>(null);
+  const [stats, setStats] = useState<DashboardStats | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    Promise.all([
-      adminFetch('/api/admin/projects').then(r => r.json()),
-      adminFetch('/api/admin/builders').then(r => r.json()),
-      adminFetch('/api/admin/leads').then(r => r.json()),
-      adminFetch('/api/admin/users').then(r => r.json()),
-    ]).then(([proj, build, leads, users]) => {
-      const projects = proj.projects || [];
-      const builders = build.builders || [];
-      const leadsData = leads.leads || [];
-      const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
-
-      setStats({
-        projects: proj.total || projects.length,
-        builders: builders.length,
-        leads: {
-          total: leads.total || leadsData.length,
-          hot: leadsData.filter((l: any) => l.intent_label === 'hot').length,
-          warm: leadsData.filter((l: any) => l.intent_label === 'warm').length,
-          cold: leadsData.filter((l: any) => l.intent_label === 'cold').length,
-          new7d: leadsData.filter((l: any) => new Date(l.created_at) >= weekAgo).length,
-        },
-        users: users.users?.length || 0,
-        recentLeads: leadsData.slice(0, 5),
-      });
-      setIsLoading(false);
-    }).catch(() => setIsLoading(false));
+    adminFetch('/api/admin/dashboard-stats')
+      .then(r => r.json())
+      .then((data: DashboardStats) => {
+        setStats(data);
+        setIsLoading(false);
+      })
+      .catch(() => setIsLoading(false));
   }, []);
 
   const intentColors = {
@@ -164,8 +138,8 @@ export default function AdminOverviewPage() {
             ))
           ) : stats?.recentLeads.length === 0 ? (
             <p className="px-5 py-8 text-sm text-[var(--text-muted)] text-center">No leads yet</p>
-          ) : stats?.recentLeads.map((lead: any) => {
-            const intent = lead.intent_label as 'hot' | 'warm' | 'cold';
+          ) : stats?.recentLeads.map((lead) => {
+            const intent = lead.intent_label;
             const cfg = intentColors[intent] || intentColors.cold;
             return (
               <div key={lead.id} className="px-5 py-3.5 flex items-center gap-4">

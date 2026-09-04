@@ -9,11 +9,12 @@ import Link from 'next/link';
 import { toast } from 'sonner';
 import { adminFetch } from '@/lib/admin-fetch';
 import { createResourceCache } from '@/lib/client-cache';
+import type { Builder } from '@/types/builder';
 
-const buildersCache = createResourceCache<any[]>('admin:builders', 20 * 1000);
+const buildersCache = createResourceCache<Builder[]>('admin:builders', 20 * 1000);
 
 export default function BuildersPage() {
-  const [builders, setBuilders] = useState<any[]>(buildersCache.get() ?? []);
+  const [builders, setBuilders] = useState<Builder[]>(buildersCache.get() ?? []);
   const [isLoading, setIsLoading] = useState(buildersCache.get() === null);
   const [search, setSearch] = useState('');
 

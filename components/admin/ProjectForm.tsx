@@ -12,6 +12,17 @@ import { Save, Plus, X, Loader2, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import { adminFetch } from '@/lib/admin-fetch';
+import ProjectFormSectionNav, { type FormSection } from './ProjectFormSectionNav';
+import type { Builder } from '@/types/builder';
+
+const FORM_SECTIONS: FormSection[] = [
+  { id: 'basic-info', label: 'Basic Info' },
+  { id: 'media', label: 'Media' },
+  { id: 'unit-layout', label: 'Units & Layout' },
+  { id: 'pricing', label: 'Pricing' },
+  { id: 'legal', label: 'Legal' },
+  { id: 'amenities-nearby', label: 'Amenities & Nearby' },
+];
 
 interface ProjectFormProps {
   initialData?: Project;
@@ -21,8 +32,8 @@ export default function ProjectForm({ initialData }: ProjectFormProps) {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
   const [isSavingDraft, setIsSavingDraft] = useState(false);
-  const [builders, setBuilders] = useState<any[]>([]);
-  const [selectedBuilderId, setSelectedBuilderId] = useState((initialData as any)?.builder_id || '');
+  const [builders, setBuilders] = useState<Builder[]>([]);
+  const [selectedBuilderId, setSelectedBuilderId] = useState((initialData as unknown as { builder_id?: string })?.builder_id || '');
   const [builderSearch, setBuilderSearch] = useState('');
   const [builderDropdownOpen, setBuilderDropdownOpen] = useState(false);
 
@@ -385,8 +396,9 @@ export default function ProjectForm({ initialData }: ProjectFormProps) {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-8 max-w-6xl">
+      <ProjectFormSectionNav sections={FORM_SECTIONS} />
       {/* Basic Info */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-[var(--surface)] p-6 rounded-2xl border border-[var(--border)]">
+      <div id="basic-info" className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-[var(--surface)] p-6 rounded-2xl border border-[var(--border)]">
         <div className="space-y-4">
           <h3 className="text-sm font-bold text-[var(--text-primary)] uppercase tracking-widest">General Information</h3>
           <div className="space-y-2">
@@ -858,7 +870,7 @@ export default function ProjectForm({ initialData }: ProjectFormProps) {
       </div>
 
       {/* Images */}
-      <div className="bg-[var(--surface)] p-6 rounded-2xl border border-[var(--border)] space-y-4">
+      <div id="media" className="bg-[var(--surface)] p-6 rounded-2xl border border-[var(--border)] space-y-4">
         <h3 className="text-sm font-bold text-[var(--text-primary)] uppercase tracking-widest">Project Gallery</h3>
         <ImageUpload
           value={project.images}
@@ -978,7 +990,7 @@ export default function ProjectForm({ initialData }: ProjectFormProps) {
       </div>
 
       {/* Inventory */}
-      <div className="bg-[var(--surface)] p-6 rounded-2xl border border-[var(--border)]">
+      <div id="unit-layout" className="bg-[var(--surface)] p-6 rounded-2xl border border-[var(--border)]">
         <UnitConfigForm
           units={project.unitConfigs || []}
           onChange={(units) => setProject({...project, unitConfigs: units})}
@@ -988,7 +1000,7 @@ export default function ProjectForm({ initialData }: ProjectFormProps) {
       </div>
 
       {/* Payment Plans & Bank Approvals */}
-      <div className="bg-[var(--surface)] p-6 rounded-2xl border border-[var(--border)] space-y-6">
+      <div id="pricing" className="bg-[var(--surface)] p-6 rounded-2xl border border-[var(--border)] space-y-6">
         <div className="space-y-3">
           <div className="flex items-center justify-between">
             <h3 className="text-sm font-bold text-[var(--text-primary)] uppercase tracking-widest">Payment Plans</h3>
@@ -1206,7 +1218,7 @@ export default function ProjectForm({ initialData }: ProjectFormProps) {
       </div>
 
       {/* Legal & Compliance */}
-      <div className="bg-[var(--surface)] p-6 rounded-2xl border border-[var(--border)] space-y-4">
+      <div id="legal" className="bg-[var(--surface)] p-6 rounded-2xl border border-[var(--border)] space-y-4">
         <h3 className="text-sm font-bold text-[var(--text-primary)] uppercase tracking-widest">Legal & Compliance</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="space-y-3">
@@ -1332,7 +1344,7 @@ export default function ProjectForm({ initialData }: ProjectFormProps) {
 
 
       {/* Amenities */}
-      <div className="bg-[var(--surface)] p-6 rounded-2xl border border-[var(--border)] space-y-4">
+      <div id="amenities-nearby" className="bg-[var(--surface)] p-6 rounded-2xl border border-[var(--border)] space-y-4">
         <h3 className="text-sm font-bold text-[var(--text-primary)] uppercase tracking-widest">Amenities</h3>
         <AmenityLibraryManager
           selectedInternal={project.internalAmenities || []}
