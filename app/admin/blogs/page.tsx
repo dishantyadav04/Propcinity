@@ -5,6 +5,7 @@ import { Blog } from "@/types/blog";
 import Link from "next/link";
 import { Plus, Edit, Trash2, ExternalLink } from "lucide-react";
 import { toast } from "sonner";
+import { adminFetch } from '@/lib/admin-fetch';
 
 export default function AdminBlogsPage() {
   const [blogs, setBlogs] = useState<Blog[]>([]);
@@ -16,9 +17,7 @@ export default function AdminBlogsPage() {
   const loadBlogs = async (pageNum: number) => {
     setIsLoading(true);
     try {
-      const res = await fetch(`/api/admin/blogs?page=${pageNum}&limit=${limit}`, {
-        credentials: 'include',
-      });
+      const res = await adminFetch(`/api/admin/blogs?page=${pageNum}&limit=${limit}`);
       if (!res.ok) throw new Error('Unauthorized');
       const json = await res.json();
       setBlogs(json.blogs || []);
@@ -37,9 +36,8 @@ export default function AdminBlogsPage() {
   const handleDelete = async (id: string) => {
     if (!confirm('Delete this blog post?')) return;
     try {
-      const res = await fetch(`/api/admin/blogs/${id}`, {
+      const res = await adminFetch(`/api/admin/blogs/${id}`, {
         method: 'DELETE',
-        credentials: 'include',
       });
       if (!res.ok) throw new Error('Failed');
       toast.success('Blog deleted');
@@ -52,10 +50,9 @@ export default function AdminBlogsPage() {
   const handleToggleStatus = async (id: string, currentStatus: string) => {
     const newStatus = currentStatus === 'published' ? 'draft' : 'published';
     try {
-      const res = await fetch(`/api/admin/blogs/${id}`, {
+      const res = await adminFetch(`/api/admin/blogs/${id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
         body: JSON.stringify({ status: newStatus }),
       });
       if (!res.ok) throw new Error('Failed');

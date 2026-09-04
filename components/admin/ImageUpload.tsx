@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Upload, X, Loader2, Image as ImageIcon } from "lucide-react";
 import { toast } from "sonner";
+import { adminFetch } from '@/lib/admin-fetch';
 
 interface ImageUploadProps {
   onUpload: (url: string) => void;
@@ -29,9 +30,8 @@ export default function ImageUpload({ onUpload, value = [], onRemove, label = 'U
     formData.append('file', file);
 
     try {
-      const response = await fetch('/api/admin/upload', {
+      const response = await adminFetch('/api/admin/upload', {
         method: 'POST',
-        credentials: 'include',
         body: formData,
       });
 

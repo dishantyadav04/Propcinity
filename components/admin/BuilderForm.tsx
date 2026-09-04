@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { Save, Upload, X, Loader2 } from 'lucide-react';
 import RichTextEditor from '@/components/admin/RichTextEditor';
+import { adminFetch } from '@/lib/admin-fetch';
 
 interface BuilderFormProps {
   initial?: any;
@@ -62,9 +63,8 @@ export default function BuilderForm({ initial, mode }: BuilderFormProps) {
     const formData = new FormData();
     formData.append('file', file);
     try {
-      const res = await fetch('/api/admin/upload', {
+      const res = await adminFetch('/api/admin/upload', {
         method: 'POST',
-        credentials: 'include',
         body: formData,
       });
       if (!res.ok) throw new Error('Upload failed');
@@ -86,10 +86,9 @@ export default function BuilderForm({ initial, mode }: BuilderFormProps) {
       ? '/api/admin/builders'
       : `/api/admin/builders?id=${initial.id}`;
 
-    const res = await fetch(url, {
+    const res = await adminFetch(url, {
       method,
       headers: { 'Content-Type': 'application/json' },
-      credentials: 'include',
       body: JSON.stringify({
         ...form,
         builder_score: builderScore,

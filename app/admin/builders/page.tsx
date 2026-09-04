@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { toast } from 'sonner';
+import { adminFetch } from '@/lib/admin-fetch';
 import { createResourceCache } from '@/lib/client-cache';
 
 const buildersCache = createResourceCache<any[]>('admin:builders', 20 * 1000);
@@ -25,7 +26,7 @@ export default function BuildersPage() {
         return;
       }
     }
-    fetch('/api/admin/builders', { credentials: 'include' })
+    adminFetch('/api/admin/builders')
       .then(r => r.json())
       .then(d => {
         const list = d.builders || [];
@@ -40,7 +41,7 @@ export default function BuildersPage() {
 
   const handleDelete = async (id: string, name: string) => {
     if (!confirm(`Delete builder "${name}"? This will unlink all associated projects.`)) return;
-    const res = await fetch(`/api/admin/builders?id=${id}`, { method: 'DELETE', credentials: 'include' });
+    const res = await adminFetch(`/api/admin/builders?id=${id}`, { method: 'DELETE' });
     if (res.ok) {
       toast.success('Builder deleted');
       buildersCache.invalidate();

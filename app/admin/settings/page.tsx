@@ -6,6 +6,7 @@ import SectionContainer from "@/components/layout/SectionContainer";
 import { Settings, Shield, Bell, Database, Globe, Sliders, Save, Loader2, MapPin } from "lucide-react";
 import { toast } from "sonner";
 import LocationLibraryManager from "@/components/admin/LocationLibraryManager";
+import { adminFetch } from '@/lib/admin-fetch';
 
 export default function AdminSettingsPage() {
   const router = useRouter();
@@ -15,7 +16,7 @@ export default function AdminSettingsPage() {
   const [isLoadingSettings, setIsLoadingSettings] = useState(true);
 
   useEffect(() => {
-    fetch('/api/admin/settings', { credentials: 'include' })
+    adminFetch('/api/admin/settings')
       .then(r => r.json())
       .then(d => {
         if (d.settings?.lead_notification_email) {
@@ -29,9 +30,8 @@ export default function AdminSettingsPage() {
   const saveNotificationEmail = async () => {
     setIsSaving(true);
     try {
-      const res = await fetch('/api/admin/settings', {
+      const res = await adminFetch('/api/admin/settings', {
         method: 'PUT',
-        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ key: 'lead_notification_email', value: notificationEmail }),
       });

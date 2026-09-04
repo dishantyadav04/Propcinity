@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { Plus, X, ChevronDown, ChevronRight, Loader2, Edit2, Check, EyeOff, Eye, Trash2 } from 'lucide-react';
 import { City, Locality } from '@/types/location';
 import { toast } from 'sonner';
+import { adminFetch } from '@/lib/admin-fetch';
 
 // ─── City row ─────────────────────────────────────────────────────────────────
 
@@ -34,9 +35,8 @@ function CityRow({
     }
     setBusy(true);
     try {
-      const res = await fetch(`/api/admin/cities?id=${city.id}`, {
+      const res = await adminFetch(`/api/admin/cities?id=${city.id}`, {
         method: 'PATCH',
-        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name: editName.trim() }),
       });
@@ -55,9 +55,8 @@ function CityRow({
   const toggleActive = async () => {
     setBusy(true);
     try {
-      const res = await fetch(`/api/admin/cities?id=${city.id}`, {
+      const res = await adminFetch(`/api/admin/cities?id=${city.id}`, {
         method: 'PATCH',
-        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ is_active: !city.is_active }),
       });
@@ -75,9 +74,8 @@ function CityRow({
     if (!confirm(`Delete city "${city.name}" and all its localities? This cannot be undone.`)) return;
     setBusy(true);
     try {
-      const res = await fetch(`/api/admin/cities?id=${city.id}`, {
+      const res = await adminFetch(`/api/admin/cities?id=${city.id}`, {
         method: 'DELETE',
-        credentials: 'include',
       });
       if (!res.ok) throw new Error((await res.json()).error || 'Failed');
       onDeleted(city.id);
@@ -181,7 +179,7 @@ function LocalityList({ cityId }: { cityId: string }) {
 
   useEffect(() => {
     setLoading(true);
-    fetch(`/api/admin/localities?city_id=${cityId}`, { credentials: 'include' })
+    adminFetch(`/api/admin/localities?city_id=${cityId}`)
       .then((r) => r.json())
       .then((d) => setLocalities(d.localities || []))
       .catch(console.error)
@@ -192,9 +190,8 @@ function LocalityList({ cityId }: { cityId: string }) {
     if (!newName.trim()) return;
     setAdding(true);
     try {
-      const res = await fetch('/api/admin/localities', {
+      const res = await adminFetch('/api/admin/localities', {
         method: 'POST',
-        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ city_id: cityId, name: newName.trim() }),
       });
@@ -212,9 +209,8 @@ function LocalityList({ cityId }: { cityId: string }) {
 
   const toggleLocality = async (loc: Locality) => {
     try {
-      const res = await fetch(`/api/admin/localities?id=${loc.id}`, {
+      const res = await adminFetch(`/api/admin/localities?id=${loc.id}`, {
         method: 'PATCH',
-        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ is_active: !loc.is_active }),
       });
@@ -231,9 +227,8 @@ function LocalityList({ cityId }: { cityId: string }) {
   const deleteLocality = async (loc: Locality) => {
     if (!confirm(`Delete locality "${loc.name}"?`)) return;
     try {
-      const res = await fetch(`/api/admin/localities?id=${loc.id}`, {
+      const res = await adminFetch(`/api/admin/localities?id=${loc.id}`, {
         method: 'DELETE',
-        credentials: 'include',
       });
       if (!res.ok) throw new Error((await res.json()).error || 'Failed');
       setLocalities((prev) => prev.filter((l) => l.id !== loc.id));
@@ -319,7 +314,7 @@ export default function LocationLibraryManager() {
   const [showAll, setShowAll] = useState(false);
 
   useEffect(() => {
-    fetch('/api/admin/cities', { credentials: 'include' })
+    adminFetch('/api/admin/cities')
       .then((r) => r.json())
       .then((d) => setCities(d.cities || []))
       .catch(console.error)
@@ -330,9 +325,8 @@ export default function LocationLibraryManager() {
     if (!newCityName.trim()) return;
     setAdding(true);
     try {
-      const res = await fetch('/api/admin/cities', {
+      const res = await adminFetch('/api/admin/cities', {
         method: 'POST',
-        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name: newCityName.trim(), state: newCityState.trim() }),
       });

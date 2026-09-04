@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { formatIndianPrice } from '@/lib/utils';
+import { adminFetch } from '@/lib/admin-fetch';
 
 const INTENT_CONFIG = {
   hot:  { icon: Flame,         bg: 'bg-red-50',    text: 'text-red-600',    border: 'border-red-200',    label: 'HOT',  note: '⚡ Call now' },
@@ -59,7 +60,7 @@ export default function AdminLeadsPage() {
       ...(statusFilter && { status: statusFilter }),
       ...(journeyFilter && { journey: journeyFilter }),
     });
-    fetch(`/api/admin/leads?${params}`, { credentials: 'include' })
+    adminFetch(`/api/admin/leads?${params}`)
       .then(r => {
         if (!r.ok) console.error('[admin/leads] API error', r.status, r.statusText);
         return r.json();
@@ -76,10 +77,9 @@ export default function AdminLeadsPage() {
   useEffect(() => { load(); }, [load]);
 
   const updateStatus = async (id: string, status: string) => {
-    const res = await fetch(`/api/admin/leads?id=${id}`, {
+    const res = await adminFetch(`/api/admin/leads?id=${id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      credentials: 'include',
       body: JSON.stringify({ status }),
     });
     if (res.ok) { toast.success('Status updated'); load(); }

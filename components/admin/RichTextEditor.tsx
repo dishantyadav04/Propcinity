@@ -18,6 +18,7 @@ import {
   Bold, Italic, Strikethrough, Code, Code2, Quote, List, ListOrdered,
   Link, Upload, Table as TableIcon, Minus, Undo, Redo,
 } from 'lucide-react'
+import { adminFetch } from '@/lib/admin-fetch'
 
 interface RichTextEditorProps {
   content: string
@@ -73,9 +74,8 @@ export default function RichTextEditor({
     const formData = new FormData()
     formData.append('file', file)
     try {
-      const res = await fetch('/api/admin/upload', {
+      const res = await adminFetch('/api/admin/upload', {
         method: 'POST',
-        credentials: 'include',
         body: formData,
       })
       if (!res.ok) throw new Error('Upload failed')

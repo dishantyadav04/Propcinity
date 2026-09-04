@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Plus, Trash2, Maximize, IndianRupee, ImageIcon, X, Zap, Loader2 } from "lucide-react";
 import { UnitConfig } from "@/types/project";
 import { toast } from "sonner";
+import { adminFetch } from '@/lib/admin-fetch';
 
 interface UnitConfigFormProps {
   units: UnitConfig[];
@@ -72,9 +73,8 @@ export default function UnitConfigForm({ units, onChange, errors }: UnitConfigFo
     setUploadingId(id);
 
     try {
-      const res = await fetch('/api/admin/upload', {
+      const res = await adminFetch('/api/admin/upload', {
         method: 'POST',
-        credentials: 'include',
         body: formData,
       });
       if (!res.ok) {

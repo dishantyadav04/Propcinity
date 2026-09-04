@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { Search, Users, MapPin, Target, Clock, Wallet } from 'lucide-react';
+import { adminFetch } from '@/lib/admin-fetch';
 import { createResourceCache } from '@/lib/client-cache';
 import { formatIndianPrice } from '@/lib/utils';
 
@@ -22,7 +23,7 @@ export default function AdminUsersPage() {
       return;
     }
 
-    fetch('/api/admin/users', { credentials: 'include' })
+    adminFetch('/api/admin/users')
       .then(r => {
         if (!r.ok) console.error('[admin/users] API error', r.status, r.statusText);
         return r.json();

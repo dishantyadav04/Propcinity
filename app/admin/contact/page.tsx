@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { Mail, Search, Clock, CheckCircle2, MessageSquare, Send, X } from 'lucide-react';
+import { adminFetch } from '@/lib/admin-fetch';
 
 const STATUS_STYLE: Record<string, string> = {
   new: 'bg-blue-50 text-blue-700 border-blue-200',
@@ -26,7 +27,7 @@ export default function AdminContactPage() {
       ...(search && { search }),
       ...(statusFilter && { status: statusFilter }),
     });
-    fetch(`/api/admin/contact?${params}`, { credentials: 'include' })
+    adminFetch(`/api/admin/contact?${params}`)
       .then(r => r.json())
       .then(d => { setMessages(d.messages || []); setTotal(d.total || 0); })
       .catch(console.error)
@@ -39,9 +40,8 @@ export default function AdminContactPage() {
     if (!replyBody.trim()) return;
     setReplySending(true);
     try {
-      const res = await fetch('/api/admin/contact/reply', {
+      const res = await adminFetch('/api/admin/contact/reply', {
         method: 'POST',
-        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ messageId: msgId, replyBody }),
       });
@@ -58,9 +58,8 @@ export default function AdminContactPage() {
   };
 
   const updateStatus = async (id: string, status: string) => {
-    await fetch(`/api/admin/contact?id=${id}`, {
+    await adminFetch(`/api/admin/contact?id=${id}`, {
       method: 'PATCH',
-      credentials: 'include',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ status }),
     });

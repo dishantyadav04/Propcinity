@@ -5,6 +5,7 @@ import dynamic from "next/dynamic";
 import { Project } from "@/types/project";
 import PageLoader from "@/components/ui/PageLoader";
 import { useParams } from "next/navigation";
+import { adminFetch } from '@/lib/admin-fetch';
 
 const ProjectForm = dynamic(() => import("@/components/admin/ProjectForm"), {
   ssr: false,
@@ -21,9 +22,7 @@ export default function EditProjectPage() {
   useEffect(() => {
     const loadProject = async () => {
       try {
-        const res = await fetch(`/api/admin/projects/${id}`, {
-          credentials: 'include',
-        });
+        const res = await adminFetch(`/api/admin/projects/${id}`);
         if (!res.ok) throw new Error('Not found');
         const { project: raw } = await res.json();
 

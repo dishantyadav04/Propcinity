@@ -5,6 +5,7 @@ import { Project } from "@/types/project";
 import Link from "next/link";
 import { Plus, Edit, Trash2, ExternalLink, Search } from "lucide-react";
 import { formatINR } from "@/lib/finance-calculations";
+import { adminFetch } from '@/lib/admin-fetch';
 
 export default function AdminProjectsPage() {
   const [projects, setProjects] = useState<Project[]>([]);
@@ -26,9 +27,7 @@ export default function AdminProjectsPage() {
     try {
       const params = new URLSearchParams({ page: String(pageNum), limit: String(limit) });
       if (location.trim()) params.set('location', location.trim());
-      const res = await fetch(`/api/admin/projects?${params.toString()}`, {
-        credentials: 'include',
-      });
+      const res = await adminFetch(`/api/admin/projects?${params.toString()}`);
       if (!res.ok) throw new Error('Unauthorized');
       const json = await res.json();
       setProjects(json.projects || []);
@@ -43,9 +42,8 @@ export default function AdminProjectsPage() {
   const handleDelete = async (id: string, name: string) => {
     if (!window.confirm(`Delete "${name}"? This cannot be undone.`)) return;
     try {
-      const res = await fetch(`/api/admin/projects?id=${id}`, {
+      const res = await adminFetch(`/api/admin/projects?id=${id}`, {
         method: 'DELETE',
-        credentials: 'include',
       });
       if (!res.ok) throw new Error('Failed');
       setProjects(prev => prev.filter(p => p.id !== id));
@@ -58,10 +56,9 @@ export default function AdminProjectsPage() {
   const handleTogglePublish = async (id: string, current: boolean) => {
     setTogglingId(id);
     try {
-      const res = await fetch(`/api/admin/projects?id=${id}`, {
+      const res = await adminFetch(`/api/admin/projects?id=${id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
         body: JSON.stringify({ isPublished: !current }),
       });
       if (!res.ok) throw new Error();

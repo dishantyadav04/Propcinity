@@ -11,6 +11,7 @@ import AdminMapPreview from "./AdminMapPreview";
 import { Save, Plus, X, Loader2, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
+import { adminFetch } from '@/lib/admin-fetch';
 
 interface ProjectFormProps {
   initialData?: Project;
@@ -121,7 +122,7 @@ export default function ProjectForm({ initialData }: ProjectFormProps) {
 
   // Fetch builders on mount
   useEffect(() => {
-    fetch('/api/admin/builders', { credentials: 'include' })
+    adminFetch('/api/admin/builders')
       .then(r => r.json())
       .then(d => setBuilders(d.builders || []))
       .catch(console.error);
@@ -130,7 +131,7 @@ export default function ProjectForm({ initialData }: ProjectFormProps) {
   // Fetch cities on mount
   useEffect(() => {
     setCitiesLoading(true);
-    fetch('/api/admin/cities', { credentials: 'include' })
+    adminFetch('/api/admin/cities')
       .then(r => r.json())
       .then(d => {
         const fetchedCities: City[] = d.cities || [];
@@ -159,7 +160,7 @@ export default function ProjectForm({ initialData }: ProjectFormProps) {
       setLocalities([]);
       return;
     }
-    fetch(`/api/admin/localities?city_id=${selectedCityId}`, { credentials: 'include' })
+    adminFetch(`/api/admin/localities?city_id=${selectedCityId}`)
       .then(r => r.json())
       .then(d => setLocalities(d.localities || []))
       .catch(console.error);
@@ -169,7 +170,7 @@ export default function ProjectForm({ initialData }: ProjectFormProps) {
     if (!window.confirm(`Delete "${name}"? This also deletes all of its localities and can't be undone.`)) return;
     setDeletingCityId(id);
     try {
-      const res = await fetch(`/api/admin/cities?id=${id}`, { method: 'DELETE', credentials: 'include' });
+      const res = await adminFetch(`/api/admin/cities?id=${id}`, { method: 'DELETE' });
       if (!res.ok) throw new Error((await res.json()).error || 'Failed to delete city');
       setCities(prev => prev.filter(c => c.id !== id));
       if (selectedCityId === id) {
@@ -190,9 +191,8 @@ export default function ProjectForm({ initialData }: ProjectFormProps) {
     if (!newLocalityName.trim() || !selectedCityId) return;
     setSavingLocality(true);
     try {
-      const res = await fetch('/api/admin/localities', {
+      const res = await adminFetch('/api/admin/localities', {
         method: 'POST',
-        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ city_id: selectedCityId, name: newLocalityName.trim() }),
       });
@@ -215,7 +215,7 @@ export default function ProjectForm({ initialData }: ProjectFormProps) {
     if (!window.confirm(`Delete "${name}"?`)) return;
     setDeletingLocalityId(id);
     try {
-      const res = await fetch(`/api/admin/localities?id=${id}`, { method: 'DELETE', credentials: 'include' });
+      const res = await adminFetch(`/api/admin/localities?id=${id}`, { method: 'DELETE' });
       if (!res.ok) throw new Error((await res.json()).error || 'Failed to delete locality');
       setLocalities(prev => prev.filter(l => l.id !== id));
       if (project.location === name) {
@@ -332,7 +332,7 @@ export default function ProjectForm({ initialData }: ProjectFormProps) {
         isPublished: undefined,
       };
 
-      const response = await fetch(initialData ? `/api/admin/projects?id=${initialData.id}` : '/api/admin/projects', {
+      const response = await adminFetch(initialData ? `/api/admin/projects?id=${initialData.id}` : '/api/admin/projects', {
         method: initialData ? 'PUT' : 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body)
@@ -574,9 +574,8 @@ export default function ProjectForm({ initialData }: ProjectFormProps) {
                     onClick={async () => {
                       setSavingCity(true);
                       try {
-                        const res = await fetch('/api/admin/cities', {
+                        const res = await adminFetch('/api/admin/cities', {
                           method: 'POST',
-                          credentials: 'include',
                           headers: { 'Content-Type': 'application/json' },
                           body: JSON.stringify({ name: newCityName.trim(), state: newCityState.trim() }),
                         });

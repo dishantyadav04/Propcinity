@@ -11,6 +11,7 @@ import {
   Upload,
   Eye, EyeOff, Plus, Trash2, ExternalLink,
 } from 'lucide-react';
+import { adminFetch } from '@/lib/admin-fetch';
 
 interface BlogFormProps {
   blogId?: string;
@@ -150,7 +151,7 @@ export default function BlogForm({ blogId }: BlogFormProps) {
   // Load existing blog data
   useEffect(() => {
     if (!blogId) return;
-    fetch(`/api/admin/blogs/${blogId}`, { credentials: 'include' })
+    adminFetch(`/api/admin/blogs/${blogId}`)
       .then(r => r.json())
       .then(({ blog }: { blog: Blog }) => {
         if (!blog) return;
@@ -187,7 +188,7 @@ export default function BlogForm({ blogId }: BlogFormProps) {
     if (!s || (isEditing)) { setSlugAvailable(null); return; }
     setSlugChecking(true);
     try {
-      const res = await fetch(`/api/admin/blogs?slug=${encodeURIComponent(s)}`, { credentials: 'include' });
+      const res = await adminFetch(`/api/admin/blogs?slug=${encodeURIComponent(s)}`);
       const json = await res.json();
       setSlugAvailable(json.available);
     } catch {
@@ -210,9 +211,8 @@ export default function BlogForm({ blogId }: BlogFormProps) {
     const formData = new FormData();
     formData.append('file', file);
     try {
-      const res = await fetch('/api/admin/upload', {
+      const res = await adminFetch('/api/admin/upload', {
         method: 'POST',
-        credentials: 'include',
         body: formData,
       });
       if (!res.ok) throw new Error('Upload failed');
@@ -287,10 +287,9 @@ export default function BlogForm({ blogId }: BlogFormProps) {
     try {
       const method = isEditing ? 'PUT' : 'POST';
       const url = isEditing ? `/api/admin/blogs/${blogId}` : '/api/admin/blogs';
-      const res = await fetch(url, {
+      const res = await adminFetch(url, {
         method,
         headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
         body: JSON.stringify(payload),
       });
       if (!res.ok) {

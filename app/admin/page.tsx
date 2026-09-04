@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { adminFetch } from '@/lib/admin-fetch';
 import {
   Building2, HardHat, MessageSquare, Users,
   Flame, ThermometerSun, Snowflake,
@@ -22,10 +23,10 @@ export default function AdminOverviewPage() {
 
   useEffect(() => {
     Promise.all([
-      fetch('/api/admin/projects', { credentials: 'include' }).then(r => r.json()),
-      fetch('/api/admin/builders', { credentials: 'include' }).then(r => r.json()),
-      fetch('/api/admin/leads', { credentials: 'include' }).then(r => r.json()),
-      fetch('/api/admin/users', { credentials: 'include' }).then(r => r.json()),
+      adminFetch('/api/admin/projects').then(r => r.json()),
+      adminFetch('/api/admin/builders').then(r => r.json()),
+      adminFetch('/api/admin/leads').then(r => r.json()),
+      adminFetch('/api/admin/users').then(r => r.json()),
     ]).then(([proj, build, leads, users]) => {
       const projects = proj.projects || [];
       const builders = build.builders || [];

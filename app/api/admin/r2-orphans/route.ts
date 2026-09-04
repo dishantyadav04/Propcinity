@@ -3,6 +3,7 @@ import { ListObjectsV2Command } from '@aws-sdk/client-s3'
 import { r2Client, R2_BUCKET } from '@/lib/r2'
 import { createAdminSupabaseClient } from '@/lib/supabase-server'
 import { isAdminAuthenticated } from '@/lib/admin-auth'
+import { DEBUG_ROUTES_ENABLED } from '@/lib/debug-routes'
 
 async function listR2Objects(prefix: string): Promise<string[]> {
   const keys: string[] = []
@@ -45,6 +46,9 @@ function extractKeyFromUrl(url: string): string {
 }
 
 export async function GET(request: NextRequest) {
+  if (!DEBUG_ROUTES_ENABLED) {
+    return NextResponse.json({ error: 'Not found' }, { status: 404 })
+  }
   if (!await isAdminAuthenticated(request)) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }

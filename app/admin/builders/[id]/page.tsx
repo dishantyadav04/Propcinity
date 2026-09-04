@@ -10,6 +10,7 @@ import Link from 'next/link';
 import { toast } from 'sonner';
 import sanitizeHtml from 'sanitize-html';
 import { SANITIZE_CONFIG } from '@/lib/sanitize';
+import { adminFetch } from '@/lib/admin-fetch';
 
 export default function BuilderDetailPage() {
   const params = useParams();
@@ -25,11 +26,11 @@ export default function BuilderDetailPage() {
   });
 
   useEffect(() => {
-    fetch('/api/admin/builders', { credentials: 'include' })
+    adminFetch('/api/admin/builders')
       .then(r => r.json())
       .then(d => setBuilder((d.builders || []).find((b: any) => b.id === id) || null));
 
-    fetch('/api/admin/projects', { credentials: 'include' })
+    adminFetch('/api/admin/projects')
       .then(r => r.json())
       .then(d => {
         const linked = (d.projects || []).filter((p: any) => p.builder_id === id);
@@ -39,10 +40,9 @@ export default function BuilderDetailPage() {
 
   const handleProjectUpdate = async () => {
     const project = projects.find((p: any) => p.id === selectedProject);
-    const res = await fetch(`/api/admin/builders/${id}/project-update`, {
+    const res = await adminFetch(`/api/admin/builders/${id}/project-update`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      credentials: 'include',
       body: JSON.stringify({
         project_id: selectedProject,
         project_name: project?.name,
@@ -52,7 +52,7 @@ export default function BuilderDetailPage() {
     if (res.ok) {
       toast.success('Project update saved. Builder score recalculated.');
       setShowUpdateForm(false);
-      fetch('/api/admin/builders', { credentials: 'include' })
+      adminFetch('/api/admin/builders')
         .then(r => r.json())
         .then(d => setBuilder((d.builders || []).find((b: any) => b.id === id) || null));
     } else {

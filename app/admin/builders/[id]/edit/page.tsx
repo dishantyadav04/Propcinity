@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import BuilderForm from '@/components/admin/BuilderForm';
 import { useParams } from 'next/navigation';
+import { adminFetch } from '@/lib/admin-fetch';
 
 export default function EditBuilderPage() {
   const params = useParams();
@@ -11,7 +12,7 @@ export default function EditBuilderPage() {
 
   useEffect(() => {
     if (!id) return;
-    fetch('/api/admin/builders', { credentials: 'include' })
+    adminFetch('/api/admin/builders')
       .then(r => r.json())
       .then(d => {
         const found = (d.builders || []).find((b: any) => b.id === id);

@@ -4,6 +4,7 @@ import { r2Client, R2_BUCKET, getPublicUrl } from '@/lib/r2'
 import { createAdminSupabaseClient } from '@/lib/supabase-server'
 import { isAdminAuthenticated } from '@/lib/admin-auth'
 import { adminCreateProject, adminDeleteProject } from '@/services/projects'
+import { DEBUG_ROUTES_ENABLED } from '@/lib/debug-routes'
 
 async function uploadMockFile(key: string): Promise<string> {
   await r2Client.send(
@@ -35,6 +36,9 @@ async function fileExistsInR2(key: string): Promise<boolean> {
 }
 
 export async function GET(request: NextRequest) {
+  if (!DEBUG_ROUTES_ENABLED) {
+    return NextResponse.json({ error: 'Not found' }, { status: 404 })
+  }
   const isDevBypass = process.env.NODE_ENV !== 'production' && request.nextUrl.searchParams.get('bypass') === 'true'
   if (!isDevBypass && !await isAdminAuthenticated(request)) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
