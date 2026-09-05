@@ -37,7 +37,7 @@ export default function ProjectFormSectionNav({ sections }: { sections: FormSect
   }
 
   return (
-    <div className="sticky top-14 z-20 -mx-4 sm:-mx-6 lg:-mx-8 mb-6 bg-[var(--surface)] border-b border-[var(--border)] shadow-sm">
+    <div className="sticky top-14 md:top-0 z-20 -mx-4 sm:-mx-6 lg:-mx-8 mb-6 bg-[var(--surface)] border-b border-[var(--border)] shadow-sm">
       <div className="flex items-center gap-1 overflow-x-auto px-4 sm:px-6 lg:px-8 py-2.5 scrollbar-hide">
         <span className="text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-wider mr-2 flex-shrink-0">
           {activeIndex >= 0 ? activeIndex + 1 : 1}/{sections.length}

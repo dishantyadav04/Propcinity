@@ -33,7 +33,6 @@ import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 import { storage, STORAGE_KEYS } from "@/lib/storage";
 import TimelineSection from "@/components/property/TimelineSection";
-import ProjectSectionNav from "@/components/property/ProjectSectionNav";
 
 // ── Tab definitions ────────────────────────────────────────
 const TABS = [
@@ -141,6 +140,34 @@ export default function ProjectDetailClient({ project }: { project: Project }) {
     }
   }, [isGuest]);
 
+  // ── Scroll-spy: keep the active tab in sync with whichever section is
+  // actually in view, so the nav reflects the exact section responsively
+  // instead of only updating on click. ──────────────────────────────────
+  useEffect(() => {
+    const elements = TABS
+      .map(t => document.getElementById(`section-${t.id}`))
+      .filter((el): el is HTMLElement => el !== null);
+    if (!elements.length) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const visible = entries
+          .filter(e => e.isIntersecting)
+          .sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top);
+        if (visible[0]?.target.id) {
+          const tabId = visible[0].target.id.replace('section-', '');
+          setActiveTab(tabId);
+          const tabEl = tabsRef.current?.querySelector(`[data-tab="${tabId}"]`);
+          tabEl?.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+        }
+      },
+      { rootMargin: '-190px 0px -65% 0px', threshold: 0 }
+    );
+
+    elements.forEach(el => observer.observe(el));
+    return () => observer.disconnect();
+  }, [project?.id]);
+
   const handleTabClick = (tabId: string) => {
     if (isGuest && GUEST_LIMITS.project.lockedTabs.includes(tabId as any)) {
       toast('Sign up to access full project details', {
@@ -151,7 +178,9 @@ export default function ProjectDetailClient({ project }: { project: Project }) {
     setActiveTab(tabId);
     const el = document.getElementById(`section-${tabId}`);
     if (el) {
-      const offset = 120;
+      // Match the responsive sticky stack height (site header + mobile bar + tabs
+      // on mobile; site header + tabs only on lg+) so the section isn't hidden behind it.
+      const offset = window.innerWidth >= 1024 ? 120 : 180;
       const top = el.getBoundingClientRect().top + window.scrollY - offset;
       window.scrollTo({ top, behavior: 'smooth' });
     }
@@ -404,7 +433,9 @@ export default function ProjectDetailClient({ project }: { project: Project }) {
       />
 
       {/* ── Mobile top bar ─────────────────────────────── */}
-      <div className="lg:hidden px-4 py-3 flex justify-between items-center
+      {/* Explicit h-14 so the tabs bar below can reserve exactly this much
+          space when it stacks under it on mobile (see top offset below). */}
+      <div className="lg:hidden h-14 px-4 flex justify-between items-center
         border-b border-[var(--border)] bg-white sticky top-16 z-40">
         <button onClick={() => router.back()}
           className="p-1.5 text-[var(--text-secondary)]">
@@ -455,8 +486,10 @@ export default function ProjectDetailClient({ project }: { project: Project }) {
         <GallerySlider key={project.id} images={project.images} />
       </div>
 
-      {/* ── Sticky tabs ────────────────────────────────── */}
-      <div className="sticky top-16 z-30 bg-white border-b border-[var(--border)] shadow-sm">
+      {/* ── Sticky tabs — the ONE section navigation for this page ── */}
+      {/* On mobile it stacks directly under the mobile top bar above (top-16 + its 56px
+          height = top-[7.5rem]); on desktop that bar doesn't exist, so it sticks at top-16. */}
+      <div className="sticky top-[7.5rem] lg:top-16 z-30 bg-white border-b border-[var(--border)] shadow-sm">
         <div className="max-w-6xl mx-auto px-4 sm:px-6">
           <div ref={tabsRef}
             className="flex gap-0 overflow-x-auto scrollbar-hide">
@@ -490,8 +523,7 @@ export default function ProjectDetailClient({ project }: { project: Project }) {
           <div className="lg:col-span-2 space-y-0">
 
             {/* ── OVERVIEW ─────────────────────────────── */}
-            <ProjectSectionNav />
-            <div id="section-overview" className="scroll-mt-36 pb-10 border-b border-[var(--border)]">
+            <div id="section-overview" className="scroll-mt-[180px] lg:scroll-mt-[120px] pb-10 border-b border-[var(--border)]">
               {/* Breadcrumb */}
               <div className="flex items-center gap-1.5 text-xs text-[var(--text-muted)] mb-4">
                 <Link href="/" className="hover:text-[var(--primary)]">Home</Link>
@@ -574,7 +606,7 @@ export default function ProjectDetailClient({ project }: { project: Project }) {
             </div>
 
             {/* ── LOCATION ─────────────────────────────── */}
-            <div id="section-location" className="scroll-mt-36 py-10 border-b border-[var(--border)]">
+            <div id="section-location" className="scroll-mt-[180px] lg:scroll-mt-[120px] py-10 border-b border-[var(--border)]">
               <h2 className="text-lg font-black text-[var(--text-primary)] mb-4"
                 style={{ fontFamily: 'var(--font-display)' }}>
                 {project.name} Location
@@ -592,7 +624,7 @@ export default function ProjectDetailClient({ project }: { project: Project }) {
 
             {/* ── AMENITIES ──────────────────────────── */}
             {((project.internalAmenities?.length || project.externalAmenities?.length || project.amenities?.length)) && (
-              <div id="section-amenities" className="scroll-mt-36 py-10 border-b border-[var(--border)]">
+              <div id="section-amenities" className="scroll-mt-[180px] lg:scroll-mt-[120px] py-10 border-b border-[var(--border)]">
                 <h2 className="text-lg font-black text-[var(--text-primary)] mb-6"
                   style={{ fontFamily: 'var(--font-display)' }}>
                   {project.name} Amenities
@@ -606,7 +638,7 @@ export default function ProjectDetailClient({ project }: { project: Project }) {
             )}
 
             {/* ── FLOOR PLANS ──────────────────────────── */}
-            <div id="section-floor-plans" className="scroll-mt-36 py-10 border-b border-[var(--border)]">
+            <div id="section-floor-plans" className="scroll-mt-[180px] lg:scroll-mt-[120px] py-10 border-b border-[var(--border)]">
               <h2 className="text-lg font-black text-[var(--text-primary)] mb-6"
                 style={{ fontFamily: 'var(--font-display)' }}>
                 Master & Floor Plans
@@ -659,7 +691,7 @@ export default function ProjectDetailClient({ project }: { project: Project }) {
             </div>
 
             {/* ── PRICING ──────────────────────────────── */}
-            <div id="section-pricing" className="scroll-mt-36 py-10 border-b border-[var(--border)]">
+            <div id="section-pricing" className="scroll-mt-[180px] lg:scroll-mt-[120px] py-10 border-b border-[var(--border)]">
               <h2 className="text-lg font-black text-[var(--text-primary)] mb-6"
                 style={{ fontFamily: 'var(--font-display)' }}>
                 Pricing & Unit Plans
@@ -833,7 +865,7 @@ export default function ProjectDetailClient({ project }: { project: Project }) {
 
             {/* ── PROS & CONS ───────────────────────── */}
             {((project.pros && project.pros.length > 0) || (project.cons && project.cons.length > 0)) && (
-              <div id="section-pros-cons" className="scroll-mt-36 py-10 border-b border-[var(--border)]">
+              <div id="section-pros-cons" className="scroll-mt-[180px] lg:scroll-mt-[120px] py-10 border-b border-[var(--border)]">
                 <h2
                   className="text-lg font-black text-[var(--text-primary)] mb-6"
                   style={{ fontFamily: 'var(--font-display)' }}
@@ -894,7 +926,7 @@ export default function ProjectDetailClient({ project }: { project: Project }) {
             )}
 
             {/* ── LEGAL ────────────────────────────────── */}
-            <div id="section-legal" className="scroll-mt-36 py-10 border-b border-[var(--border)]">
+            <div id="section-legal" className="scroll-mt-[180px] lg:scroll-mt-[120px] py-10 border-b border-[var(--border)]">
               <h2 className="text-lg font-black text-[var(--text-primary)] mb-6"
                 style={{ fontFamily: 'var(--font-display)' }}>
                 Legal
@@ -929,7 +961,7 @@ export default function ProjectDetailClient({ project }: { project: Project }) {
             </div>
 
             {/* ── RERA ─────────────────────────────────── */}
-            <div id="section-rera" className="scroll-mt-36 py-10 border-b border-[var(--border)]">
+            <div id="section-rera" className="scroll-mt-[180px] lg:scroll-mt-[120px] py-10 border-b border-[var(--border)]">
               <h2 className="text-lg font-black text-[var(--text-primary)] mb-6"
                 style={{ fontFamily: 'var(--font-display)' }}>
                 RERA Registration
@@ -1029,7 +1061,7 @@ export default function ProjectDetailClient({ project }: { project: Project }) {
             )}
 
             {/* ── BUILDER ──────────────────────────────── */}
-            <div id="section-builder" className="scroll-mt-36 py-10">
+            <div id="section-builder" className="scroll-mt-[180px] lg:scroll-mt-[120px] py-10">
               <h2 className="text-lg font-black text-[var(--text-primary)] mb-4"
                 style={{ fontFamily: 'var(--font-display)' }}>
                 About {project.builderName}
@@ -1118,9 +1150,9 @@ export default function ProjectDetailClient({ project }: { project: Project }) {
 
           </div>
 
-          {/* ── RIGHT: sticky CTA panel ───────────────── */}
+          {/* ── RIGHT: sticky CTA panel — desktop only ── */}
           <div className="hidden lg:block lg:col-span-1">
-            <div className="sticky top-32 space-y-4">
+            <div className="lg:sticky lg:top-32 space-y-4">
 
               {/* Price + CTA */}
               <div className="p-5 bg-white border border-[var(--border)] rounded-[var(--radius-lg)] shadow-[var(--shadow)]">
