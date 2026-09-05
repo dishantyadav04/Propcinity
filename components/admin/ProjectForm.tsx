@@ -20,6 +20,7 @@ const FORM_SECTIONS: FormSection[] = [
   { id: 'media', label: 'Media' },
   { id: 'unit-layout', label: 'Units & Layout' },
   { id: 'pricing', label: 'Pricing' },
+  { id: 'rera', label: 'RERA' },
   { id: 'legal', label: 'Legal' },
   { id: 'amenities-nearby', label: 'Amenities & Nearby' },
 ];
@@ -1119,7 +1120,7 @@ export default function ProjectForm({ initialData }: ProjectFormProps) {
       </div>
 
       {/* RERA Status */}
-      <div className="bg-[var(--surface)] p-6 rounded-2xl border border-[var(--border)] space-y-4">
+      <div id="rera" className="bg-[var(--surface)] p-6 rounded-2xl border border-[var(--border)] space-y-4">
         <h3 className="text-sm font-bold text-[var(--text-primary)] uppercase tracking-widest">RERA Status</h3>
         <div className="max-w-xs">
           <select

@@ -13,7 +13,7 @@ export default function AdminLayoutClient({ children }: { children: React.ReactN
       <div className="flex flex-col flex-1 min-w-0">
         <AdminHeader onToggleSidebar={() => setSidebarOpen(v => !v)} />
         <main className="flex-1 md:overflow-y-auto md:overscroll-contain">
-          <div className="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8 pb-24 sm:pb-8">
+          <div className="p-4 sm:p-6 lg:p-8 pb-24 sm:pb-8">
             {children}
           </div>
         </main>
