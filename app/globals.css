@@ -167,8 +167,10 @@ h1, h2, h3, h4, h5, h6 {
 @media (min-width: 640px) { .card-grid { grid-template-columns: repeat(2, 1fr); } }
 @media (min-width: 1024px) { .card-grid { grid-template-columns: repeat(3, 1fr); } }
 
-/* Prevent body overflow scroll artifacts */
-html, body { overflow-x: hidden; }
+/* Prevent body overflow scroll artifacts.
+   IMPORTANT: Do NOT set overflow-x on <html> — it breaks position: sticky
+   for pages that scroll via the window (e.g. the project detail page). */
+body { overflow-x: hidden; }
 
 /* Suppress Leaflet divIcon default blue box */
 .leaflet-marker-icon {
