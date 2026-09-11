@@ -11,7 +11,7 @@ import Link from 'next/link';
 import Skeleton from '@/components/ui/Skeleton';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
-import { getMatchPercent } from '@/lib/match-score';
+import { getMatchPercent, MIN_RECOMMENDED_SCORE } from '@/lib/match-score';
 import { storage, STORAGE_KEYS } from '@/lib/storage';
 import { useGuestMode } from '@/hooks/useGuestMode';
 import PersonalizedWelcome from '@/components/onboarding/PersonalizedWelcome';
@@ -56,8 +56,8 @@ function getSmartMatchLabel(project: Project, intent: any): string | null {
   return null;
 }
 
-function smartRankProjects(projects: Project[], intent: any): string[] {
-  if (!intent) return projects.map(p => p.id);
+function smartRankProjects(projects: Project[], intent: any): { id: string; score: number; tier: number }[] {
+  if (!intent) return projects.map(p => ({ id: p.id, score: 0, tier: 3 }));
 
   const uMin = intent.budget?.min || 0;
   const uMax = intent.budget?.isOpenMax ? Infinity : (intent.budget?.max || Infinity);
@@ -128,7 +128,7 @@ function smartRankProjects(projects: Project[], intent: any): string[] {
   });
 
   scored.sort((a, b) => a.tier !== b.tier ? a.tier - b.tier : b.score - a.score);
-  return scored.map(s => s.id);
+  return scored; // keep { id, score, tier } — displayResults needs score to filter, not just order
 }
 
 export default function DashboardPage() {
@@ -149,6 +149,12 @@ export default function DashboardPage() {
   const [reasoning, setReasoning] = useState<Record<string, string>>({})
   const [aiRankDone, setAiRankDone] = useState(false)
   const [aiRankSource, setAiRankSource] = useState<'js' | 'ai' | 'cache'>('js')
+
+  const aiScoreMap = useMemo(() => {
+    if (!userIntent) return new Map<string, number>();
+    const scored = smartRankProjects(projects, userIntent); // returns {id,score,tier}[]
+    return new Map(scored.map(s => [s.id, s.score]));
+  }, [projects, userIntent]);
 
   useEffect(() => {
     const loadFromStorage = () => {
@@ -269,8 +275,9 @@ export default function DashboardPage() {
     setAiLoading(true)
     try {
       const scored = smartRankProjects(projects, userIntent)
-      setAiRecommended(scored)
-      storage.set(STORAGE_KEYS.RECO_CACHE, scored)
+      const scoredIds = scored.map(s => s.id)
+      setAiRecommended(scoredIds)
+      storage.set(STORAGE_KEYS.RECO_CACHE, scoredIds)
 
       // Push intent to Supabase for cross-device persistence
       if (userIntent) {
@@ -407,20 +414,29 @@ export default function DashboardPage() {
       return curatedProjects;
     }
 
+    const TOP_N = 10;
+
     if (aiRecommended.length > 0) {
       const recommended = aiRecommended
         .map(id => available.find(p => p.id === id))
-        .filter((p): p is Project => p !== undefined);
-      const rest = available
-        .filter(p => !aiRecommended.includes(p.id))
-        .sort((a, b) => (b.constructionPercent || 0) - (a.constructionPercent || 0));
-      return [...recommended, ...rest].slice(0, 12);
+        .filter((p): p is Project => p !== undefined)
+        .filter(p => (aiScoreMap.get(p.id) ?? 0) >= MIN_RECOMMENDED_SCORE); // ⬅ real quality bar
+
+      // Only backfill with non-matches if genuine matches fall short of TOP_N —
+      // don't pad a "Top Picks" list with properties that failed the bar.
+      const rest = recommended.length < TOP_N
+        ? available
+            .filter(p => !recommended.some(r => r.id === p.id))
+            .sort((a, b) => (b.constructionPercent || 0) - (a.constructionPercent || 0))
+        : [];
+
+      return [...recommended, ...rest].slice(0, TOP_N);
     }
 
     return [...available]
       .sort((a, b) => (b.constructionPercent || 0) - (a.constructionPercent || 0))
-      .slice(0, 12);
-  }, [projects, aiRecommended, curatedIds, rejectedIds, storageReady]);
+      .slice(0, TOP_N);
+  }, [projects, aiRecommended, curatedIds, rejectedIds, storageReady, aiScoreMap]);
 
   const showSkeleton =
     isChecking ||

@@ -139,3 +139,7 @@ export function scoreMatchedUnit(project: Project, unit: UnitConfig, intent: Use
     budgetFit,
   }
 }
+
+// A project only counts as a genuine recommendation if it clears this bar.
+// Tune once you see real score spread across your test data.
+export const MIN_RECOMMENDED_SCORE = 45; // out of 90 (~50%)
