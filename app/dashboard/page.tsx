@@ -11,7 +11,7 @@ import Link from 'next/link';
 import Skeleton from '@/components/ui/Skeleton';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
-import { getMatchPercent, MIN_RECOMMENDED_SCORE } from '@/lib/match-score';
+import { getMatchPercent, getMatchDetails, TIER_FAIR } from '@/lib/match-score';
 import { storage, STORAGE_KEYS } from '@/lib/storage';
 import { useGuestMode } from '@/hooks/useGuestMode';
 import PersonalizedWelcome from '@/components/onboarding/PersonalizedWelcome';
@@ -56,79 +56,11 @@ function getSmartMatchLabel(project: Project, intent: any): string | null {
   return null;
 }
 
-function smartRankProjects(projects: Project[], intent: any): { id: string; score: number; tier: number }[] {
-  if (!intent) return projects.map(p => ({ id: p.id, score: 0, tier: 3 }));
-
-  const uMin = intent.budget?.min || 0;
-  const uMax = intent.budget?.isOpenMax ? Infinity : (intent.budget?.max || Infinity);
-  const budgetFlex = uMax === Infinity ? Infinity : uMax * 1.2;
-
-  const scored = projects.map(project => {
-    const types = (project.unitConfigs || []).map((u) => (u.type || '').toLowerCase());
-    const prices = (project.unitConfigs || []).map((u) => u.price).filter(Boolean);
-    const pMin = prices.length ? Math.min(...prices) : 0;
-    const pMax = prices.length
-      ? Math.max(...(project.unitConfigs || []).map((u) => u.price).filter(Boolean))
-      : 0;
-
-    let score = 0;
-    let tier = 3;
-
-    const pLoc = (project.location || '').toLowerCase();
-    const exactLoc = intent.subLocations?.length > 0
-      ? intent.subLocations.some((sl: string) => {
-          const s = sl.toLowerCase();
-          return pLoc.includes(s) || s.includes(pLoc);
-        })
-      : true;
-    score += exactLoc ? 30 : 5;
-
-    const exactBHK = intent.bhkType?.length > 0
-      ? intent.bhkType.some((bhk: string) =>
-          types.some((t: string) => t === bhk.toLowerCase() || t.includes(bhk.toLowerCase()))
-        )
-      : true;
-
-    const BHK_ORDER = ['1bhk', '2bhk', '3bhk', '4bhk', '5bhk'];
-    const adjacentBHK = !exactBHK && intent.bhkType?.length > 0
-      ? intent.bhkType.some((bhk: string) => {
-          const idx = BHK_ORDER.indexOf(bhk.toLowerCase());
-          if (idx < 0) return false;
-          const adjacent = [BHK_ORDER[idx - 1], BHK_ORDER[idx + 1]].filter(Boolean);
-          return adjacent.some(ab => types.some((t: string) => t.includes(ab)));
-        })
-      : false;
-
-    if (exactBHK) { score += 20; tier = Math.min(tier, 1); }
-    else if (adjacentBHK) { score += 10; tier = Math.min(tier, 2); }
-    else { score += 3; }
-
-    if (uMin > 0 || uMax < Infinity) {
-      if (pMin <= uMax && pMax >= uMin) { score += 20; }
-      else if (pMin <= budgetFlex && pMax >= uMin) { score += 8; tier = Math.max(tier, 2); }
-      else { score += 2; tier = 3; }
-    } else {
-      score += 10;
-    }
-
-    if (intent.propertyType?.length > 0) {
-      const match = intent.propertyType.some((sel: string) => {
-        const s = sel.toLowerCase();
-        if (s === 'apartment') return types.some((t: string) => /^\d/.test(t) || t.includes('bhk'));
-        if (s === 'villa') return types.some((t: string) => t.includes('villa'));
-        if (s === 'plot') return types.some((t: string) => t.includes('plot'));
-        return false;
-      });
-      score += match ? 20 : 3;
-    } else {
-      score += 10;
-    }
-
-    return { id: project.id, score, tier };
-  });
-
-  scored.sort((a, b) => a.tier !== b.tier ? a.tier - b.tier : b.score - a.score);
-  return scored; // keep { id, score, tier } — displayResults needs score to filter, not just order
+function smartRankProjects(projects: Project[], intent: any) {
+  return projects
+    .map(p => ({ id: p.id, ...getMatchDetails(p, intent) }))
+    .filter(s => !s.excluded)
+    .sort((a, b) => b.percent - a.percent);
 }
 
 export default function DashboardPage() {
@@ -152,8 +84,7 @@ export default function DashboardPage() {
 
   const aiScoreMap = useMemo(() => {
     if (!userIntent) return new Map<string, number>();
-    const scored = smartRankProjects(projects, userIntent); // returns {id,score,tier}[]
-    return new Map(scored.map(s => [s.id, s.score]));
+    return new Map(smartRankProjects(projects, userIntent).map(s => [s.id, s.percent]));
   }, [projects, userIntent]);
 
   useEffect(() => {
@@ -417,20 +348,12 @@ export default function DashboardPage() {
     const TOP_N = 10;
 
     if (aiRecommended.length > 0) {
-      const recommended = aiRecommended
+      const ranked = aiRecommended
         .map(id => available.find(p => p.id === id))
-        .filter((p): p is Project => p !== undefined)
-        .filter(p => (aiScoreMap.get(p.id) ?? 0) >= MIN_RECOMMENDED_SCORE); // ⬅ real quality bar
+        .filter((p): p is Project => !!p)
+        .filter(p => (aiScoreMap.get(p.id) ?? 0) >= TIER_FAIR); // real floor, not a default pass
 
-      // Only backfill with non-matches if genuine matches fall short of TOP_N —
-      // don't pad a "Top Picks" list with properties that failed the bar.
-      const rest = recommended.length < TOP_N
-        ? available
-            .filter(p => !recommended.some(r => r.id === p.id))
-            .sort((a, b) => (b.constructionPercent || 0) - (a.constructionPercent || 0))
-        : [];
-
-      return [...recommended, ...rest].slice(0, TOP_N);
+      return ranked.slice(0, TOP_N); // no backfill with non-matches — a shorter list is correct here
     }
 
     return [...available]

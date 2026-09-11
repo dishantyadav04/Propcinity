@@ -632,7 +632,7 @@ function ExplorePageContent({ initialProjects }: { initialProjects: Project[] })
                   index={index}
                   hideCuratedButton={true}
                   priority={index === 0}
-                  matchScore={userIntent ? Math.min(100, Math.round((scoreByIntent(project, userIntent) / 90) * 100)) : undefined}
+                  matchScore={userIntent ? getMatchPercent(project, userIntent) : undefined}
                   isComparing={compareIds.includes(project.id)}
                   onCompare={() => {
                     addToCompare(project);
