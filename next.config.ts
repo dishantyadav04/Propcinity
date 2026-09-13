@@ -63,7 +63,9 @@ const nextConfig: NextConfig = {
       // PostHog SDK requires unsafe-eval for session recording and feature flags.
       // blob: is needed for PostHog's worker-based session recording scripts.
       // Both us-assets.i.posthog.com and us.i.posthog.com host lazy-loaded SDK bundles.
-      `script-src 'self' 'unsafe-inline' 'unsafe-eval' blob: https://www.googletagmanager.com https://us-assets.i.posthog.com https://us.i.posthog.com ${process.env.NEXT_PUBLIC_POSTHOG_HOST || 'https://ingest.propcinity.in'}`,
+      // https://tagassistant.google.com is required for GTM Preview mode's
+      // debug connector — without it, Preview mode fails to connect at all.
+      `script-src 'self' 'unsafe-inline' 'unsafe-eval' blob: https://www.googletagmanager.com https://tagassistant.google.com https://us-assets.i.posthog.com https://us.i.posthog.com ${process.env.NEXT_PUBLIC_POSTHOG_HOST || 'https://ingest.propcinity.in'}`,
       // Styles: self + inline (Tailwind requires this)
       "style-src 'self' 'unsafe-inline'",
       // Images: self, data URIs, R2 bucket, Supabase storage
@@ -82,13 +84,14 @@ const nextConfig: NextConfig = {
         'https://overpass-api.de',
         'https://*.tile.openstreetmap.org',
         'https://www.googletagmanager.com',
+        'https://tagassistant.google.com',
         'https://www.google-analytics.com',
         'https://analytics.google.com',
         isDev ? 'ws://localhost:*' : '',
       ].filter(Boolean).join(' '),
       "font-src 'self' data:",
       `worker-src 'self' blob: ${process.env.NEXT_PUBLIC_POSTHOG_HOST || 'https://ingest.propcinity.in'} https://us-assets.i.posthog.com https://us.i.posthog.com`,
-      "frame-src 'self' https://www.googletagmanager.com",
+      "frame-src 'self' https://www.googletagmanager.com https://tagassistant.google.com",
       "frame-ancestors 'none'",
       "base-uri 'self'",
       "form-action 'self'",
