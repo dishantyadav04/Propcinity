@@ -46,6 +46,7 @@ export default function UnitConfigForm({ units, onChange, errors }: UnitConfigFo
       facing: ['East'],
       highlights: ['Spacious Balcony'],
       minDownpayment: undefined,
+      parking: 1,
     }]);
     toast("New config added", { duration: 2500 });
   };

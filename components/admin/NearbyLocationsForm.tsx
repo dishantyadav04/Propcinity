@@ -8,6 +8,7 @@ const CATEGORIES = [
   { value: 'school', label: '🏫 School' },
   { value: 'hospital', label: '🏥 Hospital' },
   { value: 'mall', label: '🛍️ Mall' },
+  { value: 'supermarket', label: '🛒 Supermarket' },
   { value: 'metro', label: '🚇 Metro / Transit' },
   { value: 'it_park', label: '💼 IT Park' },
   { value: 'park', label: '🌳 Park' },
