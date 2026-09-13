@@ -14,13 +14,13 @@ const MapView = dynamic(() => import("@/components/map/MapView"), {
 });
 
 const CATEGORY_ICONS: Record<ManualNearbyLocation['category'], string> = {
-  school: '🏫', hospital: '🏥', mall: '🛍️', metro: '🚇',
+  school: '🏫', hospital: '🏥', mall: '🛍️', supermarket: '🛒', metro: '🚇',
   it_park: '💼', park: '🌳', restaurant: '🍽️', bank: '🏦',
   pharmacy: '💊', other: '📍',
 };
 
 const CATEGORY_LABELS: Record<ManualNearbyLocation['category'], string> = {
-  school: 'School', hospital: 'Hospital', mall: 'Mall', metro: 'Metro / Transit',
+  school: 'School', hospital: 'Hospital', mall: 'Mall', supermarket: 'Supermarket', metro: 'Metro / Transit',
   it_park: 'IT Park', park: 'Park', restaurant: 'Restaurant', bank: 'Bank',
   pharmacy: 'Pharmacy', other: 'Nearby',
 };
